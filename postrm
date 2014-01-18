@@ -1,0 +1,3 @@
+if [ "$1" = purge ]; then
+  update-rc.d mountfirefuse.sh remove
+fi

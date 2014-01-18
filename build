@@ -1,0 +1,46 @@
+#! /bin/bash
+if [ ! -e /usr/local/include/jansson.h ]
+then
+	echo "++++++++++++++++++ INSTALLING JANNSON C LIBRARY ++++++++++++"
+	apt-get -y install dh-autoreconf
+	git clone git://github.com/akheron/jansson ~pi/jannson
+	pushd ~pi/jannson
+	autoreconf -i
+	./configure
+	cmake .
+	make install
+	popd
+	
+fi
+if [ ! -e /usr/include/boost ]
+then
+	echo "++++++++++++++++++ INSTALLING BOOST C++ LIBRARIES ++++++++++++"
+	apt-get -y install libboost1.50-all
+fi
+if [ ! -e /usr/include/fuse.h ] 
+then
+	echo "++++++++++++++++++ INSTALLING FUSE C LIBRARIES ++++++++++++"
+	apt-get -y install libfuse-dev
+	ex -s -c "g/#user_allow_other/s/#//" -c wq /etc/fuse.conf
+	cp firefuse.conf /etc/ld.so.conf.d/
+	ldconfig
+fi
+if [ ! -e /usr/lib/libopencv_features2d.so ] 
+then
+	echo "++++++++++++++++++ INSTALLING OPENCV C++ LIBRARIES ++++++++++++"
+	apt-get -y install libopencv-dev
+fi
+
+if [ -e CMakeFiles ] 
+then 
+	echo removing existing makefiles
+	rm -rf CMakeFiles CMakeFiles.txt 
+fi
+
+
+echo creating makefiles
+cmake .
+#echo building and installing FireFuse...
+#make install
+#firefuse -o allow_other /dev/firefuse
+
