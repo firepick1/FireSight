@@ -1,5 +1,5 @@
 /*
-version.h https://github.com/firepick1/FireFuse/wiki
+version.h https://github.com/firepick1/FireSight/wiki
 
 Copyright (C) 2013  Karl Lew, <karl@firepick.org>
 
@@ -28,8 +28,8 @@ extern "C" {
 //////////// GENERATED FILE (from version.h.in) /////////////////
 //////////// GENERATED FILE (from version.h.in) /////////////////
 
-#define FireFuse_VERSION_MAJOR 0
-#define FireFuse_VERSION_MINOR 1
+#define FireSight_VERSION_MAJOR 0
+#define FireSight_VERSION_MINOR 1
 
 //////////// GENERATED FILE (from version.h.in) /////////////////
 //////////// GENERATED FILE (from version.h.in) /////////////////

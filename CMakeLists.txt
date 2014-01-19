@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
+SET(CMAKE_INSTALL_PREFIX /usr)
+
 project( FireSight )
 SET(COMPILE_DEFINITIONS -Werror)
 SET(FireSight_VERSION_MAJOR 0)
@@ -22,10 +24,12 @@ configure_file (
 #include_directories(/usr/local/include)
 find_package( OpenCV REQUIRED )
 
-add_executable(firesight FireSightMain.cpp FireLog.c FireSight.cpp )
-#target_link_libraries(firesight /usr/local/lib/libfirepicam.so ${OpenCV_LIBS})
-target_link_libraries(firesight ${OpenCV_LIBS})
+add_library(firesight SHARED FireLog.c FireSight.cpp )
+target_link_libraries(firesight ${OpenCV_LIBS} )
 
-#INSTALL(TARGETS firefuse DESTINATION bin)
-#INSTALL(PROGRAMS mountfirefuse.sh DESTINATION /etc/init.d/)
+add_executable(firesightmain FireSightMain.cpp )
+target_link_libraries(firesightmain ${FireSight_BINARY_DIR}/libfiresight.so ${OpenCV_LIBS} )
+
+INSTALL(TARGETS firesight DESTINATION lib)
+INSTALL(FILES FireSight.hpp DESTINATION include)
 

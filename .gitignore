@@ -13,8 +13,8 @@
 *.a
 
 # Other stuff
-firefuse
 firesight
+firesightmain
 CMakeCache.txt
 install_manifest.txt
 CMakeFiles/*

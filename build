@@ -40,7 +40,6 @@ fi
 
 echo creating makefiles
 cmake .
-#echo building and installing FireFuse...
-#make install
-#firefuse -o allow_other /dev/firefuse
+echo building and installing FireSight...
+make install
 
