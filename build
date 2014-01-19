@@ -34,12 +34,12 @@ fi
 if [ -e CMakeFiles ] 
 then 
 	echo removing existing makefiles
-	rm -rf CMakeFiles CMakeFiles.txt 
+	rm -rf CMakeCache.txt CMakeFiles CMakeFiles.txt *.cmake
 fi
 
 
 echo creating makefiles
-cmake .
+cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .
 echo building and installing FireSight...
 make install
 

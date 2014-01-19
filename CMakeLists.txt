@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 2.8)
-SET(CMAKE_INSTALL_PREFIX /usr)
 
 project( FireSight )
 SET(COMPILE_DEFINITIONS -Werror)
@@ -21,7 +20,6 @@ configure_file (
 	"${PROJECT_BINARY_DIR}/version.h"
 	)
 
-#include_directories(/usr/local/include)
 find_package( OpenCV REQUIRED )
 
 add_library(firesight SHARED FireLog.c FireSight.cpp )
