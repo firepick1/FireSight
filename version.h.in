@@ -9,8 +9,8 @@ extern "C" {
 //////////// GENERATED FILE (from version.h.in) /////////////////
 //////////// GENERATED FILE (from version.h.in) /////////////////
 
-#define VERSION_MAJOR @FireSight_VERSION_MAJOR@
-#define VERSION_MINOR @FireSight_VERSION_MINOR@
+#define VERSION_MAJOR @firesight_VERSION_MAJOR@
+#define VERSION_MINOR @firesight_VERSION_MINOR@
 
 //////////// GENERATED FILE (from version.h.in) /////////////////
 //////////// GENERATED FILE (from version.h.in) /////////////////
