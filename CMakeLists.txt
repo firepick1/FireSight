@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 
-project( FireSight )
+project( firesight )
+include_directories( "/usr/local/include" )
 SET(COMPILE_DEFINITIONS -Werror)
 SET(firesight_VERSION_MAJOR 0)
 SET(firesight_VERSION_MINOR 1)
@@ -29,7 +30,7 @@ target_link_libraries(firesight ${OpenCV_LIBS} )
 set_target_properties(firesight PROPERTIES VERSION ${firesight_VERSION_STRING} SOVERSION ${firesight_VERSION_MAJOR})
 
 add_executable(firesightmain FireSightMain.cpp )
-target_link_libraries(firesightmain ${FireSight_BINARY_DIR}/libfiresight.so ${OpenCV_LIBS} )
+target_link_libraries(firesightmain /usr/local/lib/libjansson.a ${firesight_BINARY_DIR}/libfiresight.so ${OpenCV_LIBS} )
 
 INSTALL(TARGETS firesight DESTINATION lib)
 INSTALL(FILES FireSight.hpp DESTINATION include)

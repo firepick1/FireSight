@@ -3,8 +3,12 @@
 #define FIRESIGHT_HPP
 
 #include "opencv2/features2d/features2d.hpp"
+#include <vector>
 
 using namespace cv;
+using namespace std;
+
+#define TIME_NOW -1
 
 namespace FireSight {
 	typedef struct MatchedRegion {
@@ -41,6 +45,36 @@ namespace FireSight {
 				Mat &matRGB, vector<MatchedRegion> &matches, float maxEllipse, float maxCovar);
 
 	} MSER_holes;
+
+	typedef class FireSight {
+	  public: 
+			/**
+			 * Constructor
+			 * @param perceptionDepth number of images to cache for analysis
+			 */
+		  FireSight(int perceptionDepth);
+
+			/**
+			 * Transform specified image 
+			 * @param json specification for image source and analysis
+			 * @param time used for perception synchronization
+			 * @returns transformed OpenCV image 
+			 */
+			Mat processImage(const char* json, int time=TIME_NOW);
+
+			/**
+			 * Analyze image as specified by given json string 
+			 * @param json specification for image source and analysis
+			 * @param time used for perception synchronization
+			 * @returns analyzed model json string that caller must free()
+			 */
+			const char * processModel(const char* json, int time=TIME_NOW);
+
+	  private:
+		  int perceptionDepth;
+			int currentTime;
+			vector<Mat> sourceCache;
+	} FireSight;
 
 } // namespace FireSight
 

@@ -8,6 +8,7 @@
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+#include "jansson.h"
 
 using namespace cv;
 using namespace std;
@@ -140,5 +141,15 @@ void HoleRecognizer::scan(Mat &matRGB, vector<MatchedRegion> &matches, float max
 	for( int i = 0; i < nRegions; i++) {
 		scanRegion(regions[i], i, matRGB, matches, maxEllipse, maxCovar);
 	}
+}
+
+FireSight::FireSight(int perceptionDepth) {
+  this->perceptionDepth = perceptionDepth;
+}
+
+Mat FireSight::processImage(const char* json, int time) {
+}
+
+const char * processModel(const char* json, int time) {
 }
 
