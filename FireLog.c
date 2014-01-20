@@ -1,5 +1,5 @@
-
 #include "FireLog.h"
+#include "version.h"
 
 #include <errno.h>
 #include <time.h>
@@ -19,7 +19,7 @@ int firelog_init(char *path, int level) {
   if (!logFile) {
     return errno;
   }
-  LOGINFO1("FireLog %s", path);
+  LOGINFO3("FireLog %s %d.%d", path, VERSION_MAJOR, VERSION_MINOR);
 	firelog_lastMessageClear();
   return 0;
 }

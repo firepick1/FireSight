@@ -15,8 +15,10 @@
 # Other stuff
 firesight
 firesightmain
+version.h
 CMakeCache.txt
 install_manifest.txt
 CMakeFiles/*
 *.cmake
 Makefile
+
