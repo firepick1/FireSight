@@ -46,11 +46,46 @@ extern "C" {
 extern int logLevel;
 extern FILE *logFile;
 
-int firelog_init(char *path, int level);
+/**
+ * By default, logging output is sent to cout. You can also call
+ * firelog_init() to send log output to logfile specified by path.
+ * If you do call firelog_init(), you must also call firelog_destroy().
+ * @param path to logfile
+ * @param level logging level
+ * @return 0 for success
+ */
+int firelog_init(const char *path, int level = FIRELOG_WARN);
+
+/**
+ * Release resources allocated by firelog_init().
+ */
 int firelog_destroy();
+
+/**
+ * Change logging level.
+ * @param newLevel E.g., FIRELOG_TRACE
+ * @return former logging level
+ */
 int firelog_level(int newLevel);
+
+/**
+ * Return last message
+ * @param level logging level
+ * @return Last message logged for given level
+ */
 const char * firelog_lastMessage(int level);
+
+/**
+ * (INTERNAL)
+ * Clear cache of logging messages
+ */
 void firelog_lastMessageClear();
+
+/**
+ * (INTERNAL)
+ * Do not call main logging function directly.
+ * Use logging defines instead.
+ */
 void firelog(const char *fmt, int level, const void * value1, const void * value2, const void * value3);
 
 #ifdef __cplusplus

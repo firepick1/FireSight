@@ -1,4 +1,3 @@
-
 #ifndef FIRESIGHT_HPP
 #define FIRESIGHT_HPP
 
@@ -46,18 +45,26 @@ namespace FireSight {
 
 	} MSER_holes;
 
-	typedef class FireSight {
+	typedef class Analyzer {
 	  public: 
 			/**
 			 * Constructor
-			 * @param perceptionDepth number of images to cache for analysis
+			 * @param perceptionDepth number of images to cache for perceptual timeline
 			 */
-		  FireSight(int perceptionDepth);
+		  Analyzer(int perceptionDepth=1);
 
+			/**
+			 * Process the given json array as a pipeline of successive scanning commands for the given perceptual time
+			 * @param json array of json command objects (e.g., {"op":"HoleRecognizer","aMin":25.2,"aMax":29.3})
+			 * @param time specifies a point on a discrete abstract perceptual timeline
+			 */
+		  void process(const char* json, int time=TIME_NOW);
+
+			#ifdef LATER
 			/**
 			 * Transform specified image 
 			 * @param json specification for image source and analysis
-			 * @param time used for perception synchronization
+			 * @param time specifies a point on a discrete abstract perceptual timeline
 			 * @returns transformed OpenCV image 
 			 */
 			Mat processImage(const char* json, int time=TIME_NOW);
@@ -65,16 +72,17 @@ namespace FireSight {
 			/**
 			 * Analyze image as specified by given json string 
 			 * @param json specification for image source and analysis
-			 * @param time used for perception synchronization
+			 * @param time specifies a point on a discrete abstract perceptual timeline
 			 * @returns analyzed model json string that caller must free()
 			 */
 			const char * processModel(const char* json, int time=TIME_NOW);
+			#endif
 
 	  private:
 		  int perceptionDepth;
 			int currentTime;
 			vector<Mat> sourceCache;
-	} FireSight;
+	} Analyzer;
 
 } // namespace FireSight
 

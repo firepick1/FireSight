@@ -6,14 +6,18 @@
 #include <string.h>
 #include <sys/syscall.h>
 
+#include <boost/format.hpp>
+
 #define LOGMAX 255
+
+using namespace std;
 
 FILE *logFile = NULL;
 int logLevel = FIRELOG_WARN;
 char lastMessage[5][LOGMAX+1];
 
 
-int firelog_init(char *path, int level) {
+int firelog_init(const char *path, int level) {
   logLevel = level;
   logFile = fopen(path, "w");
   if (!logFile) {
@@ -50,17 +54,36 @@ void firelog_lastMessageClear() {
 int firelog_level(int newLevel) {
   int oldLevel = logLevel;
   logLevel = newLevel;
-  LOGINFO1("firelog_level(%d)", newLevel);
+	switch (newLevel) {
+	  case FIRELOG_ERROR:
+			LOGINFO1("firelog_level(%s)", "FIRELOG_ERROR");
+			break;
+	  case FIRELOG_WARN:
+			LOGINFO1("firelog_level(%s)", "FIRELOG_WARN");
+			break;
+	  case FIRELOG_INFO:
+			LOGINFO1("firelog_level(%s)", "FIRELOG_INFO");
+			break;
+	  case FIRELOG_DEBUG:
+			LOGINFO1("firelog_level(%s)", "FIRELOG_DEBUG");
+			break;
+	  case FIRELOG_TRACE:
+			LOGINFO1("firelog_level(%s)", "FIRELOG_TRACE");
+			break;
+		default:
+			LOGINFO1("firelog_level(unknown level %d)", newLevel);
+			break;
+	}
   return oldLevel;
 }
 
 void firelog(const char *fmt, int level, const void * value1, const void * value2, const void * value3) {
-  if (logFile) {
-    time_t now = time(NULL);
-    struct tm *pLocalNow = localtime(&now);
-    int tid = syscall(SYS_gettid);
-		char logBuf[LOGMAX+1];
+	time_t now = time(NULL);
+	struct tm *pLocalNow = localtime(&now);
+	int tid = syscall(SYS_gettid);
+	char logBuf[LOGMAX+1];
 
+  if (logFile) {
     fprintf(logFile, "%02d:%02d:%02d ", pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec);
     switch (level) {
       case FIRELOG_ERROR: fprintf(logFile, "ERROR %d ", tid); break;
@@ -75,4 +98,19 @@ void firelog(const char *fmt, int level, const void * value1, const void * value
     fprintf(logFile, "\n", tid);
     fflush(logFile);
   }
+#ifdef __cplusplus
+  else {
+		cout << pLocalNow->tm_hour << ":" << pLocalNow->tm_min << ":" << pLocalNow->tm_sec;
+    switch (level) {
+      case FIRELOG_ERROR: cout << "ERROR " ; break;
+      case FIRELOG_WARN: cout << "WARN " ; break;
+      case FIRELOG_INFO: cout << "INFO " ; break;
+      case FIRELOG_DEBUG: cout << "DEBUG " ; break;
+      case FIRELOG_TRACE: cout << "TRACE " ; break;
+      default: cout << "?" << level << "? " ; break;
+    }
+		sprintf(lastMessage[level], fmt, value1, value2, value3);
+		cout << tid << " " << lastMessage[level] << endl;
+	}
+#endif
 }

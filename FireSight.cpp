@@ -143,13 +143,28 @@ void HoleRecognizer::scan(Mat &matRGB, vector<MatchedRegion> &matches, float max
 	}
 }
 
-FireSight::FireSight(int perceptionDepth) {
+Analyzer::Analyzer(int perceptionDepth) {
   this->perceptionDepth = perceptionDepth;
 }
 
-Mat FireSight::processImage(const char* json, int time) {
-}
-
-const char * processModel(const char* json, int time) {
+void Analyzer::process(const char* json, int time) {
+	json_error_t jerr;
+	json_t *pNode = json_loads(json, 0, &jerr);
+	LOGTRACE2("Analyzer::process(%s,%d)", json, time);
+	if (!pNode) {
+		LOGERROR3("Analyzer::process %s src:%s line:%d", jerr.text, jerr.source, jerr.line);
+		return;
+	} else if (!json_is_array(pNode)) {
+		LOGERROR1("Analyzer::process expected json array: %s", json);
+		return;
+	}
+	size_t index;
+	json_t *pValue;
+	json_array_foreach(pNode, index, pValue) {
+		char *s = json_dumps(pValue, 0);
+		LOGTRACE1("Analyzer::process %s", s);
+		free(s);
+	}
+	free(pNode);
 }
 
