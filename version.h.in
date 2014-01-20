@@ -1,4 +1,3 @@
-
 #ifndef VERSION_H
 #define VERSION_H
 #ifdef __cplusplus
@@ -9,8 +8,8 @@ extern "C" {
 //////////// GENERATED FILE (from version.h.in) /////////////////
 //////////// GENERATED FILE (from version.h.in) /////////////////
 
-#define VERSION_MAJOR @firesight_VERSION_MAJOR@
-#define VERSION_MINOR @firesight_VERSION_MINOR@
+#define VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+#define VERSION_MINOR @PROJECT_VERSION_MINOR@
 
 //////////// GENERATED FILE (from version.h.in) /////////////////
 //////////// GENERATED FILE (from version.h.in) /////////////////

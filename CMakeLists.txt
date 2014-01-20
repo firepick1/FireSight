@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 
 project( firesight )
 SET(COMPILE_DEFINITIONS -Werror)
-SET(firesight_VERSION_MAJOR 0)
-SET(firesight_VERSION_MINOR 1)
-set(firesight_VERSION_PATCH 1)
-set(firesight_VERSION_STRING ${firesight_VERSION_MAJOR}.${firesight_VERSION_MINOR}.${firesight_VERSION_PATCH})
+SET(PROJECT_VERSION_MAJOR 0)
+SET(PROJECT_VERSION_MINOR 1)
+set(PROJECT_VERSION_PATCH 1)
+set(PROJECT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64")
 
@@ -13,28 +13,31 @@ include (InstallRequiredSystemLibraries)
 SET(CPACK_RESOURCE_FILE_LICENSE  
      "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 SET(CPACK_PACKAGE_GENERATED_WARNING "GENERATED FILE!!! DO NOT CHANGE!!!")
-SET(CPACK_PACKAGE_VERSION_MAJOR "${firesight_VERSION_MAJOR}")
-SET(CPACK_PACKAGE_VERSION_MINOR "${firesight_VERSION_MINOR}")
+SET(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
+SET(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 include (CPack)
+
+SET(BUILD_TARGET_DIR "${CMAKE_CURRENT_BINARY_DIR}/target")
+SET(LIBRARY_OUTPUT_PATH "${BUILD_TARGET_DIR}")
+SET(EXECUTABLE_OUTPUT_PATH "${BUILD_TARGET_DIR}")
 
 configure_file (
 	"${PROJECT_SOURCE_DIR}/version.h.in"
-	"${PROJECT_BINARY_DIR}/version.h"
+	"${BUILD_TARGET_DIR}/version.h"
 	)
 
 find_package( OpenCV REQUIRED )
 
-include_directories( /usr/local/include )
-link_directories( /usr/local/lib ${firesight_BINARY_DIR} )
+include_directories( /usr/local/include ${BUILD_TARGET_DIR})
+link_directories( /usr/local/lib )
 
-add_library(firesight SHARED FireLog.cpp FireSight.cpp )
+add_library(firesight SHARED FireLog.cpp HoleRecognizer.cpp MatchedRegion.cpp FireSight.cpp )
 target_link_libraries(firesight libjansson.a ${OpenCV_LIBS} )
-set_target_properties(firesight PROPERTIES VERSION ${firesight_VERSION_STRING} SOVERSION ${firesight_VERSION_MAJOR})
+set_target_properties(firesight PROPERTIES VERSION ${PROJECT_VERSION_STRING} SOVERSION ${PROJECT_VERSION_MAJOR})
 
 add_executable(firesightmain FireSightMain.cpp )
 target_link_libraries(firesightmain libjansson.a libfiresight.so ${OpenCV_LIBS} )
 
 INSTALL(TARGETS firesight DESTINATION lib)
-INSTALL(FILES FireLog.h DESTINATION include)
-INSTALL(FILES FireSight.hpp DESTINATION include)
+INSTALL(FILES FireLog.h FireSight.hpp DESTINATION include)
 
