@@ -93,7 +93,7 @@ void firelog(const char *fmt, int level, const void * value1, const void * value
   if (logFile) {
     fprintf(logFile, "%02d:%02d:%02d ", pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec);
     switch (level) {
-      case FIRELOG_ERROR: fprintf(logFile, " E "); break;
+      case FIRELOG_ERROR: fprintf(logFile, " ERROR "); break;
       case FIRELOG_WARN: fprintf(logFile, " W "); break;
       case FIRELOG_INFO: fprintf(logFile, " I "); break;
       case FIRELOG_DEBUG: fprintf(logFile, " D "); break;
@@ -112,7 +112,7 @@ void firelog(const char *fmt, int level, const void * value1, const void * value
   else {
 		cout << pLocalNow->tm_hour << ":" << pLocalNow->tm_min << ":" << pLocalNow->tm_sec;
     switch (level) {
-      case FIRELOG_ERROR: cout << " E " ; break;
+      case FIRELOG_ERROR: cout << " ERROR " ; break;
       case FIRELOG_WARN: cout << " W " ; break;
       case FIRELOG_INFO: cout << " I " ; break;
       case FIRELOG_DEBUG: cout << " D " ; break;

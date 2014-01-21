@@ -23,11 +23,23 @@ namespace FireSight {
 	} MatchedRegion;
 
 	typedef class HoleRecognizer {
+#define HOLE_SHOW_NONE 0 /* do not show matches */
+#define HOLE_SHOW_MSER 1 /* show all MSER matches */
+#define HOLE_SHOW_MATCHES 2 /* only show MSER matches that meet hole criteria */ 
 		public: 
 			HoleRecognizer(float minDiameter, float maxDiameter);
+
+			/**
+			 * Update the working image to show MSER matches.
+			 * Image must have at least three channels representing RGB values.
+			 * @param show matched regions. Default is HOLE_SHOW_NONE
+			 */
+			void showMatches(int show);
+
 			void scan(Mat &matRGB, vector<MatchedRegion> &matches, float maxEllipse = 1.05, float maxCovar = 2.0);
 
 		private:
+		  int _showMatches;
 			MSER mser;
 			float minDiam;
 			float maxDiam;
@@ -47,6 +59,8 @@ namespace FireSight {
 
 	typedef class Analyzer {
 	  public: 
+			Mat workingImage;
+
 			/**
 			 * Constructor
 			 * @param perceptionDepth number of images to cache for perceptual timeline

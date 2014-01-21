@@ -19,6 +19,7 @@ static float pi = boost::math::constants::pi<float>();
 HoleRecognizer::HoleRecognizer(float minDiameter, float maxDiameter) {
 	maxDiam = maxDiameter;
 	minDiam = minDiameter;
+	_showMatches = HOLE_SHOW_NONE;
   delta = 5;
 	minArea = (int)(minDiameter*minDiameter*pi/4); // 60;
 	maxArea = (int)(maxDiameter*maxDiameter*pi/4); // 14400;
@@ -67,6 +68,7 @@ void HoleRecognizer::scanRegion(vector<Point> &pts, int i,
 	}
 
 	int duplicate = 0;
+	bool matched = 0;
 	if (covar < maxCovar && maxX - minX < maxDiam && maxY - minY < maxDiam) {
 		for (int j = 0; !duplicate && j < matches.size(); j++) {
 			if (abs(match.average.x - matches[j].average.x) < maxDiam &&
@@ -79,18 +81,25 @@ void HoleRecognizer::scanRegion(vector<Point> &pts, int i,
 				green = 0;
 				blue = 255;
 				int n = matches.size() + 1;
+				matched = 1;
 				LOGDEBUG2("HoleRecognizer %d. %s", n, json.c_str());
 			}
 			matches.push_back(match);
 		}
 	}
 	if (!duplicate && matRGB.channels() >= 3) {
-		for (int j = 0; j < nPts; j++) {
-			matRGB.at<Vec3b>(pts[j])[0] = red;
-			matRGB.at<Vec3b>(pts[j])[1] = green;
-			matRGB.at<Vec3b>(pts[j])[2] = blue;
+		if (matched && _showMatches==HOLE_SHOW_MATCHES || _showMatches==HOLE_SHOW_MSER) {
+			for (int j = 0; j < nPts; j++) {
+				matRGB.at<Vec3b>(pts[j])[0] = red;
+				matRGB.at<Vec3b>(pts[j])[1] = green;
+				matRGB.at<Vec3b>(pts[j])[2] = blue;
+			}
 		}
 	}
+}
+
+void HoleRecognizer::showMatches(int show) {
+  _showMatches = show;
 }
 
 void HoleRecognizer::scan(Mat &matRGB, vector<MatchedRegion> &matches, float maxEllipse, float maxCovar) {
