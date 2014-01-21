@@ -18,15 +18,15 @@ using namespace FireSight;
 int main(int argc, char *argv[])
 {
 	firelog_level(FIRELOG_TRACE);
-	LOGTRACE2("FireSightMain %d.%d", VERSION_MAJOR, VERSION_MINOR);
+	LOGTRACE3("FireSightMain %d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
 	Mat matRGB = imread("/dev/firefuse/cam.jpg", CV_LOAD_IMAGE_COLOR);
 	LOGTRACE2("matRGB cols:%d rows:%d", matRGB.cols, matRGB.rows);
 
 	json_t *pNode = json_pack("[o,o,o]",
-		json_pack("{s:s,s:s}", "op", "imread", "path", "/dev/firefuse/cam.jpg"),
-		json_pack("{s:s,s:f,s:f}", "op", "HoleRecognizer", "aMin", 26/1.15, "aMax", 26*1.15),
-		json_pack("{s:s,s:s}", "op", "imwrite", "path", "/home/pi/camcv.bmp"),
+		json_pack("{s:s,s:s}", "apply", "imread", "path", "/dev/firefuse/cam.jpg"),
+		json_pack("{s:s,s:f,s:f}", "apply", "HoleRecognizer", "diamMin", 26/1.15, "diamMax", 26*1.15),
+		json_pack("{s:s,s:s}", "apply", "imwrite", "path", "/home/pi/asdf.bmp"),
 		"");
 
 	Analyzer analyzer;

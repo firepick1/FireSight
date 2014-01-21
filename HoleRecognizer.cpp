@@ -24,7 +24,7 @@ HoleRecognizer::HoleRecognizer(float minDiameter, float maxDiameter) {
 	maxArea = (int)(maxDiameter*maxDiameter*pi/4); // 14400;
 	maxVariation = 0.25;
 	minDiversity = (maxDiam - minDiam)/(float)minDiam; // 0.2;
-	LOGDEBUG3("MSER minArea:%d maxArea:%d minDiversity:%d/100", minArea, maxArea, (int)(minDiversity*100+0.5));
+	LOGTRACE3("MSER minArea:%d maxArea:%d minDiversity:%d/100", minArea, maxArea, (int)(minDiversity*100+0.5));
 	max_evolution = 200;
 	area_threshold = 1.01;
 	min_margin = .003;

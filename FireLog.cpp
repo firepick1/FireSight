@@ -14,7 +14,8 @@ using namespace std;
 
 FILE *logFile = NULL;
 int logLevel = FIRELOG_WARN;
-char lastMessage[5][LOGMAX+1];
+static bool logTID = 0;
+static char lastMessage[5][LOGMAX+1];
 
 
 int firelog_init(const char *path, int level) {
@@ -23,7 +24,9 @@ int firelog_init(const char *path, int level) {
   if (!logFile) {
     return errno;
   }
-  LOGINFO3("FireLog %s %d.%d", path, VERSION_MAJOR, VERSION_MINOR);
+	char version[32];
+	sprintf(version, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+  LOGINFO2("FireLog %s versio %s", path, version);
 	firelog_lastMessageClear();
   return 0;
 }
@@ -45,6 +48,10 @@ const char * firelog_lastMessage(int level) {
 		}
 	}
   return "";
+}
+
+void firelog_show_thread_id(bool show) {
+  logTID = show;
 }
 
 void firelog_lastMessageClear() {
@@ -86,31 +93,37 @@ void firelog(const char *fmt, int level, const void * value1, const void * value
   if (logFile) {
     fprintf(logFile, "%02d:%02d:%02d ", pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec);
     switch (level) {
-      case FIRELOG_ERROR: fprintf(logFile, "ERROR %d ", tid); break;
-      case FIRELOG_WARN: fprintf(logFile, "WARN %d ", tid); break;
-      case FIRELOG_INFO: fprintf(logFile, "INFO %d ", tid); break;
-      case FIRELOG_DEBUG: fprintf(logFile, "DEBUG %d ", tid); break;
-      case FIRELOG_TRACE: fprintf(logFile, "TRACE %d ", tid); break;
-      default: fprintf(logFile, "?%d? %d ", level, tid); break;
+      case FIRELOG_ERROR: fprintf(logFile, " E "); break;
+      case FIRELOG_WARN: fprintf(logFile, " W "); break;
+      case FIRELOG_INFO: fprintf(logFile, " I "); break;
+      case FIRELOG_DEBUG: fprintf(logFile, " D "); break;
+      case FIRELOG_TRACE: fprintf(logFile, " T "); break;
+      default: fprintf(logFile, "?%d? ", level); break;
     }
+		if (logTID) {
+		  fprintf(logFile, "%d ", tid);
+		}
 		sprintf(lastMessage[level], fmt, value1, value2, value3);
     fprintf(logFile, fmt, value1, value2, value3);
-    fprintf(logFile, "\n", tid);
+    fprintf(logFile, "\n");
     fflush(logFile);
   }
 #ifdef __cplusplus
   else {
 		cout << pLocalNow->tm_hour << ":" << pLocalNow->tm_min << ":" << pLocalNow->tm_sec;
     switch (level) {
-      case FIRELOG_ERROR: cout << "ERROR " ; break;
-      case FIRELOG_WARN: cout << "WARN " ; break;
-      case FIRELOG_INFO: cout << "INFO " ; break;
-      case FIRELOG_DEBUG: cout << "DEBUG " ; break;
-      case FIRELOG_TRACE: cout << "TRACE " ; break;
+      case FIRELOG_ERROR: cout << " E " ; break;
+      case FIRELOG_WARN: cout << " W " ; break;
+      case FIRELOG_INFO: cout << " I " ; break;
+      case FIRELOG_DEBUG: cout << " D " ; break;
+      case FIRELOG_TRACE: cout << " T " ; break;
       default: cout << "?" << level << "? " ; break;
     }
+		if (logTID) {
+		  cout << tid << " ";
+		}
 		sprintf(lastMessage[level], fmt, value1, value2, value3);
-		cout << tid << " " << lastMessage[level] << endl;
+		cout << lastMessage[level] << endl;
 	}
 #endif
 }

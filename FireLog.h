@@ -76,6 +76,12 @@ int firelog_level(int newLevel);
 const char * firelog_lastMessage(int level);
 
 /**
+ * Include thread id on each line logged
+ * @param show thread id if true
+ */
+void firelog_show_thread_id(bool show);
+
+/**
  * (INTERNAL)
  * Clear cache of logging messages
  */
