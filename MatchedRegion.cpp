@@ -25,6 +25,22 @@ MatchedRegion::MatchedRegion(Range xRange, Range yRange, Point2f average, int po
 	this->covar = covar;
 }
 
+json_t *MatchedRegion::as_json_t() {
+	json_t *pObj = json_object();
+
+	json_object_set(pObj, "xmin", json_integer(xRange.start));
+	json_object_set(pObj, "xmax", json_integer(xRange.end));
+	json_object_set(pObj, "xavg", json_real(average.x));
+	json_object_set(pObj, "ymin", json_integer(yRange.start));
+	json_object_set(pObj, "ymax", json_integer(yRange.end));
+	json_object_set(pObj, "yavg", json_real(average.y));
+	json_object_set(pObj, "pts", json_integer(pointCount));
+	json_object_set(pObj, "ellipse", json_real(ellipse));
+	json_object_set(pObj, "covar", json_real(covar));
+
+	return pObj;
+}
+
 string MatchedRegion::asJson() {
 	boost::format fmt(
 		"{"

@@ -3,11 +3,10 @@
 
 #include "opencv2/features2d/features2d.hpp"
 #include <vector>
+#include "jansson.h"
 
 using namespace cv;
 using namespace std;
-
-#define TIME_NOW -1
 
 namespace FireSight {
 	typedef struct MatchedRegion {
@@ -20,6 +19,7 @@ namespace FireSight {
 
 		MatchedRegion(Range xRange, Range yRange, Point2f average, int pointCount, float covar);
 		string asJson();
+		json_t *as_json_t();
 	} MatchedRegion;
 
 	typedef class HoleRecognizer {
@@ -63,39 +63,18 @@ namespace FireSight {
 
 			/**
 			 * Constructor
-			 * @param perceptionDepth number of images to cache for perceptual timeline
 			 */
-		  Analyzer(int perceptionDepth=1);
+		  Analyzer();
 
 			/**
-			 * Process the given json array as a pipeline of successive scanning commands for the given perceptual time
-			 * @param json array of json command objects (e.g., {"op":"HoleRecognizer","aMin":25.2,"aMax":29.3})
-			 * @param time specifies a point on a discrete abstract perceptual timeline
+			 * Process the given JSON array of pipeline stages and return a JSON object representing the recognized pipeline model.
+			 * The returned pipeline model will have a field for each recognized stage model. E.g., {s1:{...}, s2:{...}, ... , sN:{...}}
+			 * @param json array of named pipeline stages. E.g., [{"name":"s1","op":"HoleRecognizer","aMin":25.2,"aMax":29.3}]
+			 * @return pointer to null-terminated JSON string for perceived model. Client must free returned string.
 			 */
-		  void process(const char* json, int time=TIME_NOW);
-
-			#ifdef LATER
-			/**
-			 * Transform specified image 
-			 * @param json specification for image source and analysis
-			 * @param time specifies a point on a discrete abstract perceptual timeline
-			 * @returns transformed OpenCV image 
-			 */
-			Mat processImage(const char* json, int time=TIME_NOW);
-
-			/**
-			 * Analyze image as specified by given json string 
-			 * @param json specification for image source and analysis
-			 * @param time specifies a point on a discrete abstract perceptual timeline
-			 * @returns analyzed model json string that caller must free()
-			 */
-			const char * processModel(const char* json, int time=TIME_NOW);
-			#endif
+		  string process(const char* json);
 
 	  private:
-		  int perceptionDepth;
-			int currentTime;
-			vector<Mat> sourceCache;
 	} Analyzer;
 
 } // namespace FireSight

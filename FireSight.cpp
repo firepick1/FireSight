@@ -30,131 +30,161 @@ static const char * jo_string(const json_t *pObj, const char *key, const char *d
 	return json_is_string(pValue) ? json_string_value(pValue) : defaultValue;
 }
 
-static Mat apply_imread(int index, json_t *pObj) {
-  const char *path = jo_string(pObj, "path", NULL);
+static Mat apply_imread(json_t *pStage, json_t *pStageModel) {
+  const char *path = jo_string(pStage, "path", NULL);
 	const char *errFmt = NULL;
 	const char *errMsg = NULL;
 	Mat matRGB;
 
 	if (!path) {
-		errFmt = "%d. apply_imread(%s) expected \"path\" for image file to read";
+		errFmt = "apply_imread(%s) expected \"path\" for image file to read";
 	} else {
 		try {
+			LOGTRACE1("apply_imread(%s)", path);
 			matRGB = imread(path, CV_LOAD_IMAGE_COLOR);
-			LOGTRACE2("%d. apply_imread(%s)", index, path);
+			json_object_set(pStageModel, "rows", json_integer(matRGB.rows));
+			json_object_set(pStageModel, "cols", json_integer(matRGB.cols));
 		} catch (runtime_error &ex) {
 		  errMsg = ex.what();
-			errFmt = "%d. apply_imread(%s) exception: %s";
+			errFmt = "apply_imread(%s) exception: %s";
 		}
 	}
 
 	if (errFmt) {
-		char *pJson = json_dumps(pObj, 0);
-		LOGERROR3(errFmt, index, pJson, errMsg);
-		free(pJson);
+		char *pStageJson = json_dumps(pStage, 0);
+		LOGERROR2(errFmt, pStageJson, errMsg);
+		free(pStageJson);
+	} else if (logLevel >= FIRELOG_DEBUG) {
+		char *pModelJson = json_dumps(pStageModel, 0);
+		LOGDEBUG2("apply_imread(%s) => %s", path, pModelJson);
+		free(pModelJson);
 	}
 	return matRGB;
 }
 
-static void apply_imwrite(int index, json_t *pObj, Mat image) {
-  const char *path = jo_string(pObj, "path", NULL);
+static void apply_imwrite(json_t *pStage, json_t *pStageModel, Mat image) {
+  const char *path = jo_string(pStage, "path", NULL);
 	const char *errFmt = NULL;
 	const char *errMsg = NULL;
 	Mat matRGB;
 
 	if (!path) {
-		errFmt = "%d. apply_imwrite(%s) expected \"path\" for image file to write";
+		errFmt = "apply_imwrite(%s) expected \"path\" for image file to write";
 	} else {
 		try {
-			matRGB = imread(path, CV_LOAD_IMAGE_COLOR);
-			imwrite(path, image);
-			LOGTRACE2("%d. apply_imwrite(%s)", index, path);
+			LOGTRACE1("apply_imwrite(%s)", path);
+			bool result = imwrite(path, image);
+			json_object_set(pStageModel, "result", json_boolean(result));
 		} catch (runtime_error &ex) {
 		  errMsg = ex.what();
-			errFmt = "%d. apply_imwrite(%s) exception: %s";
+			errFmt = "apply_imwrite(%s) exception: %s";
 		}
 	}
 
 	if (errFmt) {
-		char *pJson = json_dumps(pObj, 0);
-		LOGERROR3(errFmt, index, pJson, errMsg);
-		free(pJson);
+		char *pStageJson = json_dumps(pStage, 0);
+		LOGERROR2(errFmt, pStageJson, errMsg);
+		free(pStageJson);
+	} else if (logLevel >= FIRELOG_DEBUG) {
+		char *pModelJson = json_dumps(pStageModel, 0);
+		LOGDEBUG2("apply_imwrite(%s) => %s", path, pModelJson);
+		free(pModelJson);
 	}
 }
 
-static void apply_HoleRecognizer(int index, json_t *pObj, Mat image) {
-	double diamMin = jo_double(pObj, "diamMin");
-	double diamMax = jo_double(pObj, "diamMax");
-	int showMatches = jo_int(pObj, "show", 0);
+static void apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Mat image) {
+	double diamMin = jo_double(pStage, "diamMin");
+	double diamMax = jo_double(pStage, "diamMax");
+	int showMatches = jo_int(pStage, "show", 0);
 	const char *errFmt = NULL;
 
 	if (diamMin <= 0 || diamMax <= 0 || diamMin > diamMax) {
-		errFmt = "%d. apply_HoleRecognizer(%s) expected: 0 < diamMin < diamMax ";
+		errFmt = "apply_HoleRecognizer(%s) expected: 0 < diamMin < diamMax ";
 	} else if (showMatches < 0) {
-		errFmt = "%d. apply_HoleRecognizer(%s) expected: 0 < showMatches ";
+		errFmt = "apply_HoleRecognizer(%s) expected: 0 < showMatches ";
 	} else if (logLevel >= FIRELOG_TRACE) {
-		char *pJson = json_dumps(pObj, 0);
-		LOGTRACE2("%d. apply_HoleRecognizer(%s)", index, pJson);
-		free(pJson);
+		char *pStageJson = json_dumps(pStage, 0);
+		LOGTRACE1("apply_HoleRecognizer(%s)", pStageJson);
+		free(pStageJson);
 	}
 	if (!errFmt) {
 		vector<MatchedRegion> matches;
 		HoleRecognizer recognizer(diamMin, diamMax);
 		recognizer.showMatches(showMatches);
 		recognizer.scan(image, matches);
+		json_t *holes = json_array();
+		json_object_set(pStageModel, "holes", holes);
 		for (int i = 0; i < matches.size(); i++) {
-			cout << "match " << i+1 << " = " << matches[i].asJson() << endl;
+			json_array_append(holes, matches[i].as_json_t());
 		}
 	}
 
 	if (errFmt) {
-		char *pJson = json_dumps(pObj, 0);
-		LOGERROR2(errFmt, index, pJson);
-		free(pJson);
+		char *pStageJson = json_dumps(pStage, 0);
+		LOGERROR1(errFmt, pStageJson);
+		free(pStageJson);
+	} else if (logLevel >= FIRELOG_DEBUG) {
+	  char *pStageJson = json_dumps(pStage, 0);
+		char *pModelJson = json_dumps(pStageModel, 0);
+		LOGDEBUG2("apply_HoleRecognizer(%s) => %s", pStageJson, pModelJson);
+		free(pStageJson);
+		free(pModelJson);
 	}
 }
 
-Analyzer::Analyzer(int perceptionDepth) {
-  this->perceptionDepth = perceptionDepth;
+Analyzer::Analyzer() {
 }
 
-void Analyzer::process(const char* json, int time) {
+string Analyzer::process(const char* json) {
 	json_error_t jerr;
 	json_t *pNode = json_loads(json, 0, &jerr);
 
 	if (!pNode) {
 		LOGERROR3("Analyzer::process cannot parse json: %s src:%s line:%d", jerr.text, jerr.source, jerr.line);
-		return;
+		return string("{\"error\":\"json parse error\"}");
 	} else if (!json_is_array(pNode)) {
 		LOGERROR1("Analyzer::process expected json array: %s", json);
-		return;
+		return string("{\"error\":\"expected json array\"}");
 	}
+
 	size_t index;
-	json_t *pObj;
-	LOGTRACE2("Analyzer::process(%d functions, %d)", json_array_size(pNode), time);
-	json_array_foreach(pNode, index, pObj) {
+	json_t *pStage;
+	json_t *pModel = json_object();
+	char nameBuf[16];
+	LOGTRACE1("Analyzer::process(%d functions)", json_array_size(pNode));
+	json_array_foreach(pNode, index, pStage) {
 		const char *errFmt = NULL;
-		const char *pApply = jo_string(pObj, "apply", "");
-		if (pApply) {
-			if (strcmp(pApply, "imread")==0) {
-				this->workingImage = apply_imread(index+1, pObj);
-			} else if (strcmp(pApply, "imwrite")==0) {
-				apply_imwrite(index+1, pObj, this->workingImage);
-			} else if (strcmp(pApply, "HoleRecognizer")==0) {
-				apply_HoleRecognizer(index+1, pObj, this->workingImage);
+		const char *pOp = jo_string(pStage, "op", "");
+		sprintf(nameBuf, "s%d", index+1);
+		const char *pName = jo_string(pStage, "name", nameBuf);
+		json_t *pStageModel = json_object();
+		json_object_set(pModel, pName, pStageModel);
+		if (pOp) {
+			if (strcmp(pOp, "imread")==0) {
+				this->workingImage = apply_imread(pStage, pStageModel);
+			} else if (strcmp(pOp, "imwrite")==0) {
+				apply_imwrite(pStage, pStageModel, this->workingImage);
+			} else if (strcmp(pOp, "HoleRecognizer")==0) {
+				apply_HoleRecognizer(pStage, pStageModel, this->workingImage);
 			} else {
-			  errFmt = "%d. Analyzer::process unknown value provided for \"apply\" key in %s";
+			  errFmt = "%s. Analyzer::process unknown value provided for \"op\" key in %s";
 			}
 		} else {
-			errFmt = "%d. Analyzer::process no value provided for \"apply\" key in %s";
-		} //if (pApply)
+			errFmt = "%s. Analyzer::process missing value for \"op\" in %s";
+		} //if (pOp)
 		if (errFmt) {
-			char *pJson = json_dumps(pObj, 0);
-			LOGERROR2(errFmt, index, pJson);
+			char *pJson = json_dumps(pStage, 0);
+			LOGERROR2(errFmt, pName, pJson);
 			free(pJson);
 		}
 	} // json_array_foreach
 	free(pNode);
+	char *pModelJson = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
+	free(pModel);
+	string modelString(pModelJson);
+	free(pModelJson);
+
+	return modelString;
 }
 
 
