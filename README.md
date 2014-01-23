@@ -11,17 +11,17 @@ FireSight is available as a C++ library as well as a standalone runtime under th
 
 ### Installation
 
-<code>
+<pre>
 git clone git://github.com/firepick1/FireSight
 cd FireSight
 sudo ./build
-</code>
+</pre>
 
 ### Examples
 Recognize holes in cam.jpg:
-<code>
+<pre>
 target/firesight -p pipeline0.json -i cam.jpg
-</code>
+</pre>
 
 
 
