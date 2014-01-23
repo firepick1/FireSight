@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <math.h>
 #include <boost/math/constants/constants.hpp>
@@ -132,27 +131,37 @@ static void apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Mat image)
 	}
 }
 
-Analyzer::Analyzer() {
+Pipeline::Pipeline(const char *pJson) {
+	json_error_t jerr;
+	pPipeline = json_loads(pJson, 0, &jerr);
+
+	if (!pPipeline) {
+		LOGERROR3("Pipeline::process cannot parse json: %s src:%s line:%d", jerr.text, jerr.source, jerr.line);
+		throw jerr;
+	}
 }
 
-string Analyzer::process(const char* json) {
-	json_error_t jerr;
-	json_t *pNode = json_loads(json, 0, &jerr);
+Pipeline::Pipeline(json_t *pJson) {
+  pPipeline = json_incref(pJson);
+}
 
-	if (!pNode) {
-		LOGERROR3("Analyzer::process cannot parse json: %s src:%s line:%d", jerr.text, jerr.source, jerr.line);
-		return string("{\"error\":\"json parse error\"}");
-	} else if (!json_is_array(pNode)) {
-		LOGERROR1("Analyzer::process expected json array: %s", json);
-		return string("{\"error\":\"expected json array\"}");
+Pipeline::~Pipeline() {
+	json_decref(pPipeline);
+}
+
+json_t *Pipeline::process(Mat &workingImage) { 
+	if (!json_is_array(pPipeline)) {
+		const char * errMsg = "Pipeline::process expected json array for pipeline definition";
+		LOGERROR1(errMsg, "");
+		return json_string(errMsg);
 	}
 
 	size_t index;
 	json_t *pStage;
 	json_t *pModel = json_object();
 	char nameBuf[16];
-	LOGTRACE1("Analyzer::process(%d functions)", json_array_size(pNode));
-	json_array_foreach(pNode, index, pStage) {
+	LOGTRACE1("Pipeline::process(%d functions)", json_array_size(pPipeline));
+	json_array_foreach(pPipeline, index, pStage) {
 		const char *errFmt = NULL;
 		const char *pOp = jo_string(pStage, "op", "");
 		sprintf(nameBuf, "s%d", index+1);
@@ -161,16 +170,16 @@ string Analyzer::process(const char* json) {
 		json_object_set(pModel, pName, pStageModel);
 		if (pOp) {
 			if (strcmp(pOp, "imread")==0) {
-				this->workingImage = apply_imread(pStage, pStageModel);
+				workingImage = apply_imread(pStage, pStageModel);
 			} else if (strcmp(pOp, "imwrite")==0) {
-				apply_imwrite(pStage, pStageModel, this->workingImage);
+				apply_imwrite(pStage, pStageModel, workingImage);
 			} else if (strcmp(pOp, "HoleRecognizer")==0) {
-				apply_HoleRecognizer(pStage, pStageModel, this->workingImage);
+				apply_HoleRecognizer(pStage, pStageModel, workingImage);
 			} else {
-			  errFmt = "%s. Analyzer::process unknown value provided for \"op\" key in %s";
+			  errFmt = "%s. Pipeline::process unknown value provided for \"op\" key in %s";
 			}
 		} else {
-			errFmt = "%s. Analyzer::process missing value for \"op\" in %s";
+			errFmt = "%s. Pipeline::process missing value for \"op\" in %s";
 		} //if (pOp)
 		if (errFmt) {
 			char *pJson = json_dumps(pStage, 0);
@@ -178,13 +187,8 @@ string Analyzer::process(const char* json) {
 			free(pJson);
 		}
 	} // json_array_foreach
-	free(pNode);
-	char *pModelJson = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
-	free(pModel);
-	string modelString(pModelJson);
-	free(pModelJson);
 
-	return modelString;
+	return pModel;
 }
 
 

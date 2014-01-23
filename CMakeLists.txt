@@ -20,6 +20,7 @@ include (CPack)
 SET(BUILD_TARGET_DIR "${CMAKE_CURRENT_BINARY_DIR}/target")
 SET(LIBRARY_OUTPUT_PATH "${BUILD_TARGET_DIR}")
 SET(EXECUTABLE_OUTPUT_PATH "${BUILD_TARGET_DIR}")
+SET(RUNTIME_OUTPUT_NAME firesight)
 
 configure_file (
 	"${PROJECT_SOURCE_DIR}/version.h.in"
@@ -31,11 +32,11 @@ find_package( OpenCV REQUIRED )
 include_directories( ${BUILD_TARGET_DIR} /usr/local/include )
 link_directories( ${BUILD_TARGET_DIR} /usr/local/lib )
 
-add_library(firesight SHARED FireLog.cpp HoleRecognizer.cpp MatchedRegion.cpp FireSight.cpp )
+add_library(firesight SHARED FireLog.cpp HoleRecognizer.cpp MatchedRegion.cpp Pipeline.cpp )
 target_link_libraries(firesight libjansson.a ${OpenCV_LIBS} )
 set_target_properties(firesight PROPERTIES VERSION ${PROJECT_VERSION_STRING} SOVERSION ${PROJECT_VERSION_MAJOR})
 
-add_executable(firesightmain FireSightMain.cpp )
+add_executable(firesightmain FireSightMain.cpp)
 target_link_libraries(firesightmain libjansson.a libfiresight.so ${OpenCV_LIBS} )
 
 INSTALL(TARGETS firesight DESTINATION lib)

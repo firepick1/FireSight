@@ -7,10 +7,9 @@ then
 	pushd ~pi/jannson
 	autoreconf -i
 	./configure
-	cmake .
+	sudo -u $SUDO_USER cmake .
 	make install
 	popd
-	
 fi
 if [ ! -e /usr/include/boost ]
 then
@@ -34,12 +33,13 @@ fi
 if [ -e CMakeFiles ] 
 then 
 	echo removing existing makefiles
-	rm -rf CMakeCache.txt CMakeFiles CMakeFiles.txt *.cmake
+	rm -rf CMakeCache.txt CMakeFiles CMakeFiles.txt *.cmake target
+	sudo -u $SUDO_USER mkdir target
 fi
 
 
 echo creating makefiles
-cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .
+sudo -u $SUDO_USER cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .
 echo building and installing FireSight...
 make install
 

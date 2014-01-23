@@ -57,25 +57,35 @@ namespace FireSight {
 
 	} MSER_holes;
 
-	typedef class Analyzer {
+	typedef class Pipeline {
 	  public: 
-			Mat workingImage;
+			/**
+			 * Construct an image processing pipeline described by the given JSON array
+			 * that specifies a sequence of named processing stages.
+			 * @param pJson null terminated JSON string
+			 */
+		  Pipeline(const char * pJson);
 
 			/**
-			 * Constructor
+			 * Construct an image processing pipeline described by the given JSON array
+			 * that specifies a sequence of named processing stages.
+			 * @param pJson jansson array node 
 			 */
-		  Analyzer();
+		  Pipeline(json_t *pJson);
+
+			~Pipeline();
 
 			/**
-			 * Process the given JSON array of pipeline stages and return a JSON object representing the recognized pipeline model.
-			 * The returned pipeline model will have a field for each recognized stage model. E.g., {s1:{...}, s2:{...}, ... , sN:{...}}
-			 * @param json array of named pipeline stages. E.g., [{"name":"s1","op":"HoleRecognizer","aMin":25.2,"aMax":29.3}]
-			 * @return pointer to null-terminated JSON string for perceived model. Client must free returned string.
+			 * Process the given working image and return a JSON object that represents
+			 * the recognized model comprised of the individual stage models. 
+			 * @param mat initial and transformed working image
+			 * @return pointer to jansson root node of JSON object that has a field for each recognized stage model. E.g., {s1:{...}, s2:{...}, ... , sN:{...}}
 			 */
-		  string process(const char* json);
+		  json_t *process(Mat &mat);
 
 	  private:
-	} Analyzer;
+			json_t *pPipeline;
+	} Pipeline;
 
 } // namespace FireSight
 
