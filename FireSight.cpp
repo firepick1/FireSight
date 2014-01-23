@@ -21,23 +21,28 @@ static void help() {
 	cout << "https://github.com/firepick1/FireSight/wiki" << endl;
 	cout << endl;
 	cout << "Example:" << endl;
-	cout << "   firesightmain -p pipeline.json -i image.jpg" << endl;
+	cout << "   firesight -p pipeline0.json -i cam.jpg " << endl;
+	cout << "   firesight -p pipeline1.json " << endl;
+	cout << "   firesight -p pipeline2.json " << endl;
 }
 
 int main(int argc, char *argv[])
 {
-	firelog_level(FIRELOG_TRACE);
 	LOGINFO3("FireSightMain %d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
 	char * pipelinePath = NULL;
 	char * imagePath = NULL;
+	int firelogLevel = FIRELOG_INFO;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp("-p",argv[i]) == 0 && i+1<argc) {
 			pipelinePath = argv[i+1];
 		} else if (strcmp("-i",argv[i]) == 0 && i+1<argc) {
 			imagePath = argv[i+1];
+		} else if (strcmp("-trace", argv[i]) == 0) {
+			firelogLevel = FIRELOG_TRACE;
 		}
 	}
+	firelog_level(firelogLevel);
 	if (!pipelinePath) {
 		help();
 		exit(-1);

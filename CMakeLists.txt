@@ -32,13 +32,13 @@ find_package( OpenCV REQUIRED )
 include_directories( ${BUILD_TARGET_DIR} /usr/local/include )
 link_directories( ${BUILD_TARGET_DIR} /usr/local/lib )
 
-add_library(firesight SHARED FireLog.cpp HoleRecognizer.cpp MatchedRegion.cpp Pipeline.cpp )
-target_link_libraries(firesight libjansson.a ${OpenCV_LIBS} )
-set_target_properties(firesight PROPERTIES VERSION ${PROJECT_VERSION_STRING} SOVERSION ${PROJECT_VERSION_MAJOR})
+add_library(_firesight SHARED FireLog.cpp HoleRecognizer.cpp MatchedRegion.cpp Pipeline.cpp )
+target_link_libraries(_firesight libjansson.a ${OpenCV_LIBS} )
+set_target_properties(_firesight PROPERTIES VERSION ${PROJECT_VERSION_STRING} SOVERSION ${PROJECT_VERSION_MAJOR})
 
-add_executable(firesightmain FireSightMain.cpp)
-target_link_libraries(firesightmain libjansson.a libfiresight.so ${OpenCV_LIBS} )
+add_executable(firesight FireSight.cpp)
+target_link_libraries(firesight libjansson.a lib_firesight.so ${OpenCV_LIBS} )
 
-INSTALL(TARGETS firesight DESTINATION lib)
+INSTALL(TARGETS _firesight DESTINATION lib)
 INSTALL(FILES FireLog.h FireSight.hpp DESTINATION include)
 
