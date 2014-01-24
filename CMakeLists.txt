@@ -40,5 +40,6 @@ add_executable(firesight FireSight.cpp)
 target_link_libraries(firesight libjansson.a lib_firesight.so ${OpenCV_LIBS} )
 
 INSTALL(TARGETS _firesight DESTINATION lib)
+INSTALL(TARGETS firesight DESTINATION bin)
 INSTALL(FILES FireLog.h FireSight.hpp DESTINATION include)
 
