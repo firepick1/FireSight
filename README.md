@@ -20,7 +20,7 @@ sudo ./build
 ### Examples
 Recognize holes in cam.jpg:
 <pre>
-target/firesight -p pipeline0.json -i cam.jpg
+firesight -p pipeline0.json -i cam.jpg
 </pre>
 
 The <code>-p pipeline0.json</code> argument identifies the JSON pipeline configuration. In this case,
