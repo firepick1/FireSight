@@ -1,5 +1,0 @@
-[
-	{             "op":"HoleRecognizer", "diamMin":22.6, "diamMax":29.9, "show":1},
-	{"name":"s3", "op":"imwrite", "path":"target/output0.jpg"}
-]
-
