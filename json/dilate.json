@@ -1,0 +1,6 @@
+[
+	{"op":"cvtColor", "code":"CV_BGR2GRAY"},
+	{"op":"dilate","ksize.width":3,"ksize.height":3,"shape":"MORPH_ELLIPSE"},
+	{"op":"imwrite", "path":"target/dilate.jpg"}
+]
+

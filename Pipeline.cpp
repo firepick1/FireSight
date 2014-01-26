@@ -34,6 +34,22 @@ static const char * jo_string(const json_t *pObj, const char *key, const char *d
 	return json_is_string(pValue) ? json_string_value(pValue) : defaultValue;
 }
 
+static int jo_shape(json_t *pStage, const char *key, const char *&errMsg) {
+	const char * pShape = jo_string(pStage, key, "MORPH_ELLIPSE");
+	int shape = MORPH_ELLIPSE;
+
+	if (strcmp("MORPH_ELLIPSE",pShape)==0) {
+		shape = MORPH_ELLIPSE;
+	} else if (strcmp("MORPH_RECT",pShape)==0) {
+		shape = MORPH_RECT;
+	} else if (strcmp("MORPH_CROSS",pShape)==0) {
+		shape = MORPH_CROSS;
+	} else {
+		errMsg = "shape not supported";
+	}
+	return shape;
+}
+
 static bool stageOK(const char *errFmt, json_t *pStage, const char *errMsg) {
 	if (errFmt) {
 		char *pStageJson = json_dumps(pStage, JSON_COMPACT|JSON_PRESERVE_ORDER);
@@ -127,6 +143,52 @@ static void apply_cvtColor(json_t *pStage, json_t *pStageModel, Mat &image) {
 	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
 		char *pStageJson = json_dumps(pStage, 0);
 		LOGDEBUG1("apply_cvtColor(%s)", pStageJson);
+		free(pStageJson);
+	}
+}
+
+static void apply_dilate(json_t *pStage, json_t *pStageModel, Mat &image) {
+	const char *errFmt = NULL;
+	const char *errMsg = NULL;
+	int kwidth = jo_int(pStage, "ksize.width", 3);
+	int kheight = jo_int(pStage, "ksize.height", 3);
+	int shape = jo_shape(pStage, "shape", errMsg);
+
+	if (errMsg) {
+		errFmt = "apply_dilate(%s) %s";
+	}
+
+	if (!errFmt) {
+	  Mat structuringElement = getStructuringElement(shape, Size(kwidth, kheight));
+		dilate(image, image, structuringElement);
+	}
+
+	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
+		char *pStageJson = json_dumps(pStage, 0);
+		LOGDEBUG1("apply_dilate(%s)", pStageJson);
+		free(pStageJson);
+	}
+}
+
+static void apply_erode(json_t *pStage, json_t *pStageModel, Mat &image) {
+	const char *errFmt = NULL;
+	const char *errMsg = NULL;
+	int kwidth = jo_int(pStage, "ksize.width", 3);
+	int kheight = jo_int(pStage, "ksize.height", 3);
+	int shape = jo_shape(pStage, "shape", errMsg);
+
+	if (errMsg) {
+		errFmt = "apply_erode(%s) %s";
+	}
+
+	if (!errFmt) {
+	  Mat structuringElement = getStructuringElement(shape, Size(kwidth, kheight));
+		erode(image, image, structuringElement);
+	}
+
+	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
+		char *pStageJson = json_dumps(pStage, 0);
+		LOGDEBUG1("apply_erode(%s)", pStageJson);
 		free(pStageJson);
 	}
 }
@@ -254,6 +316,10 @@ json_t *Pipeline::process(Mat &workingImage) {
 				apply_Canny(pStage, pStageModel, workingImage);
 			} else if (strcmp(pOp, "cvtColor")==0) {
 				apply_cvtColor(pStage, pStageModel, workingImage);
+			} else if (strcmp(pOp, "dilate")==0) {
+				apply_dilate(pStage, pStageModel, workingImage);
+			} else if (strcmp(pOp, "erode")==0) {
+				apply_erode(pStage, pStageModel, workingImage);
 			} else if (strcmp(pOp, "HoleRecognizer")==0) {
 				apply_HoleRecognizer(pStage, pStageModel, workingImage);
 			} else if (strcmp(pOp, "imread")==0) {
