@@ -196,7 +196,13 @@ static const char * modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &k
 	  json_t *pKeyPoint = json_object();
 		json_object_set(pKeyPoint, "pt.x", json_real(keyPoints[i].pt.x));
 		json_object_set(pKeyPoint, "pt.y", json_real(keyPoints[i].pt.y));
-		json_object_set(pKeyPoint, "pt.size", json_real(keyPoints[i].size));
+		json_object_set(pKeyPoint, "size", json_real(keyPoints[i].size));
+		if (keyPoints[i].angle != -1) {
+			json_object_set(pKeyPoint, "angle", json_real(keyPoints[i].angle));
+		}
+		if (keyPoints[i].response != 0) {
+			json_object_set(pKeyPoint, "response", json_real(keyPoints[i].response));
+		}
 		json_array_append(pKeyPoints, pKeyPoint);
 	}
 }

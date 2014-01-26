@@ -53,6 +53,11 @@ int main(int argc, char *argv[])
 	ifstream ifs(pipelinePath);
 	stringstream pipelineStream;
 	pipelineStream << ifs.rdbuf();
+	const char *pJson = pipelineStream.str().c_str();
+	if (strlen(pJson) < 10) {
+		cout << "invalid pipeline: " << pipelinePath << endl;
+		exit(-1);
+	}
 	Pipeline pipeline(pipelineStream.str().c_str());
 
 	Mat image;
