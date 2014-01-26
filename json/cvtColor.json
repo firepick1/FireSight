@@ -1,0 +1,5 @@
+[
+	{"op":"cvtColor", "code":"CV_BGR2GRAY"},
+	{"op":"imwrite", "path":"target/cvtColor.jpg"}
+]
+

@@ -29,6 +29,17 @@ static const char * jo_string(const json_t *pObj, const char *key, const char *d
 	return json_is_string(pValue) ? json_string_value(pValue) : defaultValue;
 }
 
+static bool stageOK(const char *errFmt, json_t *pStage, const char *errMsg) {
+	if (errFmt) {
+		char *pStageJson = json_dumps(pStage, JSON_COMPACT|JSON_PRESERVE_ORDER);
+		LOGERROR2(errFmt, pStageJson, errMsg);
+		free(pStageJson);
+		return false;
+	}
+
+	return true;
+}
+
 static Mat apply_imread(json_t *pStage, json_t *pStageModel) {
   const char *path = jo_string(pStage, "path", NULL);
 	const char *errFmt = NULL;
@@ -49,11 +60,7 @@ static Mat apply_imread(json_t *pStage, json_t *pStageModel) {
 		}
 	}
 
-	if (errFmt) {
-		char *pStageJson = json_dumps(pStage, 0);
-		LOGERROR2(errFmt, pStageJson, errMsg);
-		free(pStageJson);
-	} else if (logLevel >= FIRELOG_DEBUG) {
+	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
 		char *pModelJson = json_dumps(pStageModel, 0);
 		LOGDEBUG2("apply_imread(%s) => %s", path, pModelJson);
 		free(pModelJson);
@@ -80,14 +87,44 @@ static void apply_imwrite(json_t *pStage, json_t *pStageModel, Mat image) {
 		}
 	}
 
-	if (errFmt) {
-		char *pStageJson = json_dumps(pStage, 0);
-		LOGERROR2(errFmt, pStageJson, errMsg);
-		free(pStageJson);
-	} else if (logLevel >= FIRELOG_DEBUG) {
+	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
 		char *pModelJson = json_dumps(pStageModel, 0);
 		LOGDEBUG2("apply_imwrite(%s) => %s", path, pModelJson);
 		free(pModelJson);
+	}
+}
+
+static void apply_cvtColor(json_t *pStage, json_t *pStageModel, Mat &image) {
+  const char *codeStr = jo_string(pStage, "code", "CV_BGR2GRAY");
+	int dstCn = jo_int(pStage, "dstCn", 0);
+	const char *errFmt = NULL;
+	const char *errMsg = NULL;
+	int code = CV_BGR2GRAY;
+	Mat matOut;
+
+	if (strcmp("CV_RGB2GRAY",codeStr)==0) {
+	  code = CV_RGB2GRAY;
+	} else if (strcmp("CV_BGR2GRAY",codeStr)==0) {
+	  code = CV_BGR2GRAY;
+	} else if (strcmp("CV_GRAY2BGR",codeStr)==0) {
+	  code = CV_GRAY2BGR;
+	} else if (strcmp("CV_GRAY2RGB",codeStr)==0) {
+	  code = CV_GRAY2RGB;
+	} else {
+	  errFmt = "apply_cvtColor(%s) code unsupported";
+	}
+	if (dstCn < 0) {
+		errFmt = "apply_cvtColor(%s) dstCn < 0";
+	}
+
+	if (!errFmt) {
+		cvtColor(image, image, code, dstCn);
+	}
+
+	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
+		char *pStageJson = json_dumps(pStage, 0);
+		LOGDEBUG1("apply_cvtColor(%s)", pStageJson);
+		free(pStageJson);
 	}
 }
 
@@ -96,6 +133,7 @@ static void apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Mat image)
 	double diamMax = jo_double(pStage, "diamMax");
 	int showMatches = jo_int(pStage, "show", 0);
 	const char *errFmt = NULL;
+	const char *errMsg = NULL;
 
 	if (diamMin <= 0 || diamMax <= 0 || diamMin > diamMax) {
 		errFmt = "apply_HoleRecognizer(%s) expected: 0 < diamMin < diamMax ";
@@ -118,11 +156,7 @@ static void apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Mat image)
 		}
 	}
 
-	if (errFmt) {
-		char *pStageJson = json_dumps(pStage, 0);
-		LOGERROR1(errFmt, pStageJson);
-		free(pStageJson);
-	} else if (logLevel >= FIRELOG_DEBUG) {
+	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
 	  char *pStageJson = json_dumps(pStage, 0);
 		char *pModelJson = json_dumps(pStageModel, 0);
 		LOGDEBUG2("apply_HoleRecognizer(%s) => %s", pStageJson, pModelJson);
@@ -173,6 +207,8 @@ json_t *Pipeline::process(Mat &workingImage) {
 				workingImage = apply_imread(pStage, pStageModel);
 			} else if (strcmp(pOp, "imwrite")==0) {
 				apply_imwrite(pStage, pStageModel, workingImage);
+			} else if (strcmp(pOp, "cvtColor")==0) {
+				apply_cvtColor(pStage, pStageModel, workingImage);
 			} else if (strcmp(pOp, "HoleRecognizer")==0) {
 				apply_HoleRecognizer(pStage, pStageModel, workingImage);
 			} else {
