@@ -26,7 +26,7 @@ firesight -p json/pipeline0.json -i img/cam.jpg
 
 The <code>-p pipeline0.json</code> argument identifies the [JSON pipeline configuration](http://github.com/firepick1/FireSight/wiki). In this case,
 the pipeline consists of two stages (named "s1" and "s2"). The first stage recognizes holes within
-the given range of diameters. The second writes the working image to "output0.jpg":
+the given range of diameters. The second writes the working image to "pipeline0.jpg":
 <pre>
 [
 	{"name":"s1", "op":"HoleRecognizer", "diamMin":22.6, "diamMax":29.9, "show":1},
