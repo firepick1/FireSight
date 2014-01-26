@@ -30,7 +30,7 @@ the given range of diameters. The second writes the working image to "output0.jp
 <pre>
 [
 	{"name":"s1", "op":"HoleRecognizer", "diamMin":22.6, "diamMax":29.9, "show":1},
-	{"name":"s2", "op":"imwrite", "path":"target/output0.jpg"}
+	{"name":"s2", "op":"imwrite", "path":"target/pipeline0.jpg"}
 ]
 </pre>
 
