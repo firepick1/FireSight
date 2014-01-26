@@ -1,0 +1,6 @@
+[
+	{"op":"cvtColor", "code":"CV_BGR2GRAY"},
+	{"op":"SimpleBlobDetector","thresholdStep":10,"minThreshold":50,"maxThreshold":220},
+	{"op":"imwrite", "path":"target/SimpleBlobDetector.jpg"}
+]
+

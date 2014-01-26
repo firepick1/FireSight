@@ -16,22 +16,34 @@ using namespace FireSight;
 
 static const bool jo_bool(const json_t *pObj, const char *key, bool defaultValue=0) {
 	json_t *pValue = json_object_get(pObj, key);
-	return json_is_true(pValue);
+	bool result = pValue ? json_is_true(pValue) : defaultValue;
+	LOGTRACE3("%s:%d default:%d", key, result, defaultValue);
+	return result;
 }
 
 static const int jo_int(const json_t *pObj, const char *key, int defaultValue=0) {
 	json_t *pValue = json_object_get(pObj, key);
-	return json_is_integer(pValue) ? json_integer_value(pValue) : defaultValue;
+	int result = json_is_integer(pValue) ? json_integer_value(pValue) : defaultValue;
+	LOGTRACE3("%s:%d default:%d", key, result, defaultValue);
+	return result;
 }
 
 static const double jo_double(const json_t *pObj, const char *key, double defaultValue=0) {
 	json_t *pValue = json_object_get(pObj, key);
-	return json_is_real(pValue) ? json_real_value(pValue) : defaultValue;
+	double result = json_is_number(pValue) ? json_number_value(pValue) : defaultValue;
+	if (logLevel >= FIRELOG_TRACE) {
+		char buf[128];
+		sprintf(buf, "%f default:%f", result, defaultValue);
+		LOGTRACE2("%s:%s", key, buf);
+	}
+	return result;
 }
 
 static const char * jo_string(const json_t *pObj, const char *key, const char *defaultValue = NULL) {
 	json_t *pValue = json_object_get(pObj, key);
-	return json_is_string(pValue) ? json_string_value(pValue) : defaultValue;
+	const char * result = json_is_string(pValue) ? json_string_value(pValue) : defaultValue;
+	LOGTRACE3("%s:%s default:%s", key, result, defaultValue);
+	return result;
 }
 
 static int jo_shape(json_t *pStage, const char *key, const char *&errMsg) {
@@ -177,6 +189,54 @@ static bool apply_blur(json_t *pStage, json_t *pStageModel, Mat &image) {
 	return stageOK("apply_blur(%s) %s", errMsg, pStage, pStageModel);
 }
 
+static const char * modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &keyPoints) {
+	json_t *pKeyPoints = json_array();
+	json_object_set(pStageModel, "keyPoints", pKeyPoints);
+	for (int i=0; i<keyPoints.size(); i++){
+	  json_t *pKeyPoint = json_object();
+		json_object_set(pKeyPoint, "pt.x", json_real(keyPoints[i].pt.x));
+		json_object_set(pKeyPoint, "pt.y", json_real(keyPoints[i].pt.y));
+		json_object_set(pKeyPoint, "pt.size", json_real(keyPoints[i].size));
+		json_array_append(pKeyPoints, pKeyPoint);
+	}
+}
+
+static bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Mat &image) {
+	SimpleBlobDetector::Params params;
+	params.thresholdStep = jo_double(pStage, "thresholdStep", params.thresholdStep);
+	params.minThreshold = jo_double(pStage, "minThreshold", params.minThreshold);
+	params.maxThreshold = jo_double(pStage, "maxThreshold", params.maxThreshold);
+	params.minRepeatability = jo_int(pStage, "minRepeatability", params.minRepeatability);
+	params.minDistBetweenBlobs = jo_double(pStage, "minDistBetweenBlobs", params.minDistBetweenBlobs);
+	params.filterByColor = jo_bool(pStage, "filterByColor", params.filterByColor);
+	params.blobColor = jo_int(pStage, "blobColor", params.blobColor);
+	params.filterByArea = jo_bool(pStage, "filterByArea", params.filterByArea);
+	params.minArea = jo_double(pStage, "minArea", params.minArea);
+	params.maxArea = jo_double(pStage, "maxArea", params.maxArea);
+	params.filterByCircularity = jo_bool(pStage, "filterByCircularity", params.filterByCircularity);
+	params.minCircularity = jo_double(pStage, "minCircularity", params.minCircularity);
+	params.maxCircularity = jo_double(pStage, "maxCircularity", params.maxCircularity);
+	params.filterByInertia = jo_bool(pStage, "filterByInertia", params.filterByInertia);
+	params.minInertiaRatio = jo_double(pStage, "minInertiaRatio", params.minInertiaRatio);
+	params.maxInertiaRatio = jo_double(pStage, "maxInertiaRatio", params.maxInertiaRatio);
+	params.filterByConvexity = jo_bool(pStage, "filterByConvexity", params.filterByConvexity);
+	params.minConvexity = jo_double(pStage, "minConvexity", params.minConvexity);
+	params.maxConvexity = jo_double(pStage, "maxConvexity", params.maxConvexity);
+	const char *errMsg = NULL;
+
+	if (!errMsg) {
+		SimpleBlobDetector detector(params);
+		SimpleBlobDetector(params);
+		detector.create("SimpleBlob");
+		vector<cv::KeyPoint> keyPoints;
+	  LOGTRACE("apply_SimpleBlobDetector detect()");
+		detector.detect(image, keyPoints);
+		modelKeyPoints(pStageModel, keyPoints);
+	}
+
+	return stageOK("apply_SimpleBlobDetector(%s) %s", errMsg, pStage, pStageModel);
+}
+
 static bool apply_Canny(json_t *pStage, json_t *pStageModel, Mat &image) {
 	double threshold1 = jo_double(pStage, "threshold1", 0);
 	double threshold2 = jo_double(pStage, "threshold2", 50);
@@ -258,6 +318,8 @@ static const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageMode
 		apply_imread(pStage, pStageModel, workingImage);
 	} else if (strcmp(pOp, "imwrite")==0) {
 		apply_imwrite(pStage, pStageModel, workingImage);
+	} else if (strcmp(pOp, "SimpleBlobDetector")==0) {
+		apply_SimpleBlobDetector(pStage, pStageModel, workingImage);
 	} else {
 		errMsg = "unknown op";
 	}
@@ -294,7 +356,7 @@ json_t *Pipeline::process(Mat &workingImage) {
 		const char *pName = jo_string(pStage, "name", nameBuf);
 		json_t *pStageModel = json_object();
 		json_object_set(pModel, pName, pStageModel);
-		LOGTRACE2("%s:%s", pName, pOp);
+		LOGTRACE2("Pipeline::process stage:%s op:%s", pName, pOp);
 		if (pOp) {
 			try {
 			  const char *errMsg = dispatch(pOp, pStage, pStageModel, workingImage);
