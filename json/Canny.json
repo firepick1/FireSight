@@ -1,0 +1,7 @@
+[
+	{"op":"cvtColor", "code":"CV_BGR2GRAY"},
+	{"op":"blur","ksize.width":5, "ksize.height":5},
+	{"op":"Canny","threshold1":0,"threshold2":50,"apertureSize":3,"L2gradient":false},
+	{"op":"imwrite", "path":"target/Canny.jpg"}
+]
+

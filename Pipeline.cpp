@@ -14,6 +14,11 @@ using namespace std;
 using namespace FireSight;
 
 
+static const bool jo_bool(const json_t *pObj, const char *key, bool defaultValue=0) {
+	json_t *pValue = json_object_get(pObj, key);
+	return json_is_true(pValue);
+}
+
 static const int jo_int(const json_t *pObj, const char *key, int defaultValue=0) {
 	json_t *pValue = json_object_get(pObj, key);
 	return json_is_integer(pValue) ? json_integer_value(pValue) : defaultValue;
@@ -40,20 +45,19 @@ static bool stageOK(const char *errFmt, json_t *pStage, const char *errMsg) {
 	return true;
 }
 
-static Mat apply_imread(json_t *pStage, json_t *pStageModel) {
+static void apply_imread(json_t *pStage, json_t *pStageModel, Mat &image) {
   const char *path = jo_string(pStage, "path", NULL);
 	const char *errFmt = NULL;
 	const char *errMsg = NULL;
-	Mat matRGB;
 
 	if (!path) {
 		errFmt = "apply_imread(%s) expected \"path\" for image file to read";
 	} else {
 		try {
 			LOGTRACE1("apply_imread(%s)", path);
-			matRGB = imread(path, CV_LOAD_IMAGE_COLOR);
-			json_object_set(pStageModel, "rows", json_integer(matRGB.rows));
-			json_object_set(pStageModel, "cols", json_integer(matRGB.cols));
+			image = imread(path, CV_LOAD_IMAGE_COLOR);
+			json_object_set(pStageModel, "rows", json_integer(image.rows));
+			json_object_set(pStageModel, "cols", json_integer(image.cols));
 		} catch (runtime_error &ex) {
 		  errMsg = ex.what();
 			errFmt = "apply_imread(%s) exception: %s";
@@ -65,7 +69,6 @@ static Mat apply_imread(json_t *pStage, json_t *pStageModel) {
 		LOGDEBUG2("apply_imread(%s) => %s", path, pModelJson);
 		free(pModelJson);
 	}
-	return matRGB;
 }
 
 static void apply_imwrite(json_t *pStage, json_t *pStageModel, Mat image) {
@@ -124,6 +127,48 @@ static void apply_cvtColor(json_t *pStage, json_t *pStageModel, Mat &image) {
 	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
 		char *pStageJson = json_dumps(pStage, 0);
 		LOGDEBUG1("apply_cvtColor(%s)", pStageJson);
+		free(pStageJson);
+	}
+}
+
+static void apply_blur(json_t *pStage, json_t *pStageModel, Mat &image) {
+	const char *errFmt = NULL;
+	const char *errMsg = NULL;
+	int width = jo_int(pStage, "ksize.width", 3);
+	int height = jo_int(pStage, "ksize.height", 3);
+	int anchorx = jo_int(pStage, "anchor.x", -1);
+	int anchory = jo_int(pStage, "anchor.y", -1);
+
+	if (width <= 0 || height <= 0) {
+		errFmt = "apply_blur(%s) expected 0<width and 0<height";
+	}
+
+	if (!errFmt) {
+		blur(image, image, Size(width,height));
+	}
+
+	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
+		char *pStageJson = json_dumps(pStage, 0);
+		LOGDEBUG1("apply_blur(%s)", pStageJson);
+		free(pStageJson);
+	}
+}
+
+static void apply_Canny(json_t *pStage, json_t *pStageModel, Mat &image) {
+	double threshold1 = jo_double(pStage, "threshold1", 0);
+	double threshold2 = jo_double(pStage, "threshold2", 50);
+	double apertureSize = jo_double(pStage, "apertureSize", 3);
+	bool L2gradient = jo_bool(pStage, "L2gradient", false);
+	const char *errFmt = NULL;
+	const char *errMsg = NULL;
+
+	if (!errFmt) {
+		Canny(image, image, threshold1, threshold2, apertureSize, L2gradient);
+	}
+
+	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
+		char *pStageJson = json_dumps(pStage, 0);
+		LOGDEBUG1("apply_Canny(%s)", pStageJson);
 		free(pStageJson);
 	}
 }
@@ -203,14 +248,18 @@ json_t *Pipeline::process(Mat &workingImage) {
 		json_t *pStageModel = json_object();
 		json_object_set(pModel, pName, pStageModel);
 		if (pOp) {
-			if (strcmp(pOp, "imread")==0) {
-				workingImage = apply_imread(pStage, pStageModel);
-			} else if (strcmp(pOp, "imwrite")==0) {
-				apply_imwrite(pStage, pStageModel, workingImage);
+			if (strcmp(pOp, "blur")==0) {
+				apply_blur(pStage, pStageModel, workingImage);
+			} else if (strcmp(pOp, "Canny")==0) {
+				apply_Canny(pStage, pStageModel, workingImage);
 			} else if (strcmp(pOp, "cvtColor")==0) {
 				apply_cvtColor(pStage, pStageModel, workingImage);
 			} else if (strcmp(pOp, "HoleRecognizer")==0) {
 				apply_HoleRecognizer(pStage, pStageModel, workingImage);
+			} else if (strcmp(pOp, "imread")==0) {
+				apply_imread(pStage, pStageModel, workingImage);
+			} else if (strcmp(pOp, "imwrite")==0) {
+				apply_imwrite(pStage, pStageModel, workingImage);
 			} else {
 			  errFmt = "%s. Pipeline::process unknown value provided for \"op\" key in %s";
 			}
