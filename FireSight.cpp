@@ -28,10 +28,10 @@ static void help() {
 
 int main(int argc, char *argv[])
 {
-	char version[100];
-	sprintf(version, "FireSight version %d.%d.%d https://github.com/firepick1/FireSight", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+	char version[30];
+	sprintf(version, "FireSight v%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 	LOGINFO1("%s", version);
-	cout << version << endl;
+	cout << version << "https://github.com/firepick1/FireSight" << endl;
 
 	char * pipelinePath = NULL;
 	char * imagePath = NULL;
@@ -58,6 +58,10 @@ int main(int argc, char *argv[])
 	Mat image;
 	if (imagePath) {
 		image = imread(imagePath);
+		if (!image.data) {
+		  cout << "imread failed: " << imagePath << endl;
+			exit(-1);
+		}
 	}
 
 	json_t *pModel = pipeline.process(image);

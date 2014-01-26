@@ -25,17 +25,17 @@ HoleRecognizer::HoleRecognizer(float minDiameter, float maxDiameter) {
 	maxArea = (int)(maxDiameter*maxDiameter*pi/4); // 14400;
 	maxVariation = 0.25;
 	minDiversity = (maxDiam - minDiam)/(float)minDiam; // 0.2;
-	LOGTRACE3("MSER minArea:%d maxArea:%d minDiversity:%d/100", minArea, maxArea, (int)(minDiversity*100+0.5));
 	max_evolution = 200;
 	area_threshold = 1.01;
 	min_margin = .003;
 	edge_blur_size = 5;
+	LOGTRACE3("MSER minArea:%d maxArea:%d minDiversity:%d/100", minArea, maxArea, (int)(minDiversity*100+0.5));
 	mser = MSER(delta, minArea, maxArea, maxVariation, minDiversity,
 		max_evolution, area_threshold, min_margin, edge_blur_size);
 }
 
 void HoleRecognizer::scanRegion(vector<Point> &pts, int i, 
-	Mat &matRGB, vector<MatchedRegion> &matches, float maxEllipse, float maxCovar) 
+	Mat &image, vector<MatchedRegion> &matches, float maxEllipse, float maxCovar) 
 {
 	int nPts = pts.size();
 	int minX = 0x7fff;
@@ -62,7 +62,7 @@ void HoleRecognizer::scanRegion(vector<Point> &pts, int i,
 	int red = (i & 1) ? 0 : 255;
 	int green = (i & 2) ? 128 : 192;
 	int blue = (i & 1) ? 255 : 0;
-	if (matRGB.channels() >= 3) {
+	if (image.channels() >= 3) {
 		json = match.asJson();
 		LOGTRACE2("HoleRecognizer pts[%d] %s", i, json.c_str());
 	}
@@ -76,7 +76,7 @@ void HoleRecognizer::scanRegion(vector<Point> &pts, int i,
 			{ duplicate++; }
 		}
 		if (!duplicate && abs(match.ellipse-match.pointCount)/match.ellipse <= maxEllipse) {
-			if (matRGB.channels() >= 3) {
+			if (image.channels() >= 3) {
 				red = 255;
 				green = 0;
 				blue = 255;
@@ -87,12 +87,12 @@ void HoleRecognizer::scanRegion(vector<Point> &pts, int i,
 			matches.push_back(match);
 		}
 	}
-	if (!duplicate && matRGB.channels() >= 3) {
+	if (!duplicate && image.channels() >= 3) {
 		if (matched && _showMatches==HOLE_SHOW_MATCHES || _showMatches==HOLE_SHOW_MSER) {
 			for (int j = 0; j < nPts; j++) {
-				matRGB.at<Vec3b>(pts[j])[0] = red;
-				matRGB.at<Vec3b>(pts[j])[1] = green;
-				matRGB.at<Vec3b>(pts[j])[2] = blue;
+				image.at<Vec3b>(pts[j])[0] = red;
+				image.at<Vec3b>(pts[j])[1] = green;
+				image.at<Vec3b>(pts[j])[2] = blue;
 			}
 		}
 	}
@@ -102,21 +102,22 @@ void HoleRecognizer::showMatches(int show) {
   _showMatches = show;
 }
 
-void HoleRecognizer::scan(Mat &matRGB, vector<MatchedRegion> &matches, float maxEllipse, float maxCovar) {
+void HoleRecognizer::scan(Mat &image, vector<MatchedRegion> &matches, float maxEllipse, float maxCovar) {
 	Mat matGray;
-	if (matRGB.channels() == 1) {
-		matRGB = matGray;
+	if (image.channels() == 1) {
+		image = matGray;
 	} else {
-		cvtColor(matRGB, matGray, CV_RGB2GRAY);
+		cvtColor(image, matGray, CV_RGB2GRAY);
 	}
 	
 	Mat mask;
 	vector<vector<Point> > regions;
+	LOGTRACE1("HoleRecognizer::scan() mser()", NULL);
 	mser(matGray, regions, mask);
 
 	int nRegions = (int) regions.size();
 	LOGTRACE1("HoleRecognizer::scan() -> matched %d regions", nRegions);
 	for( int i = 0; i < nRegions; i++) {
-		scanRegion(regions[i], i, matRGB, matches, maxEllipse, maxCovar);
+		scanRegion(regions[i], i, image, matches, maxEllipse, maxCovar);
 	}
 }

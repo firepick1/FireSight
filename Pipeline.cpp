@@ -76,12 +76,13 @@ static bool apply_imread(json_t *pStage, json_t *pStageModel, Mat &image) {
 	if (!path) {
 		errMsg = "expected path for imread";
 	} else {
-		try {
-			image = imread(path, CV_LOAD_IMAGE_COLOR);
+		image = imread(path, CV_LOAD_IMAGE_COLOR);
+		if (image.data) {
 			json_object_set(pStageModel, "rows", json_integer(image.rows));
 			json_object_set(pStageModel, "cols", json_integer(image.cols));
-		} catch (runtime_error &ex) {
-		  errMsg = ex.what();
+		} else {
+			errMsg = "imread failed";
+			cout << "ERROR:" << errMsg << endl;
 		}
 	}
 
@@ -95,12 +96,8 @@ static bool apply_imwrite(json_t *pStage, json_t *pStageModel, Mat image) {
 	if (!path) {
 		errMsg = "expected path for imwrite";
 	} else {
-		try {
-			bool result = imwrite(path, image);
-			json_object_set(pStageModel, "result", json_boolean(result));
-		} catch (runtime_error &ex) {
-		  errMsg = ex.what();
-		}
+		bool result = imwrite(path, image);
+		json_object_set(pStageModel, "result", json_boolean(result));
 	}
 
 	return stageOK("apply_imwrite(%s) %s", errMsg, pStage, pStageModel);
@@ -194,7 +191,7 @@ static bool apply_Canny(json_t *pStage, json_t *pStageModel, Mat &image) {
 	return stageOK("apply_imread(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Mat image) {
+static bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Mat &image) {
 	double diamMin = jo_double(pStage, "diamMin");
 	double diamMax = jo_double(pStage, "diamMax");
 	int showMatches = jo_int(pStage, "show", 0);
@@ -242,6 +239,42 @@ Pipeline::~Pipeline() {
 	json_decref(pPipeline);
 }
 
+static const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, Mat &workingImage) {
+  const char *errMsg = NULL;
+ 
+	if (strcmp(pOp, "blur")==0) {
+		apply_blur(pStage, pStageModel, workingImage);
+	} else if (strcmp(pOp, "Canny")==0) {
+		apply_Canny(pStage, pStageModel, workingImage);
+	} else if (strcmp(pOp, "cvtColor")==0) {
+		apply_cvtColor(pStage, pStageModel, workingImage);
+	} else if (strcmp(pOp, "dilate")==0) {
+		apply_dilate(pStage, pStageModel, workingImage);
+	} else if (strcmp(pOp, "erode")==0) {
+		apply_erode(pStage, pStageModel, workingImage);
+	} else if (strcmp(pOp, "HoleRecognizer")==0) {
+		apply_HoleRecognizer(pStage, pStageModel, workingImage);
+	} else if (strcmp(pOp, "imread")==0) {
+		apply_imread(pStage, pStageModel, workingImage);
+	} else if (strcmp(pOp, "imwrite")==0) {
+		apply_imwrite(pStage, pStageModel, workingImage);
+	} else {
+		errMsg = "unknown op";
+	}
+
+	return errMsg;
+}
+
+static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStage) {
+	if (errMsg) {
+		char *pStageJson = json_dumps(pStage, 0);
+		LOGERROR3("Pipeline::process stage:%s error:%s pStageJson:%s", pName, errMsg, pStageJson);
+		free(pStageJson);
+		return false;
+	}
+	return true;
+}
+
 json_t *Pipeline::process(Mat &workingImage) { 
 	if (!json_is_array(pPipeline)) {
 		const char * errMsg = "Pipeline::process expected json array for pipeline definition";
@@ -249,45 +282,34 @@ json_t *Pipeline::process(Mat &workingImage) {
 		return json_string(errMsg);
 	}
 
+	bool ok = 1;
 	size_t index;
 	json_t *pStage;
 	json_t *pModel = json_object();
 	char nameBuf[16];
 	LOGTRACE1("Pipeline::process(%d functions)", json_array_size(pPipeline));
 	json_array_foreach(pPipeline, index, pStage) {
-		const char *errFmt = NULL;
 		const char *pOp = jo_string(pStage, "op", "");
 		sprintf(nameBuf, "s%d", index+1);
 		const char *pName = jo_string(pStage, "name", nameBuf);
 		json_t *pStageModel = json_object();
 		json_object_set(pModel, pName, pStageModel);
+		LOGTRACE2("%s:%s", pName, pOp);
 		if (pOp) {
-			if (strcmp(pOp, "blur")==0) {
-				apply_blur(pStage, pStageModel, workingImage);
-			} else if (strcmp(pOp, "Canny")==0) {
-				apply_Canny(pStage, pStageModel, workingImage);
-			} else if (strcmp(pOp, "cvtColor")==0) {
-				apply_cvtColor(pStage, pStageModel, workingImage);
-			} else if (strcmp(pOp, "dilate")==0) {
-				apply_dilate(pStage, pStageModel, workingImage);
-			} else if (strcmp(pOp, "erode")==0) {
-				apply_erode(pStage, pStageModel, workingImage);
-			} else if (strcmp(pOp, "HoleRecognizer")==0) {
-				apply_HoleRecognizer(pStage, pStageModel, workingImage);
-			} else if (strcmp(pOp, "imread")==0) {
-				apply_imread(pStage, pStageModel, workingImage);
-			} else if (strcmp(pOp, "imwrite")==0) {
-				apply_imwrite(pStage, pStageModel, workingImage);
-			} else {
-			  errFmt = "%s. Pipeline::process unknown value provided for \"op\" key in %s";
+			try {
+			  const char *errMsg = dispatch(pOp, pStage, pStageModel, workingImage);
+				ok = logErrorMessage(errMsg, pName, pStage);
+			} catch (runtime_error &ex) {
+				ok = logErrorMessage(ex.what(), pName, pStage);
+			} catch (cv::Exception &ex) {
+				ok = logErrorMessage(ex.what(), pName, pStage);
 			}
 		} else {
-			errFmt = "%s. Pipeline::process missing value for \"op\" in %s";
+			ok = logErrorMessage("expected op", pName, pStage);
 		} //if (pOp)
-		if (errFmt) {
-			char *pJson = json_dumps(pStage, 0);
-			LOGERROR2(errFmt, pName, pJson);
-			free(pJson);
+		if (!ok) { 
+			LOGERROR("cancelled pipeline execution");
+			break; 
 		}
 	} // json_array_foreach
 
