@@ -18,7 +18,7 @@ sudo ./build
 </pre>
 
 ### Examples
-Recognize holes in cam.jpg:
+Recognize holes in <a href="img/cam.jpg">cam.jpg</a>:
 <pre>
 firesight -p json/pipeline0.json -i img/cam.jpg
 </pre>
