@@ -1,0 +1,6 @@
+[
+	{"name":"camera", "op":"imread", "path":"/dev/firefuse/cam.jpg"},
+	{"name":"holes", "op":"HoleRecognizer", "diamMin":22.6, "diamMax":29.9, "show":2},
+	{"name":"output", "op":"imwrite", "path":"target/output2.jpg"}
+]
+
