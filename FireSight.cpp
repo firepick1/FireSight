@@ -28,7 +28,10 @@ static void help() {
 
 int main(int argc, char *argv[])
 {
-	LOGINFO3("FireSightMain %d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+	char version[100];
+	sprintf(version, "FireSight version %d.%d.%d https://github.com/firepick1/FireSight", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+	LOGINFO1("%s", version);
+	cout << version << endl;
 
 	char * pipelinePath = NULL;
 	char * imagePath = NULL;

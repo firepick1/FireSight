@@ -50,76 +50,67 @@ static int jo_shape(json_t *pStage, const char *key, const char *&errMsg) {
 	return shape;
 }
 
-static bool stageOK(const char *errFmt, json_t *pStage, const char *errMsg) {
-	if (errFmt) {
+static bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
+	if (errMsg) {
 		char *pStageJson = json_dumps(pStage, JSON_COMPACT|JSON_PRESERVE_ORDER);
-		LOGERROR2(errFmt, pStageJson, errMsg);
+		LOGERROR2(fmt, pStageJson, errMsg);
 		free(pStageJson);
 		return false;
+	}
+
+	if (logLevel >= FIRELOG_DEBUG) {
+	  char *pStageJson = json_dumps(pStage, 0);
+		char *pModelJson = json_dumps(pStageModel, 0);
+		LOGDEBUG2(fmt, pStageJson, pModelJson);
+		free(pStageJson);
+		free(pModelJson);
 	}
 
 	return true;
 }
 
-static void apply_imread(json_t *pStage, json_t *pStageModel, Mat &image) {
+static bool apply_imread(json_t *pStage, json_t *pStageModel, Mat &image) {
   const char *path = jo_string(pStage, "path", NULL);
-	const char *errFmt = NULL;
 	const char *errMsg = NULL;
 
 	if (!path) {
-		errFmt = "apply_imread(%s) expected \"path\" for image file to read";
+		errMsg = "expected path for imread";
 	} else {
 		try {
-			LOGTRACE1("apply_imread(%s)", path);
 			image = imread(path, CV_LOAD_IMAGE_COLOR);
 			json_object_set(pStageModel, "rows", json_integer(image.rows));
 			json_object_set(pStageModel, "cols", json_integer(image.cols));
 		} catch (runtime_error &ex) {
 		  errMsg = ex.what();
-			errFmt = "apply_imread(%s) exception: %s";
 		}
 	}
 
-	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
-		char *pModelJson = json_dumps(pStageModel, 0);
-		LOGDEBUG2("apply_imread(%s) => %s", path, pModelJson);
-		free(pModelJson);
-	}
+	return stageOK("apply_imread(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static void apply_imwrite(json_t *pStage, json_t *pStageModel, Mat image) {
+static bool apply_imwrite(json_t *pStage, json_t *pStageModel, Mat image) {
   const char *path = jo_string(pStage, "path", NULL);
-	const char *errFmt = NULL;
 	const char *errMsg = NULL;
-	Mat matRGB;
 
 	if (!path) {
-		errFmt = "apply_imwrite(%s) expected \"path\" for image file to write";
+		errMsg = "expected path for imwrite";
 	} else {
 		try {
-			LOGTRACE1("apply_imwrite(%s)", path);
 			bool result = imwrite(path, image);
 			json_object_set(pStageModel, "result", json_boolean(result));
 		} catch (runtime_error &ex) {
 		  errMsg = ex.what();
-			errFmt = "apply_imwrite(%s) exception: %s";
 		}
 	}
 
-	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
-		char *pModelJson = json_dumps(pStageModel, 0);
-		LOGDEBUG2("apply_imwrite(%s) => %s", path, pModelJson);
-		free(pModelJson);
-	}
+	return stageOK("apply_imwrite(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static void apply_cvtColor(json_t *pStage, json_t *pStageModel, Mat &image) {
+static bool apply_cvtColor(json_t *pStage, json_t *pStageModel, Mat &image) {
   const char *codeStr = jo_string(pStage, "code", "CV_BGR2GRAY");
 	int dstCn = jo_int(pStage, "dstCn", 0);
-	const char *errFmt = NULL;
 	const char *errMsg = NULL;
 	int code = CV_BGR2GRAY;
-	Mat matOut;
 
 	if (strcmp("CV_RGB2GRAY",codeStr)==0) {
 	  code = CV_RGB2GRAY;
@@ -130,71 +121,48 @@ static void apply_cvtColor(json_t *pStage, json_t *pStageModel, Mat &image) {
 	} else if (strcmp("CV_GRAY2RGB",codeStr)==0) {
 	  code = CV_GRAY2RGB;
 	} else {
-	  errFmt = "apply_cvtColor(%s) code unsupported";
+	  errMsg = "code unsupported";
 	}
 	if (dstCn < 0) {
-		errFmt = "apply_cvtColor(%s) dstCn < 0";
+		errMsg = "expected 0<dstCn";
 	}
 
-	if (!errFmt) {
+	if (!errMsg) {
 		cvtColor(image, image, code, dstCn);
 	}
 
-	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
-		char *pStageJson = json_dumps(pStage, 0);
-		LOGDEBUG1("apply_cvtColor(%s)", pStageJson);
-		free(pStageJson);
-	}
+	return stageOK("apply_cvtColor(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static void apply_dilate(json_t *pStage, json_t *pStageModel, Mat &image) {
-	const char *errFmt = NULL;
+static bool apply_dilate(json_t *pStage, json_t *pStageModel, Mat &image) {
 	const char *errMsg = NULL;
 	int kwidth = jo_int(pStage, "ksize.width", 3);
 	int kheight = jo_int(pStage, "ksize.height", 3);
 	int shape = jo_shape(pStage, "shape", errMsg);
 
-	if (errMsg) {
-		errFmt = "apply_dilate(%s) %s";
-	}
-
-	if (!errFmt) {
+	if (!errMsg) {
 	  Mat structuringElement = getStructuringElement(shape, Size(kwidth, kheight));
 		dilate(image, image, structuringElement);
 	}
 
-	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
-		char *pStageJson = json_dumps(pStage, 0);
-		LOGDEBUG1("apply_dilate(%s)", pStageJson);
-		free(pStageJson);
-	}
+	return stageOK("apply_dilate(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static void apply_erode(json_t *pStage, json_t *pStageModel, Mat &image) {
-	const char *errFmt = NULL;
+static bool apply_erode(json_t *pStage, json_t *pStageModel, Mat &image) {
 	const char *errMsg = NULL;
 	int kwidth = jo_int(pStage, "ksize.width", 3);
 	int kheight = jo_int(pStage, "ksize.height", 3);
 	int shape = jo_shape(pStage, "shape", errMsg);
 
-	if (errMsg) {
-		errFmt = "apply_erode(%s) %s";
-	}
-
-	if (!errFmt) {
+	if (!errMsg) {
 	  Mat structuringElement = getStructuringElement(shape, Size(kwidth, kheight));
 		erode(image, image, structuringElement);
 	}
 
-	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
-		char *pStageJson = json_dumps(pStage, 0);
-		LOGDEBUG1("apply_erode(%s)", pStageJson);
-		free(pStageJson);
-	}
+	return stageOK("apply_erode(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static void apply_blur(json_t *pStage, json_t *pStageModel, Mat &image) {
-	const char *errFmt = NULL;
+static bool apply_blur(json_t *pStage, json_t *pStageModel, Mat &image) {
 	const char *errMsg = NULL;
 	int width = jo_int(pStage, "ksize.width", 3);
 	int height = jo_int(pStage, "ksize.height", 3);
@@ -202,56 +170,46 @@ static void apply_blur(json_t *pStage, json_t *pStageModel, Mat &image) {
 	int anchory = jo_int(pStage, "anchor.y", -1);
 
 	if (width <= 0 || height <= 0) {
-		errFmt = "apply_blur(%s) expected 0<width and 0<height";
+		errMsg = "expected 0<width and 0<height";
 	}
 
-	if (!errFmt) {
+	if (!errMsg) {
 		blur(image, image, Size(width,height));
 	}
 
-	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
-		char *pStageJson = json_dumps(pStage, 0);
-		LOGDEBUG1("apply_blur(%s)", pStageJson);
-		free(pStageJson);
-	}
+	return stageOK("apply_blur(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static void apply_Canny(json_t *pStage, json_t *pStageModel, Mat &image) {
+static bool apply_Canny(json_t *pStage, json_t *pStageModel, Mat &image) {
 	double threshold1 = jo_double(pStage, "threshold1", 0);
 	double threshold2 = jo_double(pStage, "threshold2", 50);
 	double apertureSize = jo_double(pStage, "apertureSize", 3);
 	bool L2gradient = jo_bool(pStage, "L2gradient", false);
-	const char *errFmt = NULL;
 	const char *errMsg = NULL;
 
-	if (!errFmt) {
+	if (!errMsg) {
 		Canny(image, image, threshold1, threshold2, apertureSize, L2gradient);
 	}
 
-	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
-		char *pStageJson = json_dumps(pStage, 0);
-		LOGDEBUG1("apply_Canny(%s)", pStageJson);
-		free(pStageJson);
-	}
+	return stageOK("apply_imread(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static void apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Mat image) {
+static bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Mat image) {
 	double diamMin = jo_double(pStage, "diamMin");
 	double diamMax = jo_double(pStage, "diamMax");
 	int showMatches = jo_int(pStage, "show", 0);
-	const char *errFmt = NULL;
 	const char *errMsg = NULL;
 
 	if (diamMin <= 0 || diamMax <= 0 || diamMin > diamMax) {
-		errFmt = "apply_HoleRecognizer(%s) expected: 0 < diamMin < diamMax ";
+		errMsg = "expected: 0 < diamMin < diamMax ";
 	} else if (showMatches < 0) {
-		errFmt = "apply_HoleRecognizer(%s) expected: 0 < showMatches ";
+		errMsg = "expected: 0 < showMatches ";
 	} else if (logLevel >= FIRELOG_TRACE) {
 		char *pStageJson = json_dumps(pStage, 0);
 		LOGTRACE1("apply_HoleRecognizer(%s)", pStageJson);
 		free(pStageJson);
 	}
-	if (!errFmt) {
+	if (!errMsg) {
 		vector<MatchedRegion> matches;
 		HoleRecognizer recognizer(diamMin, diamMax);
 		recognizer.showMatches(showMatches);
@@ -263,13 +221,7 @@ static void apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Mat image)
 		}
 	}
 
-	if (stageOK(errFmt, pStage, errMsg) && logLevel >= FIRELOG_DEBUG) {
-	  char *pStageJson = json_dumps(pStage, 0);
-		char *pModelJson = json_dumps(pStageModel, 0);
-		LOGDEBUG2("apply_HoleRecognizer(%s) => %s", pStageJson, pModelJson);
-		free(pStageJson);
-		free(pModelJson);
-	}
+	return stageOK("apply_imread(%s) %s", errMsg, pStage, pStageModel);
 }
 
 Pipeline::Pipeline(const char *pJson) {
