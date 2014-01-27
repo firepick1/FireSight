@@ -46,6 +46,48 @@ static const char * jo_string(const json_t *pObj, const char *key, const char *d
 	return result;
 }
 
+static Scalar jo_Scalar(const json_t *pObj, const char *key, const Scalar &defaultValue) {
+	Scalar result = defaultValue;
+	json_t *pValue = json_object_get(pObj, key);
+	if (pValue) {
+		if (!json_is_array(pValue)) {
+			LOGERROR1("expected JSON array for %s", key);
+		} else { 
+			switch (json_array_size(pValue)) {
+				case 1: 
+					result = Scalar(json_number_value(json_array_get(pValue, 0)));
+					break;
+				case 2: 
+					result = Scalar(json_number_value(json_array_get(pValue, 0)),
+						json_number_value(json_array_get(pValue, 1)));
+					break;
+				case 3: 
+					result = Scalar(json_number_value(json_array_get(pValue, 0)),
+						json_number_value(json_array_get(pValue, 1)),
+						json_number_value(json_array_get(pValue, 2)));
+					break;
+				case 4: 
+					result = Scalar(json_number_value(json_array_get(pValue, 0)),
+						json_number_value(json_array_get(pValue, 1)),
+						json_number_value(json_array_get(pValue, 2)),
+						json_number_value(json_array_get(pValue, 3)));
+					break;
+				default:
+					LOGERROR1("expected JSON array with 1, 2, 3 or 4 integer values 0-255 for %s", key);
+					return defaultValue;
+			}
+		}
+	}
+	if (pValue && logLevel >= FIRELOG_TRACE) {
+	  char buf[100];
+		sprintf(buf, "[%f %f %f %f] default:[%f %f %f %f]", 
+			result[0], result[1], result[2], result[3],
+			defaultValue[0], defaultValue[1], defaultValue[2], defaultValue[3]);
+		LOGTRACE2("%s:%s", key, buf);
+	}
+	return result;
+}
+
 static int jo_shape(json_t *pStage, const char *key, const char *&errMsg) {
 	const char * pShape = jo_string(pStage, key, "MORPH_ELLIPSE");
 	int shape = MORPH_ELLIPSE;
@@ -81,7 +123,7 @@ static bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t 
 	return true;
 }
 
-static bool apply_imread(json_t *pStage, json_t *pStageModel, Mat &image) {
+static bool apply_imread(json_t *pStage, json_t *pStageModel, json_t *pMode, Mat &image) {
   const char *path = jo_string(pStage, "path", NULL);
 	const char *errMsg = NULL;
 
@@ -101,7 +143,7 @@ static bool apply_imread(json_t *pStage, json_t *pStageModel, Mat &image) {
 	return stageOK("apply_imread(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_imwrite(json_t *pStage, json_t *pStageModel, Mat image) {
+static bool apply_imwrite(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
   const char *path = jo_string(pStage, "path", NULL);
 	const char *errMsg = NULL;
 
@@ -115,7 +157,7 @@ static bool apply_imwrite(json_t *pStage, json_t *pStageModel, Mat image) {
 	return stageOK("apply_imwrite(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_cvtColor(json_t *pStage, json_t *pStageModel, Mat &image) {
+static bool apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
   const char *codeStr = jo_string(pStage, "code", "CV_BGR2GRAY");
 	int dstCn = jo_int(pStage, "dstCn", 0);
 	const char *errMsg = NULL;
@@ -143,7 +185,48 @@ static bool apply_cvtColor(json_t *pStage, json_t *pStageModel, Mat &image) {
 	return stageOK("apply_cvtColor(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_dilate(json_t *pStage, json_t *pStageModel, Mat &image) {
+static bool apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	const char *errMsg = NULL;
+	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
+	int flags = jo_int(pStage, "flags", DrawMatchesFlags::DEFAULT);
+	const char *stageModel = jo_string(pStage, "keypointStage", NULL);
+	json_t *pKeypointStage = json_object_get(pModel, stageModel);
+
+	if (!errMsg && flags < 0 || 7 < flags) {
+		errMsg = "expected 0 < flags < 7";
+	}
+
+	if (!errMsg && !pKeypointStage) {
+		errMsg = "expected keypointStage name";
+	}
+
+	vector<KeyPoint> keypoints;
+	if (!errMsg) {
+		json_t *pKeypoints = json_object_get(pKeypointStage, "keypoints");
+		if (!json_is_array(pKeypoints)) {
+		  errMsg = "keypointStage has no keypoints JSON array";
+		} else {
+			int index;
+			json_t *pKeypoint;
+			json_array_foreach(pKeypoints, index, pKeypoint) {
+				double x = jo_double(pKeypoint, "pt.x", -1);
+				double y = jo_double(pKeypoint, "pt.y", -1);
+				double size = jo_double(pKeypoint, "size", 10);
+				double angle = jo_double(pKeypoint, "angle", -1);
+				KeyPoint keypoint(x, y, size, angle);
+				keypoints.push_back(keypoint);
+			}
+		}
+	}
+
+	if (!errMsg) {
+		drawKeypoints(image, keypoints, image, color, flags);
+	}
+
+	return stageOK("apply_drawKeypoints(%s) %s", errMsg, pStage, pStageModel);
+}
+
+static bool apply_dilate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	const char *errMsg = NULL;
 	int kwidth = jo_int(pStage, "ksize.width", 3);
 	int kheight = jo_int(pStage, "ksize.height", 3);
@@ -157,7 +240,7 @@ static bool apply_dilate(json_t *pStage, json_t *pStageModel, Mat &image) {
 	return stageOK("apply_dilate(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_erode(json_t *pStage, json_t *pStageModel, Mat &image) {
+static bool apply_erode(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	const char *errMsg = NULL;
 	int kwidth = jo_int(pStage, "ksize.width", 3);
 	int kheight = jo_int(pStage, "ksize.height", 3);
@@ -171,7 +254,7 @@ static bool apply_erode(json_t *pStage, json_t *pStageModel, Mat &image) {
 	return stageOK("apply_erode(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_blur(json_t *pStage, json_t *pStageModel, Mat &image) {
+static bool apply_blur(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	const char *errMsg = NULL;
 	int width = jo_int(pStage, "ksize.width", 3);
 	int height = jo_int(pStage, "ksize.height", 3);
@@ -191,7 +274,7 @@ static bool apply_blur(json_t *pStage, json_t *pStageModel, Mat &image) {
 
 static const char * modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &keyPoints) {
 	json_t *pKeyPoints = json_array();
-	json_object_set(pStageModel, "keyPoints", pKeyPoints);
+	json_object_set(pStageModel, "keypoints", pKeyPoints);
 	for (int i=0; i<keyPoints.size(); i++){
 	  json_t *pKeyPoint = json_object();
 		json_object_set(pKeyPoint, "pt.x", json_real(keyPoints[i].pt.x));
@@ -207,7 +290,7 @@ static const char * modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &k
 	}
 }
 
-static bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Mat &image) {
+static bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	SimpleBlobDetector::Params params;
 	params.thresholdStep = jo_double(pStage, "thresholdStep", params.thresholdStep);
 	params.minThreshold = jo_double(pStage, "minThreshold", params.minThreshold);
@@ -243,7 +326,7 @@ static bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Mat &i
 	return stageOK("apply_SimpleBlobDetector(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_Canny(json_t *pStage, json_t *pStageModel, Mat &image) {
+static bool apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	double threshold1 = jo_double(pStage, "threshold1", 0);
 	double threshold2 = jo_double(pStage, "threshold2", 50);
 	double apertureSize = jo_double(pStage, "apertureSize", 3);
@@ -257,7 +340,7 @@ static bool apply_Canny(json_t *pStage, json_t *pStageModel, Mat &image) {
 	return stageOK("apply_imread(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Mat &image) {
+static bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	double diamMin = jo_double(pStage, "diamMin");
 	double diamMax = jo_double(pStage, "diamMax");
 	int showMatches = jo_int(pStage, "show", 0);
@@ -305,27 +388,29 @@ Pipeline::~Pipeline() {
 	json_decref(pPipeline);
 }
 
-static const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, Mat &workingImage) {
+static const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage) {
   const char *errMsg = NULL;
  
 	if (strcmp(pOp, "blur")==0) {
-		apply_blur(pStage, pStageModel, workingImage);
+		apply_blur(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "Canny")==0) {
-		apply_Canny(pStage, pStageModel, workingImage);
+		apply_Canny(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "cvtColor")==0) {
-		apply_cvtColor(pStage, pStageModel, workingImage);
+		apply_cvtColor(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "dilate")==0) {
-		apply_dilate(pStage, pStageModel, workingImage);
+		apply_dilate(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "drawKeypoints")==0) {
+		apply_drawKeypoints(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "erode")==0) {
-		apply_erode(pStage, pStageModel, workingImage);
+		apply_erode(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "HoleRecognizer")==0) {
-		apply_HoleRecognizer(pStage, pStageModel, workingImage);
+		apply_HoleRecognizer(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "imread")==0) {
-		apply_imread(pStage, pStageModel, workingImage);
+		apply_imread(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "imwrite")==0) {
-		apply_imwrite(pStage, pStageModel, workingImage);
+		apply_imwrite(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "SimpleBlobDetector")==0) {
-		apply_SimpleBlobDetector(pStage, pStageModel, workingImage);
+		apply_SimpleBlobDetector(pStage, pStageModel, pModel, workingImage);
 	} else {
 		errMsg = "unknown op";
 	}
@@ -365,7 +450,7 @@ json_t *Pipeline::process(Mat &workingImage) {
 		LOGTRACE2("Pipeline::process stage:%s op:%s", pName, pOp);
 		if (pOp) {
 			try {
-			  const char *errMsg = dispatch(pOp, pStage, pStageModel, workingImage);
+			  const char *errMsg = dispatch(pOp, pStage, pStageModel, pModel, workingImage);
 				ok = logErrorMessage(errMsg, pName, pStage);
 			} catch (runtime_error &ex) {
 				ok = logErrorMessage(ex.what(), pName, pStage);
