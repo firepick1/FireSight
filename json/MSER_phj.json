@@ -1,0 +1,5 @@
+[
+	{"op":"MSER", "color":[255, 0, 255], "minArea":1100, "maxArea":1200 },
+	{"op":"imwrite", "path":"target/MSER.jpg"}
+]
+

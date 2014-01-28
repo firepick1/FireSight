@@ -290,6 +290,73 @@ static const char * modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &k
 	}
 }
 
+static void drawRegions(Mat &image, vector<vector<Point> > &regions, Scalar color) {
+	int nRegions = (int) regions.size();
+	int blue = color[0];
+	int green = color[1];
+	int red = color[2];
+	bool changeColor = red == -1 && green == -1 && blue == -1;
+
+	for( int i = 0; i < nRegions; i++) {
+		int nPts = regions[i].size();
+		if (changeColor) {
+			red = (i & 1) ? 0 : 255;
+			green = (i & 2) ? 128 : 192;
+			blue = (i & 1) ? 255 : 0;
+		}
+		for (int j = 0; j < nPts; j++) {
+			image.at<Vec3b>(regions[i][j])[0] = blue;
+			image.at<Vec3b>(regions[i][j])[1] = green;
+			image.at<Vec3b>(regions[i][j])[2] = red;
+		}
+	}
+}
+
+static bool apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	int delta = jo_int(pStage, "delta", 5);
+	int minArea = jo_int(pStage, "minArea", 60);
+	int maxArea = jo_int(pStage, "maxArea", 14400);
+	float maxVariation = jo_double(pStage, "maxVariation", 0.25);
+	float minDiversity = jo_double(pStage, "minDiversity", 0.2);
+	int maxEvolution = jo_int(pStage, "maxEvolution", 200);
+	double areaThreshold = jo_double(pStage, "areaThreshold", 1.01);
+	double minMargin = jo_double(pStage, "minMargin", .003);
+	int edgeBlurSize = jo_int(pStage, "edgeBlurSize", 5);
+	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
+	const char *errMsg = NULL;
+
+	if (minArea < 0 || maxArea <= minArea) {
+	  errMsg = "expected 0<=minArea and minArea<maxArea";
+	} else if (maxVariation < 0 || minDiversity < 0) {
+	  errMsg = "expected 0<=minDiversity and 0<=maxVariation";
+	} else if (maxEvolution<0) {
+	  errMsg = "expected 0<=maxEvolution";
+	} else if (areaThreshold < 0 || minMargin < 0) {
+	  errMsg = "expected 0<=areaThreshold and 0<=minMargin";
+	} else if (edgeBlurSize < 0) {
+	  errMsg = "expected 0<=edgeBlurSize";
+	}
+
+	if (!errMsg) {
+		MSER mser(delta, minArea, maxArea, maxVariation, minDiversity,
+			maxEvolution, areaThreshold, minMargin, edgeBlurSize);
+		Mat mask;
+		vector<vector<Point> > regions;
+		mser(image, regions, mask);
+
+		int nRegions = (int) regions.size();
+		LOGTRACE1("apply_MSER matched %d regions", nRegions);
+		if (json_object_get(pStage, "color")) {
+			if (image.channels() == 1) {
+				cvtColor(image, image, CV_GRAY2BGR);
+			}
+			drawRegions(image, regions, color);
+		}
+	}
+
+	return stageOK("apply_MSER(%s) %s", errMsg, pStage, pStageModel);
+}
+
 static bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	SimpleBlobDetector::Params params;
 	params.thresholdStep = jo_double(pStage, "thresholdStep", params.thresholdStep);
@@ -409,6 +476,8 @@ static const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageMode
 		apply_imread(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "imwrite")==0) {
 		apply_imwrite(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "MSER")==0) {
+		apply_MSER(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "SimpleBlobDetector")==0) {
 		apply_SimpleBlobDetector(pStage, pStageModel, pModel, workingImage);
 	} else {

@@ -1,0 +1,5 @@
+[
+	{"op":"MSER", "color":[-1,-1,-1,-1]},
+	{"op":"imwrite", "path":"target/MSER.jpg"}
+]
+
