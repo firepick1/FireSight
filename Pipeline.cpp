@@ -323,7 +323,13 @@ static bool apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat 
 	double minMargin = jo_double(pStage, "minMargin", .003);
 	int edgeBlurSize = jo_int(pStage, "edgeBlurSize", 5);
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
+	json_t * pMask = json_object_get(pStage, "mask");
 	const char *errMsg = NULL;
+	char errBuf[100];
+	int maskX;
+	int maskY;
+	int maskW;
+	int maskH;
 
 	if (minArea < 0 || maxArea <= minArea) {
 	  errMsg = "expected 0<=minArea and minArea<maxArea";
@@ -335,12 +341,45 @@ static bool apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat 
 	  errMsg = "expected 0<=areaThreshold and 0<=minMargin";
 	} else if (edgeBlurSize < 0) {
 	  errMsg = "expected 0<=edgeBlurSize";
+	} if (pMask) {
+	  if (!json_is_object(pMask)) {
+		  errMsg = "expected mask JSON object with x, y, width, height";
+		} else {
+			if (pMask) {
+				LOGTRACE("mask:{");
+			}
+			maskX = jo_int(pMask, "x", 0);
+			maskY = jo_int(pMask, "y", 0);
+			maskW = jo_int(pMask, "width", image.cols);
+			maskH = jo_int(pMask, "height", image.rows);
+			if (pMask) {
+				LOGTRACE("}");
+			}
+			if (maskX < 0 || image.cols <= maskX) {
+				sprintf(errBuf, "expected 0 <= mask.x < %d", image.cols);
+				errMsg = errBuf;
+			} else if (maskY < 0 || image.rows <= maskY) {
+				sprintf(errBuf, "expected 0 <= mask.y < %d", image.cols);
+				errMsg = errBuf;
+			} else if (maskW <= 0 || image.cols < maskW) {
+				sprintf(errBuf, "expected 0 < mask.width <= %d", image.cols);
+				errMsg = errBuf;
+			} else if (maskH <= 0 || image.rows < maskH) {
+				sprintf(errBuf, "expected 0 < mask.height <= %d", image.rows);
+				errMsg = errBuf;
+			}
+		}
 	}
 
 	if (!errMsg) {
 		MSER mser(delta, minArea, maxArea, maxVariation, minDiversity,
 			maxEvolution, areaThreshold, minMargin, edgeBlurSize);
 		Mat mask;
+		Rect maskRect(maskX, maskY, maskW, maskH);
+		if (pMask) {
+			mask = Mat::zeros(image.rows, image.cols, CV_8UC1);
+			mask(maskRect) = 1;
+		}
 		vector<vector<Point> > regions;
 		mser(image, regions, mask);
 
@@ -351,6 +390,13 @@ static bool apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat 
 				cvtColor(image, image, CV_GRAY2BGR);
 			}
 			drawRegions(image, regions, color);
+			if (pMask) {
+				if (color[0]==-1 && color[1]==-1 && color[2]==-1 && color[3]==-1) {
+					rectangle(image, maskRect, Scalar(255, 0, 255));
+				} else {
+					rectangle(image, maskRect, color);
+				}
+			}
 		}
 	}
 

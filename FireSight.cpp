@@ -21,9 +21,9 @@ static void help() {
 	cout << "https://github.com/firepick1/FireSight/wiki" << endl;
 	cout << endl;
 	cout << "Example:" << endl;
-	cout << "   firesight -p pipeline0.json -i cam.jpg " << endl;
-	cout << "   firesight -p pipeline1.json " << endl;
-	cout << "   firesight -p pipeline2.json " << endl;
+	cout << "   firesight -p json/pipeline0.json -i img/cam.jpg " << endl;
+	cout << "   firesight -p json/pipeline1.json " << endl;
+	cout << "   firesight -p json/pipeline2.json " << endl;
 }
 
 int main(int argc, char *argv[])
