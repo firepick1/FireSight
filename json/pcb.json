@@ -1,0 +1,6 @@
+[
+	{"op":"cvtColor", "code":"CV_BGR2GRAY"},
+	{"op":"MSER", "color":[-1,-1,-1,-1], "minArea":750, "maxArea":950},
+	{"op":"imwrite", "path":"target/MSER.jpg"}
+]
+
