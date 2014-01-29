@@ -388,6 +388,7 @@ static bool apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat 
 		if (json_object_get(pStage, "color")) {
 			if (image.channels() == 1) {
 				cvtColor(image, image, CV_GRAY2BGR);
+				LOGTRACE("cvtColor(CV_GRAY2BGR)");
 			}
 			drawRegions(image, regions, color);
 			if (pMask) {
