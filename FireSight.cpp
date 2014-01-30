@@ -38,12 +38,24 @@ int main(int argc, char *argv[])
 	char * imagePath = NULL;
 	int firelogLevel = FIRELOG_INFO;
 	for (int i = 1; i < argc; i++) {
-		if (strcmp("-p",argv[i]) == 0 && i+1<argc) {
-			pipelinePath = argv[i+1];
-		} else if (strcmp("-i",argv[i]) == 0 && i+1<argc) {
-			imagePath = argv[i+1];
+		if (strcmp("-p",argv[i]) == 0) {
+			if (i+1>=argc) {
+				LOGERROR("expected pipeline path after -p");
+				exit(-1);
+			}
+			pipelinePath = argv[++i];
+		} else if (strcmp("-i",argv[i]) == 0) {
+			if (i+1>=argc) {
+				LOGERROR("expected image path after -i");
+				exit(-1);
+			}
+			imagePath = argv[++i];
 		} else if (strcmp("-trace", argv[i]) == 0) {
 			firelogLevel = FIRELOG_TRACE;
+		} else {
+			LOGERROR1("argument error detected at: %s", argv[i]);
+			help();
+			exit(-1);
 		}
 	}
 	firelog_level(firelogLevel);
@@ -51,10 +63,12 @@ int main(int argc, char *argv[])
 		help();
 		exit(-1);
 	}
+	LOGTRACE1("Reading pipeline: %s", pipelinePath);
 	ifstream ifs(pipelinePath);
 	stringstream pipelineStream;
 	pipelineStream << ifs.rdbuf();
-	const char *pJsonPipeline = pipelineStream.str().c_str();
+	string pipelineString = pipelineStream.str();
+	const char *pJsonPipeline = pipelineString.c_str();
 	if (strlen(pJsonPipeline) < 10) {
 		cout << "invalid pipeline: " << pipelinePath << endl;
 		exit(-1);
@@ -62,6 +76,7 @@ int main(int argc, char *argv[])
 
 	Mat image;
 	if (imagePath) {
+		LOGTRACE1("Reading image: %s", imagePath);
 		image = imread(imagePath);
 		if (!image.data) {
 		  cout << "imread failed: " << imagePath << endl;
