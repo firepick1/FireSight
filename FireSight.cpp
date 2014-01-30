@@ -31,7 +31,8 @@ int main(int argc, char *argv[])
 	char version[30];
 	sprintf(version, "FireSight v%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 	LOGINFO1("%s", version);
-	cout << version << "https://github.com/firepick1/FireSight" << endl;
+	cout << version << endl;
+	cout << "https://github.com/firepick1/FireSight" << endl;
 
 	char * pipelinePath = NULL;
 	char * imagePath = NULL;
@@ -53,12 +54,11 @@ int main(int argc, char *argv[])
 	ifstream ifs(pipelinePath);
 	stringstream pipelineStream;
 	pipelineStream << ifs.rdbuf();
-	const char *pJson = pipelineStream.str().c_str();
-	if (strlen(pJson) < 10) {
+	const char *pJsonPipeline = pipelineStream.str().c_str();
+	if (strlen(pJsonPipeline) < 10) {
 		cout << "invalid pipeline: " << pipelinePath << endl;
 		exit(-1);
 	}
-	Pipeline pipeline(pipelineStream.str().c_str());
 
 	Mat image;
 	if (imagePath) {
@@ -69,13 +69,21 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	// To use FireSight as a library, simple create a Pipeline with a JSON string
+	Pipeline pipeline(pJsonPipeline);
+
+	// FOR-EACH-IMAGE-START: Use pipeline to process image (remember to free the returned model when done!)
 	json_t *pModel = pipeline.process(image);
 
+	// Print out returned model 
 	char *pModelJson = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
 	cout << pModelJson << endl;
-
-	free(pModel);
 	free(pModelJson);
+
+	// Free model
+	free(pModel);
+
+	// FOR-EACH-IMAGE-END: Repeat for each image
 
   return 0;
 }
