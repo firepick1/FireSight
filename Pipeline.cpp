@@ -8,101 +8,11 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
+#include "jo_util.hpp"
 
 using namespace cv;
 using namespace std;
 using namespace FireSight;
-
-
-static const bool jo_bool(const json_t *pObj, const char *key, bool defaultValue=0) {
-	json_t *pValue = json_object_get(pObj, key);
-	bool result = pValue ? json_is_true(pValue) : defaultValue;
-	LOGTRACE3("%s:%d default:%d", key, result, defaultValue);
-	return result;
-}
-
-static const int jo_int(const json_t *pObj, const char *key, int defaultValue=0) {
-	json_t *pValue = json_object_get(pObj, key);
-	int result = json_is_integer(pValue) ? json_integer_value(pValue) : defaultValue;
-	LOGTRACE3("%s:%d default:%d", key, result, defaultValue);
-	return result;
-}
-
-static const double jo_double(const json_t *pObj, const char *key, double defaultValue=0) {
-	json_t *pValue = json_object_get(pObj, key);
-	double result = json_is_number(pValue) ? json_number_value(pValue) : defaultValue;
-	if (logLevel >= FIRELOG_TRACE) {
-		char buf[128];
-		sprintf(buf, "%f default:%f", result, defaultValue);
-		LOGTRACE2("%s:%s", key, buf);
-	}
-	return result;
-}
-
-static const char * jo_string(const json_t *pObj, const char *key, const char *defaultValue = NULL) {
-	json_t *pValue = json_object_get(pObj, key);
-	const char * result = json_is_string(pValue) ? json_string_value(pValue) : defaultValue;
-	LOGTRACE3("%s:%s default:%s", key, result, defaultValue);
-	return result;
-}
-
-static Scalar jo_Scalar(const json_t *pObj, const char *key, const Scalar &defaultValue) {
-	Scalar result = defaultValue;
-	json_t *pValue = json_object_get(pObj, key);
-	if (pValue) {
-		if (!json_is_array(pValue)) {
-			LOGERROR1("expected JSON array for %s", key);
-		} else { 
-			switch (json_array_size(pValue)) {
-				case 1: 
-					result = Scalar(json_number_value(json_array_get(pValue, 0)));
-					break;
-				case 2: 
-					result = Scalar(json_number_value(json_array_get(pValue, 0)),
-						json_number_value(json_array_get(pValue, 1)));
-					break;
-				case 3: 
-					result = Scalar(json_number_value(json_array_get(pValue, 0)),
-						json_number_value(json_array_get(pValue, 1)),
-						json_number_value(json_array_get(pValue, 2)));
-					break;
-				case 4: 
-					result = Scalar(json_number_value(json_array_get(pValue, 0)),
-						json_number_value(json_array_get(pValue, 1)),
-						json_number_value(json_array_get(pValue, 2)),
-						json_number_value(json_array_get(pValue, 3)));
-					break;
-				default:
-					LOGERROR1("expected JSON array with 1, 2, 3 or 4 integer values 0-255 for %s", key);
-					return defaultValue;
-			}
-		}
-	}
-	if (pValue && logLevel >= FIRELOG_TRACE) {
-	  char buf[100];
-		sprintf(buf, "[%f %f %f %f] default:[%f %f %f %f]", 
-			result[0], result[1], result[2], result[3],
-			defaultValue[0], defaultValue[1], defaultValue[2], defaultValue[3]);
-		LOGTRACE2("%s:%s", key, buf);
-	}
-	return result;
-}
-
-static int jo_shape(json_t *pStage, const char *key, const char *&errMsg) {
-	const char * pShape = jo_string(pStage, key, "MORPH_ELLIPSE");
-	int shape = MORPH_ELLIPSE;
-
-	if (strcmp("MORPH_ELLIPSE",pShape)==0) {
-		shape = MORPH_ELLIPSE;
-	} else if (strcmp("MORPH_RECT",pShape)==0) {
-		shape = MORPH_RECT;
-	} else if (strcmp("MORPH_CROSS",pShape)==0) {
-		shape = MORPH_CROSS;
-	} else {
-		errMsg = "shape not supported";
-	}
-	return shape;
-}
 
 static bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
 	if (errMsg) {
@@ -500,9 +410,14 @@ Pipeline::Pipeline(json_t *pJson) {
 
 Pipeline::~Pipeline() {
 	json_decref(pPipeline);
+	if (pPipeline->refcount) {
+		LOGERROR1("~Pipeline() pPipeline->refcount:%d EXPECTED 0", pPipeline->refcount);
+	} else {
+		LOGTRACE1("~Pipeline() pPipeline->refcount:%d", pPipeline->refcount);
+	}
 }
 
-static const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage) {
+const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage) {
   const char *errMsg = NULL;
  
 	if (strcmp(pOp, "blur")==0) {
@@ -545,18 +460,24 @@ static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStag
 }
 
 json_t *Pipeline::process(Mat &workingImage) { 
+	Model model;
+	processModel(workingImage, model);
+	return model.getJson();
+}
+
+void Pipeline::processModel(Mat &workingImage, Model &model) { 
 	if (!json_is_array(pPipeline)) {
 		const char * errMsg = "Pipeline::process expected json array for pipeline definition";
 		LOGERROR1(errMsg, "");
-		return json_string(errMsg);
+		throw errMsg;
 	}
 
 	bool ok = 1;
 	size_t index;
 	json_t *pStage;
-	json_t *pModel = json_object();
+	json_t *pModel = model.getJson();
 	char nameBuf[16];
-	LOGTRACE1("Pipeline::process(%d functions)", json_array_size(pPipeline));
+	LOGTRACE3("Pipeline::processModel(%dr x %dc) pipeline-size:%d", workingImage.rows, workingImage.cols, json_array_size(pPipeline));
 	json_array_foreach(pPipeline, index, pStage) {
 		const char *pOp = jo_string(pStage, "op", "");
 		sprintf(nameBuf, "s%d", index+1);
@@ -582,7 +503,8 @@ json_t *Pipeline::process(Mat &workingImage) {
 		}
 	} // json_array_foreach
 
-	return pModel;
+	json_decref(pModel);
 }
+
 
 

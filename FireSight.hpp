@@ -9,6 +9,7 @@ using namespace cv;
 using namespace std;
 
 namespace FireSight {
+
 	typedef struct MatchedRegion {
 		Range xRange;
 		Range yRange;
@@ -57,7 +58,27 @@ namespace FireSight {
 
 	} MSER_holes;
 
+  typedef class Model {
+		private:
+			json_t *pJson;
+
+		public:
+			Model();
+			~Model();
+
+			/**
+			 * Return JSON root node of image recognition model.
+			 * Caller must json_decref() returned value.
+			 */
+			inline json_t *getJson() { return json_incref(pJson); };
+	} Model;
+
 	typedef class Pipeline {
+	  private:
+			void processModel(Mat &mat, Model &model);
+			const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage);
+			json_t *pPipeline;
+
 	  public: 
 			/**
 			 * Construct an image processing pipeline described by the given JSON array
@@ -83,8 +104,6 @@ namespace FireSight {
 			 */
 		  json_t *process(Mat &mat);
 
-	  private:
-			json_t *pPipeline;
 	} Pipeline;
 
 } // namespace FireSight

@@ -29,7 +29,7 @@ HoleRecognizer::HoleRecognizer(float minDiameter, float maxDiameter) {
 	area_threshold = 1.01;
 	min_margin = .003;
 	edge_blur_size = 5;
-	LOGTRACE3("MSER minArea:%d maxArea:%d minDiversity:%d/100", minArea, maxArea, (int)(minDiversity*100+0.5));
+	LOGTRACE3("HoleRecognizer() MSER(minArea:%d maxArea:%d minDiversity:%d/100)", minArea, maxArea, (int)(minDiversity*100+0.5));
 	mser = MSER(delta, minArea, maxArea, maxVariation, minDiversity,
 		max_evolution, area_threshold, min_margin, edge_blur_size);
 }
