@@ -29,7 +29,7 @@ configure_file (
 
 find_package( OpenCV REQUIRED )
 
-include_directories( ${BUILD_TARGET_DIR} /usr/local/include )
+include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} /usr/local/include )
 link_directories( ${BUILD_TARGET_DIR} /usr/local/lib )
 
 add_library(_firesight SHARED FireLog.cpp HoleRecognizer.cpp MatchedRegion.cpp MSER.cpp Model.cpp jo_util.cpp Pipeline.cpp )
