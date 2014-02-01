@@ -14,7 +14,7 @@ using namespace cv;
 using namespace std;
 using namespace FireSight;
 
-static bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
+bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
 	if (errMsg) {
 		char *pStageJson = json_dumps(pStage, JSON_COMPACT|JSON_PRESERVE_ORDER);
 		LOGERROR2(fmt, pStageJson, errMsg);
@@ -33,7 +33,7 @@ static bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t 
 	return true;
 }
 
-static bool apply_imread(json_t *pStage, json_t *pStageModel, json_t *pMode, Mat &image) {
+bool Pipeline::apply_imread(json_t *pStage, json_t *pStageModel, json_t *pMode, Mat &image) {
   const char *path = jo_string(pStage, "path", NULL);
 	const char *errMsg = NULL;
 
@@ -53,7 +53,7 @@ static bool apply_imread(json_t *pStage, json_t *pStageModel, json_t *pMode, Mat
 	return stageOK("apply_imread(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_imwrite(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_imwrite(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
   const char *path = jo_string(pStage, "path", NULL);
 	const char *errMsg = NULL;
 
@@ -67,7 +67,7 @@ static bool apply_imwrite(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 	return stageOK("apply_imwrite(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
   const char *codeStr = jo_string(pStage, "code", "CV_BGR2GRAY");
 	int dstCn = jo_int(pStage, "dstCn", 0);
 	const char *errMsg = NULL;
@@ -95,7 +95,7 @@ static bool apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pModel, 
 	return stageOK("apply_cvtColor(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	const char *errMsg = NULL;
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
 	int flags = jo_int(pStage, "flags", DrawMatchesFlags::DEFAULT);
@@ -136,7 +136,7 @@ static bool apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *pMo
 	return stageOK("apply_drawKeypoints(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_dilate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_dilate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	const char *errMsg = NULL;
 	int kwidth = jo_int(pStage, "ksize.width", 3);
 	int kheight = jo_int(pStage, "ksize.height", 3);
@@ -150,7 +150,7 @@ static bool apply_dilate(json_t *pStage, json_t *pStageModel, json_t *pModel, Ma
 	return stageOK("apply_dilate(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_erode(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_erode(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	const char *errMsg = NULL;
 	int kwidth = jo_int(pStage, "ksize.width", 3);
 	int kheight = jo_int(pStage, "ksize.height", 3);
@@ -164,7 +164,7 @@ static bool apply_erode(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat
 	return stageOK("apply_erode(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_blur(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_blur(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	const char *errMsg = NULL;
 	int width = jo_int(pStage, "ksize.width", 3);
 	int height = jo_int(pStage, "ksize.height", 3);
@@ -200,121 +200,7 @@ static const char * modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &k
 	}
 }
 
-static void drawRegions(Mat &image, vector<vector<Point> > &regions, Scalar color) {
-	int nRegions = (int) regions.size();
-	int blue = color[0];
-	int green = color[1];
-	int red = color[2];
-	bool changeColor = red == -1 && green == -1 && blue == -1;
-
-	for( int i = 0; i < nRegions; i++) {
-		int nPts = regions[i].size();
-		if (changeColor) {
-			red = (i & 1) ? 0 : 255;
-			green = (i & 2) ? 128 : 192;
-			blue = (i & 1) ? 255 : 0;
-		}
-		for (int j = 0; j < nPts; j++) {
-			image.at<Vec3b>(regions[i][j])[0] = blue;
-			image.at<Vec3b>(regions[i][j])[1] = green;
-			image.at<Vec3b>(regions[i][j])[2] = red;
-		}
-	}
-}
-
-static bool apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
-	int delta = jo_int(pStage, "delta", 5);
-	int minArea = jo_int(pStage, "minArea", 60);
-	int maxArea = jo_int(pStage, "maxArea", 14400);
-	float maxVariation = jo_double(pStage, "maxVariation", 0.25);
-	float minDiversity = jo_double(pStage, "minDiversity", 0.2);
-	int maxEvolution = jo_int(pStage, "maxEvolution", 200);
-	double areaThreshold = jo_double(pStage, "areaThreshold", 1.01);
-	double minMargin = jo_double(pStage, "minMargin", .003);
-	int edgeBlurSize = jo_int(pStage, "edgeBlurSize", 5);
-	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
-	json_t * pMask = json_object_get(pStage, "mask");
-	const char *errMsg = NULL;
-	char errBuf[100];
-	int maskX;
-	int maskY;
-	int maskW;
-	int maskH;
-
-	if (minArea < 0 || maxArea <= minArea) {
-	  errMsg = "expected 0<=minArea and minArea<maxArea";
-	} else if (maxVariation < 0 || minDiversity < 0) {
-	  errMsg = "expected 0<=minDiversity and 0<=maxVariation";
-	} else if (maxEvolution<0) {
-	  errMsg = "expected 0<=maxEvolution";
-	} else if (areaThreshold < 0 || minMargin < 0) {
-	  errMsg = "expected 0<=areaThreshold and 0<=minMargin";
-	} else if (edgeBlurSize < 0) {
-	  errMsg = "expected 0<=edgeBlurSize";
-	} if (pMask) {
-	  if (!json_is_object(pMask)) {
-		  errMsg = "expected mask JSON object with x, y, width, height";
-		} else {
-			if (pMask) {
-				LOGTRACE("mask:{");
-			}
-			maskX = jo_int(pMask, "x", 0);
-			maskY = jo_int(pMask, "y", 0);
-			maskW = jo_int(pMask, "width", image.cols);
-			maskH = jo_int(pMask, "height", image.rows);
-			if (pMask) {
-				LOGTRACE("}");
-			}
-			if (maskX < 0 || image.cols <= maskX) {
-				sprintf(errBuf, "expected 0 <= mask.x < %d", image.cols);
-				errMsg = errBuf;
-			} else if (maskY < 0 || image.rows <= maskY) {
-				sprintf(errBuf, "expected 0 <= mask.y < %d", image.cols);
-				errMsg = errBuf;
-			} else if (maskW <= 0 || image.cols < maskW) {
-				sprintf(errBuf, "expected 0 < mask.width <= %d", image.cols);
-				errMsg = errBuf;
-			} else if (maskH <= 0 || image.rows < maskH) {
-				sprintf(errBuf, "expected 0 < mask.height <= %d", image.rows);
-				errMsg = errBuf;
-			}
-		}
-	}
-
-	if (!errMsg) {
-		MSER mser(delta, minArea, maxArea, maxVariation, minDiversity,
-			maxEvolution, areaThreshold, minMargin, edgeBlurSize);
-		Mat mask;
-		Rect maskRect(maskX, maskY, maskW, maskH);
-		if (pMask) {
-			mask = Mat::zeros(image.rows, image.cols, CV_8UC1);
-			mask(maskRect) = 1;
-		}
-		vector<vector<Point> > regions;
-		mser(image, regions, mask);
-
-		int nRegions = (int) regions.size();
-		LOGTRACE1("apply_MSER matched %d regions", nRegions);
-		if (json_object_get(pStage, "color")) {
-			if (image.channels() == 1) {
-				cvtColor(image, image, CV_GRAY2BGR);
-				LOGTRACE("cvtColor(CV_GRAY2BGR)");
-			}
-			drawRegions(image, regions, color);
-			if (pMask) {
-				if (color[0]==-1 && color[1]==-1 && color[2]==-1 && color[3]==-1) {
-					rectangle(image, maskRect, Scalar(255, 0, 255));
-				} else {
-					rectangle(image, maskRect, color);
-				}
-			}
-		}
-	}
-
-	return stageOK("apply_MSER(%s) %s", errMsg, pStage, pStageModel);
-}
-
-static bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	SimpleBlobDetector::Params params;
 	params.thresholdStep = jo_double(pStage, "thresholdStep", params.thresholdStep);
 	params.minThreshold = jo_double(pStage, "minThreshold", params.minThreshold);
@@ -350,7 +236,7 @@ static bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, json_t
 	return stageOK("apply_SimpleBlobDetector(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	double threshold1 = jo_double(pStage, "threshold1", 0);
 	double threshold2 = jo_double(pStage, "threshold2", 50);
 	double apertureSize = jo_double(pStage, "apertureSize", 3);
@@ -364,7 +250,7 @@ static bool apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat
 	return stageOK("apply_imread(%s) %s", errMsg, pStage, pStageModel);
 }
 
-static bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	double diamMin = jo_double(pStage, "diamMin");
 	double diamMax = jo_double(pStage, "diamMax");
 	int showMatches = jo_int(pStage, "show", 0);

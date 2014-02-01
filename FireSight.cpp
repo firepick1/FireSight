@@ -29,7 +29,7 @@ static void help() {
 }
 
 void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath, char * &outputPath, UIMode &uimode) {
-	char *pipelinePath;
+	char *pipelinePath = NULL;
 	uimode = UI_STILL;
 	firelog_level(FIRELOG_INFO);
 

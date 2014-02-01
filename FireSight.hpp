@@ -76,6 +76,18 @@ namespace FireSight {
 	typedef class Pipeline {
 	  private:
 			void processModel(Mat &mat, Model &model);
+			bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
+			bool apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_imread(json_t *pStage, json_t *pStageModel, json_t *pMode, Mat &image);
+			bool apply_imwrite(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_dilate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_erode(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_blur(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage);
 			json_t *pPipeline;
 
@@ -104,6 +116,9 @@ namespace FireSight {
 			 */
 		  json_t *process(Mat &mat);
 
+			KeyPoint regionKeypoint(const vector<Point> &region);
+			void eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut);
+			void covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
 	} Pipeline;
 
 } // namespace FireSight
