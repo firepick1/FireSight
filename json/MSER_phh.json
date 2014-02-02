@@ -1,5 +1,8 @@
 [
 	{"op":"cvtColor", "code":"CV_BGR2GRAY"},
-	{"op":"MSER", "color":[255,0,255], "minArea":700, "maxArea":800, "mask":{"x":35, "y":20,"height":130,"width":230}}
+	{"name":"mser", "op":"MSER", "color":[128,255,255], "minArea":700, "maxArea":800, 
+		"mask":{"x":35, "y":20,"height":130,"width":230}, 
+		"detect":"keypoints" },
+	{"op":"drawKeypoints", "keypointStage":"mser", "color":[0,0,255], "flags":5}
 ]
 
