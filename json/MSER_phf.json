@@ -1,4 +1,4 @@
 [
-	{"op":"MSER", "color":[-1,-1,-1,-1], "minArea":6200, "maxArea":6800, "mask":{"x":35,"y":10,"width":220, "height":180}},
+	{"op":"MSER", "color":[-1,-1,-1,-1], "minArea":6200, "maxArea":6800, "mask":{"x":35,"y":10,"width":220, "height":180}}
 ]
 

@@ -1,4 +1,5 @@
 [
-	{"op":"MSER", "color":[255, 0, 255], "minArea":1100, "maxArea":1200 },
+	{"name":"mser", "op":"MSER", "minArea":1100, "maxArea":1200, "detect":"keypoints" },
+	{"op":"drawKeypoints", "keypointStage":"mser", "color":[255,0,255], "flags":5}
 ]
 

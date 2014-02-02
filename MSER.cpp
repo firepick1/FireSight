@@ -23,8 +23,6 @@ void Pipeline::covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut)
 
 	calcCovarMatrix(data, covOut, meanOut, CV_COVAR_NORMAL | CV_COVAR_ROWS);
 
-	cout << "meanOut" << meanOut << endl; // DEBUG
-
 	if (logLevel >= FIRELOG_TRACE) {
 		char buf[200];
 		sprintf(buf, "covarianceXY() -> covariance:[%f,%f;%f,%f] mean:[%f,%f]",
@@ -35,8 +33,7 @@ void Pipeline::covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut)
 	}
 }
 
-void Pipeline::eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut) {
-	Mat covOut;
+void Pipeline::eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut) {
 	covarianceXY(pts, covOut, meanOut);
 
 	Mat eigenvalues;
@@ -51,10 +48,11 @@ void Pipeline::eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &mean
 	}
 }
 
-KeyPoint Pipeline::regionKeypoint(const vector<Point> &region) {
+KeyPoint Pipeline::regionKeypoint(const vector<Point> &region, double q4Offset) {
+	Mat covOut;
 	Mat mean;
 	Mat eigenvectors;
-	eigenXY(region, eigenvectors, mean);
+	eigenXY(region, eigenvectors, mean, covOut);
 
 	double x = mean.at<double>(0);
 	double y = mean.at<double>(1);
@@ -62,17 +60,30 @@ KeyPoint Pipeline::regionKeypoint(const vector<Point> &region) {
 	double e0y = eigenvectors.at<double>(0,1);
 	double e1x = eigenvectors.at<double>(1,0);
 	double e1y = eigenvectors.at<double>(1,1);
-	double normMinor = e0x*e0x + e0y*e0y;
-	double normMajor = e1x*e1x + e1y*e1y;
-
 	double radians;
-	if (normMinor > normMajor) {
-		double temp = normMinor;
-		normMinor = normMajor;
-		normMajor = temp;
-		radians = atan2(e0y,e0x);
-	} else {
-		radians = atan2(e1y,e1x);
+	if (covOut.at<double>(1,0) >= 0) { // Q1
+		if (covOut.at<double>(0,0) >= covOut.at<double>(1,1)){ // X >= Y
+			if (e0x >= e0y) { // eigenvector X >= Y
+				radians = atan2(e0y, e0x);
+			} else {
+				radians = atan2(e1y, e1x);
+			}
+		} else { // eigenvector Y < X
+			if (e0x >= e0y) {
+				radians = atan2(e1y, e1x);
+			} else {
+				radians = atan2(e0y, e0x);
+			}
+		}
+	} else { // Q2
+		if (e0x >= 0 && e0y >= 0) { // eigenvector Q4
+			radians = atan2(e1y, e1x);
+		} else { // eigenvector Q2
+			radians = atan2(e0y, e0x);
+		}
+		if (radians < 0) { // Q4
+			radians = radians + q4Offset;
+		}
 	}
 
 	double diam = 2*sqrt(region.size()/CV_PI);
@@ -83,7 +94,7 @@ KeyPoint Pipeline::regionKeypoint(const vector<Point> &region) {
 		LOGTRACE1("%s", buf);
 	}
 
-	return KeyPoint(x, y, diam, radians);
+	return KeyPoint(x, y, diam, radians * 180./CV_PI);
 }
 
 
@@ -109,6 +120,22 @@ static void drawRegions(Mat &image, vector<vector<Point> > &regions, Scalar colo
 	}
 }
 
+void Pipeline::detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions, double q4Offset) {
+	int nRegions = regions.size();
+	json_t *pKeypoints = json_array();
+	json_object_set(pStageModel, "keypoints", pKeypoints);
+
+	for (int i=0; i < nRegions; i++) {
+		KeyPoint keypoint = regionKeypoint(regions[i], q4Offset);
+		json_t *pKeypoint = json_object();
+		json_object_set(pKeypoint, "pt.x", json_real(keypoint.pt.x));
+		json_object_set(pKeypoint, "pt.y", json_real(keypoint.pt.y));
+		json_object_set(pKeypoint, "size", json_real(keypoint.size));
+		json_object_set(pKeypoint, "angle", json_real(keypoint.angle));
+		json_array_append(pKeypoints, pKeypoint);
+	}
+}
+
 bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	int delta = jo_int(pStage, "delta", 5);
 	int minArea = jo_int(pStage, "minArea", 60);
@@ -118,8 +145,9 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 	int maxEvolution = jo_int(pStage, "maxEvolution", 200);
 	double areaThreshold = jo_double(pStage, "areaThreshold", 1.01);
 	double minMargin = jo_double(pStage, "minMargin", .003);
+	double q4Offset = jo_double(pStage, "q4Offset", 2*CV_PI);
 	int edgeBlurSize = jo_int(pStage, "edgeBlurSize", 5);
-	const char * detectStr = jo_string(pStage, "detect", NULL);
+	json_t *pDetect = json_object_get(pStage, "detect");
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
 	json_t * pMask = json_object_get(pStage, "mask");
 	const char *errMsg = NULL;
@@ -169,6 +197,19 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 		}
 	}
 
+  bool isKeypoints = false;
+	if (!errMsg && pDetect) {
+		if (json_is_string(pDetect)) {
+			if (strcmp("keypoints", json_string_value(pDetect)) == 0) {
+				isKeypoints = true;
+			} else {
+				errMsg = "Invalid value for detect";
+			}
+		} else {
+			errMsg = "Expected string value for detect";
+		}
+	}
+
 	if (!errMsg) {
 		MSER mser(delta, minArea, maxArea, maxVariation, minDiversity,
 			maxEvolution, areaThreshold, minMargin, edgeBlurSize);
@@ -183,6 +224,9 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 
 		int nRegions = (int) regions.size();
 		LOGTRACE1("apply_MSER matched %d regions", nRegions);
+		if (isKeypoints) {
+			detectKeypoints(pStageModel, regions, q4Offset);
+		}
 		if (json_object_get(pStage, "color")) {
 			if (image.channels() == 1) {
 				cvtColor(image, image, CV_GRAY2BGR);

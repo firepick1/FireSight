@@ -35,7 +35,7 @@ namespace FireSight {
 		double result = json_is_number(pValue) ? json_number_value(pValue) : defaultValue;
 		if (logLevel >= FIRELOG_TRACE) {
 			char buf[128];
-			sprintf(buf, "jo_int(key:%s default:%f) -> %f", key, defaultValue, result);
+			sprintf(buf, "jo_double(key:%s default:%f) -> %f", key, defaultValue, result);
 			LOGTRACE1("%s", buf);
 		}
 		return result;

@@ -1,5 +1,5 @@
 [
 	{"op":"cvtColor", "code":"CV_BGR2GRAY"},
-	{"op":"MSER", "color":[255,0,255], "minArea":700, "maxArea":800, "mask":{"x":35, "y":20,"height":130,"width":230}},
+	{"op":"MSER", "color":[255,0,255], "minArea":700, "maxArea":800, "mask":{"x":35, "y":20,"height":130,"width":230}}
 ]
 

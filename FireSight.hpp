@@ -89,6 +89,7 @@ namespace FireSight {
 			bool apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage);
+			void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions, double q4Offset=2*CV_PI);
 			json_t *pPipeline;
 
 	  public: 
@@ -116,9 +117,27 @@ namespace FireSight {
 			 */
 		  json_t *process(Mat &mat);
 
-			KeyPoint regionKeypoint(const vector<Point> &region);
-			void eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut);
+			/**
+			 * Using eigenvectors and covariance matrix of given region, return a
+			 * keypoint representing that region. The eigenvectors detemine the angle of the 
+			 * region on the interval (-PI/2,PI/2]. Caller may provide a fourth quadrant (negative angle)
+			 * offset of CV_PI for a vertical direction bias ("portrait regions"), 
+			 * or use the default of 2*CV_PI for a horizontal bias ("landscape regions").
+			 * @param region of points to analyze
+			 * @param q4Offset radian offset for negative angles (KeyPoint angles are [0,360)
+			 */
+			KeyPoint regionKeypoint(const vector<Point> &region, double q4Offset=2*CV_PI);
+
+			/** 
+			 * Compute eigenvectors, eigenvalues, mean, and covariance of region
+			 */
+			void eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
+
+			/**
+			 * Compute covariance and mean of region
+			 */
 			void covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
+
 	} Pipeline;
 
 } // namespace FireSight
