@@ -98,7 +98,7 @@ bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pMode
 bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	const char *errMsg = NULL;
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
-	int flags = jo_int(pStage, "flags", DrawMatchesFlags::DEFAULT);
+	int flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG|DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 	const char *stageModel = jo_string(pStage, "keypointStage", NULL);
 	json_t *pKeypointStage = json_object_get(pModel, stageModel);
 

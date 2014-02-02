@@ -48,7 +48,7 @@ void Pipeline::eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &mean
 	}
 }
 
-KeyPoint Pipeline::regionKeypoint(const vector<Point> &region, double q4Offset) {
+KeyPoint Pipeline::regionKeypoint(const vector<Point> &region) {
 	Mat covOut;
 	Mat mean;
 	Mat eigenvectors;
@@ -85,7 +85,9 @@ KeyPoint Pipeline::regionKeypoint(const vector<Point> &region, double q4Offset) 
 
 	double degrees = radians * 180./CV_PI;
 	if (degrees < 0) {
-		degrees = degrees + q4Offset;
+		degrees = degrees + 360;
+	} else if (degrees >= 135) {
+	  degrees = degrees + 180;
 	}
 
 	double diam = 2*sqrt(region.size()/CV_PI);
@@ -122,13 +124,13 @@ static void drawRegions(Mat &image, vector<vector<Point> > &regions, Scalar colo
 	}
 }
 
-void Pipeline::detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions, double q4Offset) {
+void Pipeline::detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions) {
 	int nRegions = regions.size();
 	json_t *pKeypoints = json_array();
 	json_object_set(pStageModel, "keypoints", pKeypoints);
 
 	for (int i=0; i < nRegions; i++) {
-		KeyPoint keypoint = regionKeypoint(regions[i], q4Offset);
+		KeyPoint keypoint = regionKeypoint(regions[i]);
 		json_t *pKeypoint = json_object();
 		json_object_set(pKeypoint, "pt.x", json_real(keypoint.pt.x));
 		json_object_set(pKeypoint, "pt.y", json_real(keypoint.pt.y));
@@ -147,7 +149,6 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 	int maxEvolution = jo_int(pStage, "maxEvolution", 200);
 	double areaThreshold = jo_double(pStage, "areaThreshold", 1.01);
 	double minMargin = jo_double(pStage, "minMargin", .003);
-	double q4Offset = jo_double(pStage, "q4Offset", 360);
 	int edgeBlurSize = jo_int(pStage, "edgeBlurSize", 5);
 	json_t *pDetect = json_object_get(pStage, "detect");
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
@@ -227,7 +228,7 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 		int nRegions = (int) regions.size();
 		LOGTRACE1("apply_MSER matched %d regions", nRegions);
 		if (isKeypoints) {
-			detectKeypoints(pStageModel, regions, q4Offset);
+			detectKeypoints(pStageModel, regions);
 		}
 		if (json_object_get(pStage, "color")) {
 			if (image.channels() == 1) {

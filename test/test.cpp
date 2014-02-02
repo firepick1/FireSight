@@ -31,7 +31,6 @@ static void test_regionKeypoint() {
 	KeyPoint keypoint;
 	vector<Point> pts;
 	double tolerance = .01;
-	double q4Offset = 180;
 
 	LOGTRACE("----------------------HORIZONTAL");
 
@@ -40,7 +39,7 @@ static void test_regionKeypoint() {
 	pts.push_back(Point(10,10));
 	pts.push_back(Point(20,10));
 	cout << "horizontal pts:" << pts << endl;
-	keypoint = pipeline.regionKeypoint(pts, q4Offset);
+	keypoint = pipeline.regionKeypoint(pts);
 	assertKeypoint(keypoint, 10, 10, 1.954, 0, tolerance);
 
 	pts.clear();
@@ -48,15 +47,15 @@ static void test_regionKeypoint() {
 	pts.push_back(Point(10,10));
 	pts.push_back(Point(20,9));
 	cout << "horizontal slightly down pts:" << pts << endl;
-	keypoint = pipeline.regionKeypoint(pts, q4Offset);
-	assertKeypoint(keypoint, 10, 10, 1.954, 174.29, tolerance);
+	keypoint = pipeline.regionKeypoint(pts);
+	assertKeypoint(keypoint, 10, 10, 1.954, 354.29, tolerance);
 
 	pts.clear();
 	pts.push_back(Point(0,9));
 	pts.push_back(Point(10,10));
 	pts.push_back(Point(20,11));
 	cout << "horizontal slightly up pts:" << pts << endl;
-	keypoint = pipeline.regionKeypoint(pts, q4Offset);
+	keypoint = pipeline.regionKeypoint(pts);
 	assertKeypoint(keypoint, 10, 10, 1.954, 5.71, tolerance);
 	
 	LOGTRACE("----------------------VERTICAL");
@@ -66,7 +65,7 @@ static void test_regionKeypoint() {
 	pts.push_back(Point(10,10));
 	pts.push_back(Point(10,20));
 	cout << "vertical pts:" << pts << endl;
-	keypoint = pipeline.regionKeypoint(pts, q4Offset);
+	keypoint = pipeline.regionKeypoint(pts);
 	assertKeypoint(keypoint, 10, 10, 1.954, 90, tolerance);
 
 	pts.clear();
@@ -74,7 +73,7 @@ static void test_regionKeypoint() {
 	pts.push_back(Point(10,10));
 	pts.push_back(Point(9,20));
 	cout << "vertical slightly left pts:" << pts << endl;
-	keypoint = pipeline.regionKeypoint(pts, q4Offset);
+	keypoint = pipeline.regionKeypoint(pts);
 	assertKeypoint(keypoint, 10, 10, 1.954, 95.71, tolerance);
 
 	pts.clear();
@@ -82,7 +81,7 @@ static void test_regionKeypoint() {
 	pts.push_back(Point(10,10));
 	pts.push_back(Point(11,20));
 	cout << "vertical slightly right pts:" << pts << endl;
-	keypoint = pipeline.regionKeypoint(pts, q4Offset);
+	keypoint = pipeline.regionKeypoint(pts);
 	assertKeypoint(keypoint, 10, 10, 1.954, 84.29, tolerance);
 
 	LOGTRACE("----------------------DIAGONAL UP");
@@ -92,7 +91,7 @@ static void test_regionKeypoint() {
 	pts.push_back(Point(10,10));
 	pts.push_back(Point(20,20));
 	cout << "diagonal up pts:" << pts << endl;
-	keypoint = pipeline.regionKeypoint(pts, q4Offset);
+	keypoint = pipeline.regionKeypoint(pts);
 	assertKeypoint(keypoint, 10, 10, 1.954, 45, tolerance);
 
 	pts.clear();
@@ -100,7 +99,7 @@ static void test_regionKeypoint() {
 	pts.push_back(Point(10,10));
 	pts.push_back(Point(20,19));
 	cout << "diagonal up- pts:" << pts << endl;
-	keypoint = pipeline.regionKeypoint(pts, q4Offset);
+	keypoint = pipeline.regionKeypoint(pts);
 	assertKeypoint(keypoint, 10, 10, 1.954, 41.99, tolerance);
 
 	pts.clear();
@@ -108,7 +107,7 @@ static void test_regionKeypoint() {
 	pts.push_back(Point(10,10));
 	pts.push_back(Point(19,20));
 	cout << "diagonal up+ pts:" << pts << endl;
-	keypoint = pipeline.regionKeypoint(pts, q4Offset);
+	keypoint = pipeline.regionKeypoint(pts);
 	assertKeypoint(keypoint, 10, 10, 1.954, 48.01, tolerance);
 
 	LOGTRACE("----------------------DIAGONAL DOWN");
@@ -118,15 +117,15 @@ static void test_regionKeypoint() {
 	pts.push_back(Point(10,10));
 	pts.push_back(Point(0,20));
 	cout << "diagonal down pts:" << pts << endl;
-	keypoint = pipeline.regionKeypoint(pts, q4Offset);
-	assertKeypoint(keypoint, 10, 10, 1.954, 135, tolerance);
+	keypoint = pipeline.regionKeypoint(pts);
+	assertKeypoint(keypoint, 10, 10, 1.954, 315, tolerance);
 
 	pts.clear();
 	pts.push_back(Point(19,0));
 	pts.push_back(Point(10,10));
 	pts.push_back(Point(1,20));
 	cout << "diagonal down+ pts:" << pts << endl;
-	keypoint = pipeline.regionKeypoint(pts, q4Offset);
+	keypoint = pipeline.regionKeypoint(pts);
 	assertKeypoint(keypoint, 10, 10, 1.954, 131.99, tolerance);
 
 	pts.clear();
@@ -134,8 +133,8 @@ static void test_regionKeypoint() {
 	pts.push_back(Point(10,10));
 	pts.push_back(Point(0,19));
 	cout << "diagonal down- pts:" << pts << endl;
-	keypoint = pipeline.regionKeypoint(pts, q4Offset);
-	assertKeypoint(keypoint, 10, 10, 1.954, 138.01, tolerance);
+	keypoint = pipeline.regionKeypoint(pts);
+	assertKeypoint(keypoint, 10, 10, 1.954, 318.01, tolerance);
 
 }
 
