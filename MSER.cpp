@@ -81,20 +81,22 @@ KeyPoint Pipeline::regionKeypoint(const vector<Point> &region, double q4Offset) 
 		} else { // eigenvector Q2
 			radians = atan2(e0y, e0x);
 		}
-		if (radians < 0) { // Q4
-			radians = radians + q4Offset;
-		}
+	}
+
+	double degrees = radians * 180./CV_PI;
+	if (degrees < 0) {
+		degrees = degrees + q4Offset;
 	}
 
 	double diam = 2*sqrt(region.size()/CV_PI);
 	if (logLevel >= FIRELOG_TRACE) {
 		char buf[150];
 		sprintf(buf, "regionKeypoint() -> x:%f y:%f diam:%f angle:%f",
-			x, y, diam, radians * 180./CV_PI);
+			x, y, diam, degrees);
 		LOGTRACE1("%s", buf);
 	}
 
-	return KeyPoint(x, y, diam, radians * 180./CV_PI);
+	return KeyPoint(x, y, diam, degrees);
 }
 
 
@@ -145,7 +147,7 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 	int maxEvolution = jo_int(pStage, "maxEvolution", 200);
 	double areaThreshold = jo_double(pStage, "areaThreshold", 1.01);
 	double minMargin = jo_double(pStage, "minMargin", .003);
-	double q4Offset = jo_double(pStage, "q4Offset", 2*CV_PI);
+	double q4Offset = jo_double(pStage, "q4Offset", 360);
 	int edgeBlurSize = jo_int(pStage, "edgeBlurSize", 5);
 	json_t *pDetect = json_object_get(pStage, "detect");
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
