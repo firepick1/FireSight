@@ -14,6 +14,8 @@ using namespace cv;
 using namespace std;
 using namespace FireSight;
 
+typedef enum {DETECT_NONE, DETECT_KEYPOINTS, DETECT_RECTS} Detect;
+
 void Pipeline::covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut) {
 	Mat_<double> data(pts.size(),2);
 	for (int i = 0; i < pts.size(); i++) {
@@ -124,6 +126,23 @@ static void drawRegions(Mat &image, vector<vector<Point> > &regions, Scalar colo
 	}
 }
 
+void Pipeline::detectRects(json_t *pStageModel, vector<vector<Point> > &regions) {
+	int nRegions = regions.size();
+	json_t *pRects = json_array();
+	json_object_set(pStageModel, "rects", pRects);
+
+	for (int i=0; i < nRegions; i++) {
+		RotatedRect rect = minAreaRect(regions[i]);
+		json_t *pRect = json_object();
+		json_object_set(pRect, "x", json_real(rect.center.x));
+		json_object_set(pRect, "y", json_real(rect.center.y));
+		json_object_set(pRect, "width", json_real(rect.size.width));
+		json_object_set(pRect, "height", json_real(rect.size.height));
+		json_object_set(pRect, "angle", json_real(rect.angle));
+		json_array_append(pRects, pRect);
+	}
+}
+
 void Pipeline::detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions) {
 	int nRegions = regions.size();
 	json_t *pKeypoints = json_array();
@@ -200,11 +219,15 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 		}
 	}
 
-  bool isKeypoints = false;
+	Detect detect = DETECT_NONE;
 	if (!errMsg && pDetect) {
 		if (json_is_string(pDetect)) {
 			if (strcmp("keypoints", json_string_value(pDetect)) == 0) {
-				isKeypoints = true;
+				detect = DETECT_KEYPOINTS;
+			} else if (strcmp("none", json_string_value(pDetect)) == 0) {
+			  detect = DETECT_NONE;
+			} else if (strcmp("rects", json_string_value(pDetect)) == 0) {
+			  detect = DETECT_RECTS;
 			} else {
 				errMsg = "Invalid value for detect";
 			}
@@ -227,8 +250,13 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 
 		int nRegions = (int) regions.size();
 		LOGTRACE1("apply_MSER matched %d regions", nRegions);
-		if (isKeypoints) {
-			detectKeypoints(pStageModel, regions);
+		switch (detect) {
+			case DETECT_RECTS:
+				detectRects(pStageModel, regions);
+				break;
+			case DETECT_KEYPOINTS:
+				detectKeypoints(pStageModel, regions);
+				break;
 		}
 		if (json_object_get(pStage, "color")) {
 			if (image.channels() == 1) {

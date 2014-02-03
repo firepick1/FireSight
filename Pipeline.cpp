@@ -95,6 +95,56 @@ bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pMode
 	return stageOK("apply_cvtColor(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	const char *errMsg = NULL;
+	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
+	const char* rectsModelName = jo_string(pStage, "model", "");
+	json_t *pRectsModel = json_object_get(pModel, rectsModelName);
+
+	if (!json_is_object(pRectsModel)) {
+		errMsg = "Expected name of stage model with rects";
+	}
+
+	json_t *pRects = NULL;
+	if (!errMsg) {
+		pRects = json_object_get(pRectsModel, "rects");
+		if (!json_is_array(pRects)) {
+			errMsg = "Expected array of rects";
+		}
+	}
+
+	if (!errMsg) {
+		int index;
+		json_t *pRect;
+		Point2f vertices[4];
+		int blue = color[0];
+		int green = color[1];
+		int red = color[2];
+		bool changeColor = red == -1 && green == -1 && blue == -1;
+
+		json_array_foreach(pRects, index, pRect) {
+			double x = jo_double(pRect, "x", -1);
+			double y = jo_double(pRect, "y", -1);
+			double width = jo_double(pRect, "width", -1);
+			double height = jo_double(pRect, "height", -1);
+			double angle = jo_double(pRect, "angle", -1);
+			if (changeColor) {
+				red = (index & 1) ? 0 : 255;
+				green = (index & 2) ? 128 : 192;
+				blue = (index & 1) ? 255 : 0;
+				color = Scalar(blue, green, red);
+			}
+			RotatedRect rect(Point(x,y), Size(width, height), angle);
+			rect.points(vertices);
+			for (int i = 0; i < 4; i++) {
+		    line(image, vertices[i], vertices[(i+1)%4], color);
+			}
+		}
+	}
+
+	return stageOK("apply_drawRects(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	const char *errMsg = NULL;
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
@@ -316,6 +366,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
 		apply_dilate(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "drawKeypoints")==0) {
 		apply_drawKeypoints(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "drawRects")==0) {
+		apply_drawRects(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "erode")==0) {
 		apply_erode(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "HoleRecognizer")==0) {
