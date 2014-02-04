@@ -149,15 +149,19 @@ bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *
 	const char *errMsg = NULL;
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
 	int flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG|DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-	const char *stageModel = jo_string(pStage, "keypointStage", NULL);
-	json_t *pKeypointStage = json_object_get(pModel, stageModel);
+	const char *modelName = jo_string(pStage, "model", NULL);
+	json_t *pKeypointStage = json_object_get(pModel, modelName);
+	if (!pKeypointStage) {
+		const char *keypointStageName = jo_string(pStage, "keypointStage", NULL);
+		pKeypointStage = json_object_get(pModel, keypointStageName);
+	}
 
 	if (!errMsg && flags < 0 || 7 < flags) {
 		errMsg = "expected 0 < flags < 7";
 	}
 
 	if (!errMsg && !pKeypointStage) {
-		errMsg = "expected keypointStage name";
+		errMsg = "expected name of stage model";
 	}
 
 	vector<KeyPoint> keypoints;

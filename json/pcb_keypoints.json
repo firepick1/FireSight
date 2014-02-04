@@ -1,0 +1,6 @@
+[
+	{"op":"cvtColor", "code":"CV_BGR2GRAY"},
+	{"name":"mser", "op":"MSER", "color":[128,255,255], "minArea":750, "maxArea":950, "detect":"keypoints"},
+	{"op":"drawKeypoints", "model":"mser", "color":[255,0,255]}
+]
+
