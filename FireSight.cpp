@@ -58,6 +58,8 @@ void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath,
 		} else if (strcmp("-video", argv[i]) == 0) {
 			uimode = UI_VIDEO;
 			LOGTRACE("-video UI_VIDEO user interface selected");
+		} else if (strcmp("-debug", argv[i]) == 0) {
+			firelog_level(FIRELOG_DEBUG);
 		} else if (strcmp("-trace", argv[i]) == 0) {
 			firelog_level(FIRELOG_TRACE);
 		} else {

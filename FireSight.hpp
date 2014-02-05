@@ -89,6 +89,7 @@ namespace FireSight {
 			bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_dft(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage);
 			void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
 			void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);

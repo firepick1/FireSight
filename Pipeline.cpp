@@ -22,10 +22,10 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
 		return false;
 	}
 
-	if (logLevel >= FIRELOG_DEBUG) {
+	if (logLevel >= FIRELOG_TRACE) {
 	  char *pStageJson = json_dumps(pStage, 0);
 		char *pModelJson = json_dumps(pStageModel, 0);
-		LOGDEBUG2(fmt, pStageJson, pModelJson);
+		LOGTRACE2(fmt, pStageJson, pModelJson);
 		free(pStageJson);
 		free(pModelJson);
 	}
@@ -357,40 +357,6 @@ Pipeline::~Pipeline() {
 	}
 }
 
-const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage) {
-  const char *errMsg = NULL;
- 
-	if (strcmp(pOp, "blur")==0) {
-		apply_blur(pStage, pStageModel, pModel, workingImage);
-	} else if (strcmp(pOp, "Canny")==0) {
-		apply_Canny(pStage, pStageModel, pModel, workingImage);
-	} else if (strcmp(pOp, "cvtColor")==0) {
-		apply_cvtColor(pStage, pStageModel, pModel, workingImage);
-	} else if (strcmp(pOp, "dilate")==0) {
-		apply_dilate(pStage, pStageModel, pModel, workingImage);
-	} else if (strcmp(pOp, "drawKeypoints")==0) {
-		apply_drawKeypoints(pStage, pStageModel, pModel, workingImage);
-	} else if (strcmp(pOp, "drawRects")==0) {
-		apply_drawRects(pStage, pStageModel, pModel, workingImage);
-	} else if (strcmp(pOp, "erode")==0) {
-		apply_erode(pStage, pStageModel, pModel, workingImage);
-	} else if (strcmp(pOp, "HoleRecognizer")==0) {
-		apply_HoleRecognizer(pStage, pStageModel, pModel, workingImage);
-	} else if (strcmp(pOp, "imread")==0) {
-		apply_imread(pStage, pStageModel, pModel, workingImage);
-	} else if (strcmp(pOp, "imwrite")==0) {
-		apply_imwrite(pStage, pStageModel, pModel, workingImage);
-	} else if (strcmp(pOp, "MSER")==0) {
-		apply_MSER(pStage, pStageModel, pModel, workingImage);
-	} else if (strcmp(pOp, "SimpleBlobDetector")==0) {
-		apply_SimpleBlobDetector(pStage, pStageModel, pModel, workingImage);
-	} else {
-		errMsg = "unknown op";
-	}
-
-	return errMsg;
-}
-
 static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStage) {
 	if (errMsg) {
 		char *pStageJson = json_dumps(pStage, 0);
@@ -419,14 +385,15 @@ void Pipeline::processModel(Mat &workingImage, Model &model) {
 	json_t *pStage;
 	json_t *pModel = model.getJson();
 	char nameBuf[16];
-	LOGTRACE3("Pipeline::processModel(%dr x %dc) pipeline-size:%d", workingImage.rows, workingImage.cols, json_array_size(pPipeline));
+	LOGDEBUG3("Pipeline::processModel(%dr x %dc) pipeline-size:%d", workingImage.rows, workingImage.cols, json_array_size(pPipeline));
 	json_array_foreach(pPipeline, index, pStage) {
 		const char *pOp = jo_string(pStage, "op", "");
 		sprintf(nameBuf, "s%d", index+1);
 		const char *pName = jo_string(pStage, "name", nameBuf);
+		const char *pComment = jo_string(pStage, "comment", "");
 		json_t *pStageModel = json_object();
 		json_object_set(pModel, pName, pStageModel);
-		LOGTRACE2("Pipeline::process stage:%s op:%s", pName, pOp);
+		LOGDEBUG3("Pipeline::process(stage:%s,op:%s) %s", pName, pOp, pComment);
 		if (pOp) {
 			try {
 			  const char *errMsg = dispatch(pOp, pStage, pStageModel, pModel, workingImage);
@@ -448,5 +415,38 @@ void Pipeline::processModel(Mat &workingImage, Model &model) {
 	json_decref(pModel);
 }
 
+const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage) {
+  const char *errMsg = NULL;
+ 
+	if (strcmp(pOp, "blur")==0) {
+		apply_blur(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "Canny")==0) {
+		apply_Canny(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "cvtColor")==0) {
+		apply_cvtColor(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "dft")==0) {
+		apply_dft(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "dilate")==0) {
+		apply_dilate(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "drawKeypoints")==0) {
+		apply_drawKeypoints(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "drawRects")==0) {
+		apply_drawRects(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "erode")==0) {
+		apply_erode(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "HoleRecognizer")==0) {
+		apply_HoleRecognizer(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "imread")==0) {
+		apply_imread(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "imwrite")==0) {
+		apply_imwrite(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "MSER")==0) {
+		apply_MSER(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "SimpleBlobDetector")==0) {
+		apply_SimpleBlobDetector(pStage, pStageModel, pModel, workingImage);
+	} else {
+		errMsg = "unknown op";
+	}
 
-
+	return errMsg;
+}
