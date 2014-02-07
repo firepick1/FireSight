@@ -25,7 +25,14 @@ namespace FireSight {
 
 	const int jo_int(const json_t *pObj, const char *key, int defaultValue) {
 		json_t *pValue = json_object_get(pObj, key);
-		int result = json_is_integer(pValue) ? json_integer_value(pValue) : defaultValue;
+		int result;
+		if (json_is_integer(pValue)) {
+			result = json_integer_value(pValue);
+		} else if (json_is_string(pValue)) {
+			sscanf(json_string_value(pValue), "%d", &result);
+		} else {
+			result = defaultValue;
+		}
 		LOGTRACE3("jo_int(key:%s default:%d) -> %d", key, defaultValue, result);
 		return result;
 	}

@@ -14,6 +14,60 @@ using namespace cv;
 using namespace std;
 using namespace FireSight;
 
+static void dftShift(Mat &image, const char *&errMsg) {
+	if ((image.cols & 1) || (image.rows&1)) {
+		LOGTRACE("Cropping image to even number of rows and columns");
+		image = image(Rect(0, 0, image.cols & -2, image.rows & -2)); 
+	}
+	int cx = image.cols/2;
+	int cy = image.rows/2;
+	Mat q1(image, Rect(0,0,cx,cy));
+	Mat q2(image, Rect(cx,0,cx,cy));
+	Mat q3(image, Rect(0,cy,cx,cy));
+	Mat q4(image, Rect(cx,cy,cx,cy));
+
+	Mat tmp;
+
+	q1.copyTo(tmp);
+	q4.copyTo(q1);
+	tmp.copyTo(q4);
+
+	q2.copyTo(tmp);
+	q3.copyTo(q2);
+	tmp.copyTo(q3);
+}
+
+bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	const char *errMsg = NULL;
+	if (image.channels() != 2) {
+		errMsg = "Expected complex (2-channel) Mat";
+	}
+	if (!errMsg) {
+		Mat planes[] = {
+			Mat::zeros(image.size(), CV_32F),
+			Mat::zeros(image.size(), CV_32F)
+		};
+		split(image, planes);
+		magnitude(planes[0], planes[1], image);
+		image += Scalar::all(1);
+		log(image, image);
+		dftShift(image, errMsg);
+		normalize(image, image, 1, 0, NORM_INF);
+	}
+	return stageOK("apply_dftSpectrum(%s) %s", errMsg, pStage, pStageModel);
+}
+
+
+bool Pipeline::apply_dftShift(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	const char *errMsg = NULL;
+
+	if (!errMsg) {
+		dftShift(image, errMsg);
+	}
+
+	return stageOK("apply_dftShift(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	const char *errMsg = NULL;
 	char errBuf[150];

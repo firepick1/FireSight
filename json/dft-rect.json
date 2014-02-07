@@ -1,0 +1,12 @@
+[
+  {"op":"Mat", "width":400, "height":400, "type":"CV_8U", "comment":"grayscale 400x400 image"},
+  {"op":"rectangle", "x":175, "y":150, "width":50, "height":100, "fill":[255,255,255], "comment":"White rectangle"},
+	{"op":"dft", "flags":["DFT_SCALE","DFT_COMPLEX_OUTPUT"], "comment":"2D Fourier transform"},
+	{"op":"nop-dftSpectrum", "comment":"Convert to human friendly Fourier transform"},
+	{"op":"split", "fromTo":[0,0], "comment":"Split out real part of complex spectrum"},
+	{"op":"dftShift", "comment":"Shift spectrum quadrants to center origin"},
+	{"op":"convertTo", "rType":"CV_8U", "comment":"Convert to grayscale"},
+	{"op":"calcHist", "comment":"anaylze distribution"},
+	{"op":"equalizeHist", "comment":"Make spectrum more visible"},
+	{"op":"calcHist", "comment":"anaylze distribution"}
+]

@@ -1,0 +1,3 @@
+[
+  {"op":"Mat", "color":[255,0,0], "width":400, "height":200, "comment":"create 200x400 blue image"}
+]

@@ -14,6 +14,17 @@ using namespace cv;
 using namespace std;
 using namespace FireSight;
 
+static const char *cv_depth_names[] = {
+	"CV_8U",
+	"CV_8S",
+	"CV_16U",
+	"CV_16S",
+	"CV_32S",
+	"CV_32F",
+	"CV_64F"
+};
+
+
 bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
 	if (errMsg) {
 		char *pStageJson = json_dumps(pStage, JSON_COMPACT|JSON_PRESERVE_ORDER);
@@ -218,6 +229,16 @@ bool Pipeline::apply_erode(json_t *pStage, json_t *pStageModel, json_t *pModel, 
 	return stageOK("apply_erode(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_equalizeHist(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	const char *errMsg = NULL;
+
+	if (!errMsg) {
+		equalizeHist(image, image);
+	}
+
+	return stageOK("apply_equalizeHist(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_blur(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	const char *errMsg = NULL;
 	int width = jo_int(pStage, "ksize.width", 3);
@@ -290,6 +311,193 @@ bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, jso
 	return stageOK("apply_SimpleBlobDetector(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	double x = jo_double(pStage, "x", 0);
+	double y = jo_double(pStage, "y", 0);
+	double width = jo_double(pStage, "width", image.cols);
+	double height = jo_double(pStage, "height", image.rows);
+	int thickness = jo_int(pStage, "thickness", 1);
+	int lineType = jo_int(pStage, "lineType", 8);
+	Scalar color = jo_Scalar(pStage, "color", Scalar::all(0));
+	Scalar flood = jo_Scalar(pStage, "flood", Scalar::all(-1));
+	Scalar fill = jo_Scalar(pStage, "fill", Scalar::all(-1));
+	int shift = jo_int(pStage, "shift", 0);
+	const char *errMsg = NULL;
+
+  if ( x < 0 || y < 0) {
+		errMsg = "Expected 0<=x and 0<=y";
+	} else if (shift < 0) {
+		errMsg = "Expected shift>=0";
+	}
+
+	if (!errMsg) {
+		if (thickness) {
+			rectangle(image, Rect(x,y,width,height), color, thickness, lineType, shift);
+		}
+		if (thickness >= 0) {
+			double outThickness = thickness/2;
+			double inThickness = thickness - outThickness;
+			if (fill[0] >= 0) {
+				rectangle(image, Rect(x+inThickness,y+inThickness,width-2*inThickness,height-2*inThickness), fill, -1, lineType, shift);
+			}
+			if (flood[0] >= 0) {
+				double left = x - outThickness;
+				double top = y - outThickness;
+				double right = x+width+outThickness;
+				double bot = y+height+outThickness;
+				rectangle(image, Rect(0,0,image.cols,top), flood, -1, lineType, shift);
+				rectangle(image, Rect(0,bot,image.cols,image.rows-bot), flood, -1, lineType, shift);
+				rectangle(image, Rect(0,top,left,height+2*outThickness), flood, -1, lineType, shift);
+				rectangle(image, Rect(right,top,image.cols-right,height+2*outThickness), flood, -1, lineType, shift);
+			}
+		}
+	}
+
+	return stageOK("apply_rectangle(%s) %s", errMsg, pStage, pStageModel);
+}
+
+int Pipeline::parseCvType(const char *typeStr, const char *&errMsg) {
+	int type = CV_8U;
+
+	if (strcmp("CV_8UC3", typeStr) == 0) {
+		type = CV_8UC3;
+	} else if (strcmp("CV_8UC2", typeStr) == 0) {
+		type = CV_8UC2;
+	} else if (strcmp("CV_8UC1", typeStr) == 0) {
+		type = CV_8UC1;
+	} else if (strcmp("CV_8U", typeStr) == 0) {
+		type = CV_8UC1;
+	} else if (strcmp("CV_32F", typeStr) == 0) {
+		type = CV_32F;
+	} else if (strcmp("CV_32FC1", typeStr) == 0) {
+		type = CV_32FC1;
+	} else if (strcmp("CV_32FC2", typeStr) == 0) {
+		type = CV_32FC2;
+	} else if (strcmp("CV_32FC3", typeStr) == 0) {
+		type = CV_32FC3;
+	} else {
+		errMsg = "Unsupported type";
+	}
+
+	return type;
+}
+
+bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	double width = jo_double(pStage, "width", image.cols);
+	double height = jo_double(pStage, "height", image.rows);
+	const char *typeStr = jo_string(pStage, "type", "CV_8UC3");
+	Scalar color = jo_Scalar(pStage, "color", Scalar::all(0));
+	const char *errMsg = NULL;
+	int type = CV_8UC3;
+
+	if (width <= 0 || height <= 0) {
+		errMsg = "Expected 0<width and 0<height";
+	} else if (color[0] <0 || color[1]<0 || color[2]<0) {
+		errMsg = "Expected color JSON array with non-negative values";
+	} 
+	
+	if (!errMsg) {
+		type = parseCvType(typeStr, errMsg);
+	}
+
+	if (!errMsg) {
+		image = Mat(height, width, type, color);
+	}
+
+	return stageOK("apply_Mat(%s) %s", errMsg, pStage, pStageModel);
+}
+
+bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	const char *errMsg = NULL;
+	Mat mask;
+
+	if (!errMsg) {
+		int binsC0 = 32;
+		int histSize[] = {binsC0};
+		float rangesC0[] = { 0, 256 }; // channel 0 ranges from 0..255
+		const float* ranges[] = { rangesC0 };
+		MatND hist;
+		int channels[] = {0};
+		calcHist(&image, 1, channels, mask, hist, 1, histSize, ranges, true, false);
+		double maxVal=0;
+		double minVal=255;
+		Point maxLoc;
+		Point minLoc;
+    minMaxLoc(hist, &minVal, &maxVal, &minLoc, &maxLoc);
+		json_object_set(pStageModel, "maxVal", json_real(maxVal));
+		json_object_set(pStageModel, "maxVal.x", json_real(maxLoc.x));
+		json_object_set(pStageModel, "maxVal.y", json_real(maxLoc.y));
+		json_object_set(pStageModel, "minVal", json_real(minVal));
+		json_object_set(pStageModel, "minVal.x", json_real(minLoc.x));
+		json_object_set(pStageModel, "minVal.y", json_real(minLoc.y));
+	}
+
+	return stageOK("apply_calcHist(%s) %s", errMsg, pStage, pStageModel);
+}
+
+bool Pipeline::apply_split(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	json_t *pFromTo = json_object_get(pStage, "fromTo");
+	const char *errMsg = NULL;
+#define MAX_FROMTO 32
+	int fromTo[MAX_FROMTO];
+	int nFromTo;
+
+	if (!json_is_array(pFromTo)) {
+		errMsg = "Expected JSON array for fromTo";
+	}
+
+	if (!errMsg) {
+		json_t *pInt;
+		int index;
+		json_array_foreach(pFromTo, index, pInt) {
+			if (index >= MAX_FROMTO) {
+				errMsg = "Too many channels";
+				break;
+			}
+			nFromTo = index+1;
+			fromTo[index] = json_integer_value(pInt);
+		}
+	}
+
+	if (!errMsg) {
+		int depth = image.depth();
+		int channels = 1;
+		LOGTRACE2("Creating output image %sC%d", cv_depth_names[depth], channels);
+		Mat outImage( image.rows, image.cols, CV_MAKETYPE(depth, channels) );
+		Mat out[] = { outImage };
+		mixChannels( &image, 1, out, 1, fromTo, nFromTo/2 );
+		image = outImage;
+	}
+
+	return stageOK("apply_split(%s) %s", errMsg, pStage, pStageModel);
+}
+
+bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	double alpha = jo_double(pStage, "alpha", 1);
+	double delta = jo_double(pStage, "delta", 0);
+	const char *transform = jo_string(pStage, "transform", NULL);
+	const char *rTypeStr = jo_string(pStage, "rType", "CV_8U");
+	const char *errMsg = NULL;
+	int rType;
+
+	if (!errMsg) {
+		rType = parseCvType(rTypeStr, errMsg);
+	}
+
+	if (transform) {
+		if (strcmp("log", transform) == 0) {
+			LOGTRACE("log()");
+			log(image, image);
+		}
+	}
+	
+	if (!errMsg) {
+		image.convertTo(image, rType, alpha, delta);
+	}
+
+	return stageOK("apply_convertTo(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	double threshold1 = jo_double(pStage, "threshold1", 0);
 	double threshold2 = jo_double(pStage, "threshold2", 50);
@@ -301,7 +509,7 @@ bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, 
 		Canny(image, image, threshold1, threshold2, apertureSize, L2gradient);
 	}
 
-	return stageOK("apply_imread(%s) %s", errMsg, pStage, pStageModel);
+	return stageOK("apply_Canny(%s) %s", errMsg, pStage, pStageModel);
 }
 
 bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
@@ -369,11 +577,12 @@ static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStag
 
 json_t *Pipeline::process(Mat &workingImage) { 
 	Model model;
-	processModel(workingImage, model);
-	return model.getJson();
+	bool ok = processModel(workingImage, model);
+	json_t *pJson = model.getJson();
+	return pJson;
 }
 
-void Pipeline::processModel(Mat &workingImage, Model &model) { 
+bool Pipeline::processModel(Mat &workingImage, Model &model) { 
 	if (!json_is_array(pPipeline)) {
 		const char * errMsg = "Pipeline::process expected json array for pipeline definition";
 		LOGERROR1(errMsg, "");
@@ -385,7 +594,7 @@ void Pipeline::processModel(Mat &workingImage, Model &model) {
 	json_t *pStage;
 	json_t *pModel = model.getJson();
 	char nameBuf[16];
-	LOGDEBUG3("Pipeline::processModel(%dr x %dc) pipeline-size:%d", workingImage.rows, workingImage.cols, json_array_size(pPipeline));
+	char debugBuf[100];
 	json_array_foreach(pPipeline, index, pStage) {
 		const char *pOp = jo_string(pStage, "op", "");
 		sprintf(nameBuf, "s%d", index+1);
@@ -393,8 +602,13 @@ void Pipeline::processModel(Mat &workingImage, Model &model) {
 		const char *pComment = jo_string(pStage, "comment", "");
 		json_t *pStageModel = json_object();
 		json_object_set(pModel, pName, pStageModel);
-		LOGDEBUG3("Pipeline::process(stage:%s,op:%s) %s", pName, pOp, pComment);
-		if (pOp) {
+		// json_object_set(pStageModel, "comment", json_string(pComment));
+		sprintf(debugBuf,"process(%s) %sC%d(%dx%d) %s:%s", 
+			pName, cv_depth_names[workingImage.depth()], workingImage.channels(), workingImage.rows, workingImage.cols, pOp, pComment);
+		if (strncmp(pOp, "nop", 3)==0) {
+			LOGDEBUG1("(NOP) %s", debugBuf);
+		} else {
+			LOGDEBUG1("%s", debugBuf);
 			try {
 			  const char *errMsg = dispatch(pOp, pStage, pStageModel, pModel, workingImage);
 				ok = logErrorMessage(errMsg, pName, pStage);
@@ -403,16 +617,28 @@ void Pipeline::processModel(Mat &workingImage, Model &model) {
 			} catch (cv::Exception &ex) {
 				ok = logErrorMessage(ex.what(), pName, pStage);
 			}
-		} else {
-			ok = logErrorMessage("expected op", pName, pStage);
-		} //if (pOp)
+		} //if-else (pOp)
 		if (!ok) { 
 			LOGERROR("cancelled pipeline execution");
+			ok = false;
 			break; 
 		}
+		if (workingImage.cols <=0 || workingImage.rows<=0) {
+			LOGERROR2("Empty working image: %dr x %dc", workingImage.rows, workingImage.cols);
+			ok = false;
+			break;
+		}
+		sprintf(debugBuf,"%sC%d %dx%d", 
+			cv_depth_names[workingImage.depth()], workingImage.channels(), workingImage.rows, workingImage.cols);
+		LOGTRACE2("Working Image type:%sC%d", cv_depth_names[workingImage.depth()], workingImage.channels());
 	} // json_array_foreach
 
+	sprintf(debugBuf,"%sC%d %dr x %dc", 
+		cv_depth_names[workingImage.depth()], workingImage.channels(), workingImage.rows, workingImage.cols);
+	LOGDEBUG2("Pipeline::processModel(stages:%d) -> %s", json_array_size(pPipeline), debugBuf);
 	json_decref(pModel);
+
+	return ok;
 }
 
 const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage) {
@@ -420,18 +646,28 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
  
 	if (strcmp(pOp, "blur")==0) {
 		apply_blur(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "calcHist")==0) {
+		apply_calcHist(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "convertTo")==0) {
+		apply_convertTo(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "Canny")==0) {
 		apply_Canny(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "cvtColor")==0) {
 		apply_cvtColor(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "dft")==0) {
 		apply_dft(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "dftShift")==0) {
+		apply_dftShift(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "dftSpectrum")==0) {
+		apply_dftSpectrum(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "dilate")==0) {
 		apply_dilate(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "drawKeypoints")==0) {
 		apply_drawKeypoints(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "drawRects")==0) {
 		apply_drawRects(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "equalizeHist")==0) {
+		apply_equalizeHist(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "erode")==0) {
 		apply_erode(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "HoleRecognizer")==0) {
@@ -440,10 +676,18 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
 		apply_imread(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "imwrite")==0) {
 		apply_imwrite(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "Mat")==0) {
+		apply_Mat(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "MSER")==0) {
 		apply_MSER(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "rectangle")==0) {
+		apply_rectangle(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "SimpleBlobDetector")==0) {
 		apply_SimpleBlobDetector(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "split")==0) {
+		apply_split(pStage, pStageModel, pModel, workingImage);
+	} else if (strncmp(pOp, "nop", 3)==0) {
+		LOGDEBUG("Skipping nop...");
 	} else {
 		errMsg = "unknown op";
 	}
