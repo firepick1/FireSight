@@ -56,6 +56,8 @@ bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, json_t *pM
 	const char * showStr = jo_string(pStage, "show", "magnitude");
 	const char *errMsg = NULL;
 
+	assert(0<image.rows && 0<image.cols);
+
 	if (!errMsg) {
 		if (strcmp("magnitude", showStr) == 0) {
 			isMagnitude = true;
@@ -146,6 +148,8 @@ bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, json_t *pModel, Ma
 			}
 		}
 	}
+
+	assert(0<image.rows && 0<image.cols);
 
 	if (!errMsg) {
 		if (image.type() != CV_32F) {

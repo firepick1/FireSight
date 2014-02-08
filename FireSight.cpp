@@ -157,6 +157,8 @@ int main(int argc, char *argv[])
 		  cout << "imread failed: " << imagePath << endl;
 			exit(-1);
 		}
+	} else {
+		LOGDEBUG("No image specified. Pipeline may fail if image is required.");
 	}
 
   const char *pJsonPipeline = pipelineString.c_str();

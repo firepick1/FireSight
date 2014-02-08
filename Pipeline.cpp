@@ -68,6 +68,8 @@ bool Pipeline::apply_imwrite(json_t *pStage, json_t *pStageModel, json_t *pModel
   const char *path = jo_string(pStage, "path", NULL);
 	const char *errMsg = NULL;
 
+	assert(0<image.cols && 0<image.rows);
+
 	if (!path) {
 		errMsg = "expected path for imwrite";
 	} else {
@@ -83,6 +85,8 @@ bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pMode
 	int dstCn = jo_int(pStage, "dstCn", 0);
 	const char *errMsg = NULL;
 	int code = CV_BGR2GRAY;
+
+	assert(0<image.cols && 0<image.rows);
 
 	if (strcmp("CV_RGB2GRAY",codeStr)==0) {
 	  code = CV_RGB2GRAY;
@@ -162,6 +166,9 @@ bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *
 	int flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG|DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 	const char *modelName = jo_string(pStage, "model", NULL);
 	json_t *pKeypointStage = json_object_get(pModel, modelName);
+
+	assert(0<image.cols && 0<image.rows);
+
 	if (!pKeypointStage) {
 		const char *keypointStageName = jo_string(pStage, "keypointStage", NULL);
 		pKeypointStage = json_object_get(pModel, keypointStageName);
@@ -207,6 +214,8 @@ bool Pipeline::apply_dilate(json_t *pStage, json_t *pStageModel, json_t *pModel,
 	int kheight = jo_int(pStage, "ksize.height", 3);
 	int shape = jo_shape(pStage, "shape", errMsg);
 
+	assert(0<image.cols && 0<image.rows);
+
 	if (!errMsg) {
 	  Mat structuringElement = getStructuringElement(shape, Size(kwidth, kheight));
 		dilate(image, image, structuringElement);
@@ -220,6 +229,8 @@ bool Pipeline::apply_erode(json_t *pStage, json_t *pStageModel, json_t *pModel, 
 	int kwidth = jo_int(pStage, "ksize.width", 3);
 	int kheight = jo_int(pStage, "ksize.height", 3);
 	int shape = jo_shape(pStage, "shape", errMsg);
+
+	assert(0<image.cols && 0<image.rows);
 
 	if (!errMsg) {
 	  Mat structuringElement = getStructuringElement(shape, Size(kwidth, kheight));
@@ -245,6 +256,8 @@ bool Pipeline::apply_blur(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 	int height = jo_int(pStage, "ksize.height", 3);
 	int anchorx = jo_int(pStage, "anchor.x", -1);
 	int anchory = jo_int(pStage, "anchor.y", -1);
+
+	assert(0<image.cols && 0<image.rows);
 
 	if (width <= 0 || height <= 0) {
 		errMsg = "expected 0<width and 0<height";
@@ -298,6 +311,8 @@ bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, jso
 	params.maxConvexity = jo_double(pStage, "maxConvexity", params.maxConvexity);
 	const char *errMsg = NULL;
 
+	assert(0<image.cols && 0<image.rows);
+
 	if (!errMsg) {
 		SimpleBlobDetector detector(params);
 		SimpleBlobDetector(params);
@@ -323,6 +338,8 @@ bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, json_t *pMod
 	Scalar fill = jo_Scalar(pStage, "fill", Scalar::all(-1));
 	int shift = jo_int(pStage, "shift", 0);
 	const char *errMsg = NULL;
+
+	assert(0<image.cols && 0<image.rows);
 
   if ( x < 0 || y < 0) {
 		errMsg = "Expected 0<=x and 0<=y";
@@ -411,6 +428,8 @@ bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, json_t *pMode
 	const char *errMsg = NULL;
 	Mat mask;
 
+	assert(0<image.cols && 0<image.rows);
+
 	if (!errMsg) {
 		int binsC0 = 32;
 		int histSize[] = {binsC0};
@@ -479,6 +498,8 @@ bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, json_t *pMod
 	const char *rTypeStr = jo_string(pStage, "rType", "CV_8U");
 	const char *errMsg = NULL;
 	int rType;
+
+	assert(0<image.cols && 0<image.rows);
 
 	if (!errMsg) {
 		rType = parseCvType(rTypeStr, errMsg);
@@ -622,6 +643,8 @@ bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, 
 	bool L2gradient = jo_bool(pStage, "L2gradient", false);
 	const char *errMsg = NULL;
 
+	assert(0<image.cols && 0<image.rows);
+
 	if (!errMsg) {
 		Canny(image, image, threshold1, threshold2, apertureSize, L2gradient);
 	}
@@ -634,6 +657,8 @@ bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t 
 	double diamMax = jo_double(pStage, "diamMax");
 	int showMatches = jo_int(pStage, "show", 0);
 	const char *errMsg = NULL;
+
+	assert(0<image.cols && 0<image.rows);
 
 	if (diamMin <= 0 || diamMax <= 0 || diamMin > diamMax) {
 		errMsg = "expected: 0 < diamMin < diamMax ";
@@ -656,7 +681,7 @@ bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t 
 		}
 	}
 
-	return stageOK("apply_imread(%s) %s", errMsg, pStage, pStageModel);
+	return stageOK("apply_HoleRecognizer(%s) %s", errMsg, pStage, pStageModel);
 }
 
 Pipeline::Pipeline(const char *pJson) {
