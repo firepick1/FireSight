@@ -1,0 +1,5 @@
+[
+  {"op":"Mat", "width":400, "height":400, "type":"CV_8U", "comment":"grayscale 400x400 image"},
+  {"op":"rectangle", "x":175, "y":150, "width":50, "height":100, "fill":[255,255,255], "comment":"White rectangle"},
+	{"op":"nop", "comment":"end of pipeline"}
+]

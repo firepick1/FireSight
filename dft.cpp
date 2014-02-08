@@ -14,6 +14,13 @@ using namespace cv;
 using namespace std;
 using namespace FireSight;
 
+static void dftMirror(Mat &image) {
+	int cx = image.cols/2;
+	Mat imageL(image,Rect(0,0,cx,image.rows));
+	Mat imageR(image,Rect(cx,0,cx,image.rows));
+	flip(imageR, imageL, 1);
+}
+
 static void dftShift(Mat &image, const char *&errMsg) {
 	if ((image.cols & 1) || (image.rows&1)) {
 		LOGTRACE("Cropping image to even number of rows and columns");
@@ -38,34 +45,74 @@ static void dftShift(Mat &image, const char *&errMsg) {
 }
 
 bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	int delta = jo_int(pStage, "delta", 1);
+  bool isShift = jo_bool(pStage, "shift", true);	
+  bool isLog = jo_bool(pStage, "log", true);	
+	bool isMagnitude = false;
+	bool isPhase = false;
+	bool isReal = false;
+	bool isImaginary = false;
+	bool isMirror = jo_bool(pStage, "mirror", true);
+	const char * showStr = jo_string(pStage, "show", "magnitude");
 	const char *errMsg = NULL;
-	if (image.channels() != 2) {
-		errMsg = "Expected complex (2-channel) Mat";
-	}
+
 	if (!errMsg) {
-		Mat planes[] = {
-			Mat::zeros(image.size(), CV_32F),
-			Mat::zeros(image.size(), CV_32F)
-		};
-		split(image, planes);
-		magnitude(planes[0], planes[1], image);
-		image += Scalar::all(1);
-		log(image, image);
-		dftShift(image, errMsg);
-		normalize(image, image, 1, 0, NORM_INF);
+		if (strcmp("magnitude", showStr) == 0) {
+			isMagnitude = true;
+		} else if (strcmp("phase", showStr) == 0) {
+			isPhase = true;
+		} else if (strcmp("real", showStr) == 0) {
+			isReal = true;
+		} else if (strcmp("imaginary", showStr) == 0) {
+			isImaginary = true;
+		} else {
+			errMsg = "Expected 'magnitude' or 'phase' for show";
+		}
+	}
+
+	if (!errMsg) {
+		if (isReal) {
+			if (image.channels() != 1) {
+				errMsg = "Expected real (1-channel) Mat";
+			}
+		} else {
+			if (image.channels() != 2) {
+				errMsg = "Expected complex (2-channel) Mat";
+			}
+		}
+	}
+
+	if (!errMsg) {
+		if (image.channels() > 1) {
+			Mat planes[] = {
+				Mat::zeros(image.size(), CV_32F),
+				Mat::zeros(image.size(), CV_32F)
+			};
+			split(image, planes);
+			if (isMagnitude) {
+				magnitude(planes[0], planes[1], image);
+			} else if (isPhase) {
+				phase(planes[0], planes[1], image);
+			} else if (isReal) {
+				image = planes[0];
+			} else if (isImaginary) {
+				image = planes[1];
+			}
+		}
+		if (delta) {
+			image += Scalar::all(delta);
+		}
+		if (isLog) {
+			log(image, image);
+		}
+		if (isShift) {
+			dftShift(image, errMsg);
+		}
+		if (isMirror) {
+			dftMirror(image);
+		}
 	}
 	return stageOK("apply_dftSpectrum(%s) %s", errMsg, pStage, pStageModel);
-}
-
-
-bool Pipeline::apply_dftShift(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
-	const char *errMsg = NULL;
-
-	if (!errMsg) {
-		dftShift(image, errMsg);
-	}
-
-	return stageOK("apply_dftShift(%s) %s", errMsg, pStage, pStageModel);
 }
 
 bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {

@@ -2,11 +2,21 @@
   {"op":"Mat", "width":400, "height":400, "type":"CV_8U", "comment":"grayscale 400x400 image"},
   {"op":"rectangle", "x":175, "y":150, "width":50, "height":100, "fill":[255,255,255], "comment":"White rectangle"},
 	{"op":"dft", "flags":["DFT_SCALE","DFT_COMPLEX_OUTPUT"], "comment":"2D Fourier transform"},
-	{"op":"nop-dftSpectrum", "comment":"Convert to human friendly Fourier transform"},
-	{"op":"split", "fromTo":[0,0], "comment":"Split out real part of complex spectrum"},
-	{"op":"dftShift", "comment":"Shift spectrum quadrants to center origin"},
+	{"op":"cout", "rows":10, "cols":10, "channel":0, "comment":"Complex spectrum, real part"},
+	{"op":"cout", "rows":10, "cols":10, "channel":1, "comment":"Complex spectrum, imaginary part"},
+
+	{"op":"dftSpectrum", "show":"magnitude", "log":true, "mirror":false, "delta":1, "shift":false, "comment":"Show spectrum magnitude"},
+	{"op":"cout", "row":0,   "col":0,   "rows":10, "cols":10, "comment":"Spectrum magnitude"},
+
+	{"op":"dftSpectrum", "show":"real", "log":false, "mirror":false, "delta":0, "shift":true, "comment":"Shift spectrum origin to center"},
+	{"op":"cout", "row":195, "col":195, "rows":10, "cols":10, "precision":2, "comment":"Centered spectrum"},
+
+	{"op":"dftSpectrum", "show":"real", "log":false, "mirror":true, "delta":0, "shift":false, "comment":"Mirror spectrum across y-axis"},
+	{"op":"cout", "row":195, "col":195, "rows":10, "cols":10, "precision":2, "comment":"Mirrored spectrum"},
+
+	{"op":"normalize", "alpha":0, "beta":2048, "normType":"NORM_MINMAX", "comment":"Normalize values in preparation for CV_8U conversion"},
+	{"op":"cout", "row":195, "col":195, "rows":10, "cols":10, "comment":"Normalized spectrum"},
+
 	{"op":"convertTo", "rType":"CV_8U", "comment":"Convert to grayscale"},
-	{"op":"calcHist", "comment":"anaylze distribution"},
-	{"op":"equalizeHist", "comment":"Make spectrum more visible"},
-	{"op":"calcHist", "comment":"anaylze distribution"}
+	{"op":"cout", "row":195, "col":195, "rows":10, "cols":10, "comment":"Normalized spectrum"}
 ]

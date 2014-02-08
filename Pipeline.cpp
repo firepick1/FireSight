@@ -498,6 +498,123 @@ bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, json_t *pMod
 	return stageOK("apply_convertTo(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	int col = jo_int(pStage, "col", 0);
+	int row = jo_int(pStage, "row", 0);
+	int cols = jo_int(pStage, "cols", image.cols);
+	int rows = jo_int(pStage, "rows", image.rows);
+	int precision = jo_int(pStage, "precision", 1);
+	int width = jo_int(pStage, "width", 5);
+	int channel = jo_int(pStage, "channel", 0);
+	const char *comment = jo_string(pStage, "comment", NULL);
+	const char *errMsg = NULL;
+
+	if (row<0 || col<0 || rows<=0 || cols<=0) {
+		errMsg = "Expected 0<=row and 0<=col and 0<cols and 0<rows";
+	}
+
+	if (!errMsg) {
+		int depth = image.depth();
+		cout << cv_depth_names[image.depth()] << "C" << image.channels();
+		cout << "(" << image.rows << "x" << image.cols << ")";
+		cout << " show:[" << row << "-" << row+rows-1 << "," << col << "-" << col+cols-1 << "]";
+		if (comment) {
+			cout << " " << comment;
+		}
+		cout << endl;
+		for (int r = row; r < row+rows; r++) {
+			for (int c = col; c < col+cols; c++) {
+				cout.precision(precision);
+				cout.width(width);
+				if (image.channels() == 1) {
+					switch (depth) {
+						case CV_8S:
+						case CV_8U:
+							cout << (int) image.at<unsigned char>(r,c,channel) << " ";
+							break;
+						case CV_16U:
+							cout << image.at<unsigned short>(r,c) << " ";
+							break;
+						case CV_16S:
+							cout << image.at<short>(r,c) << " ";
+							break;
+						case CV_32S:
+							cout << image.at<int>(r,c) << " ";
+							break;
+						case CV_32F:
+							cout << std::fixed;
+							cout << image.at<float>(r,c) << " ";
+							break;
+						case CV_64F:
+							cout << std::fixed;
+							cout << image.at<double>(r,c) << " ";
+							break;
+						default:
+							cout << "UNSUPPORTED-CONVERSION" << " ";
+							break;
+					}
+				} else {
+					switch (depth) {
+						case CV_8S:
+						case CV_8U:
+							cout << image.at<Vec2b>(r,c)[channel] << " ";
+							break;
+						case CV_16U:
+							cout << image.at<Vec2w>(r,c)[channel] << " ";
+							break;
+						case CV_16S:
+							cout << image.at<Vec2s>(r,c)[channel] << " ";
+							break;
+						case CV_32S:
+							cout << image.at<Vec2i>(r,c)[channel] << " ";
+							break;
+						case CV_32F:
+							cout << std::fixed;
+							cout << image.at<Vec2f>(r,c)[channel] << " ";
+							break;
+						case CV_64F:
+							cout << std::fixed;
+							cout << image.at<Vec2d>(r,c)[channel] << " ";
+							break;
+						default:
+							cout << "UNSUPPORTED-CONVERSION" << " ";
+							break;
+					}
+				}
+			}
+			cout << endl;
+		}
+	}
+
+	return stageOK("apply_cout(%s) %s", errMsg, pStage, pStageModel);
+}
+
+bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	double alpha = jo_double(pStage, "alpha", 1);
+	double beta = jo_double(pStage, "beta", 0);
+	const char * normTypeStr = jo_string(pStage, "normType", "NORM_L2");
+	int normType  = NORM_L2;
+	const char *errMsg = NULL;
+
+	if (strcmp("NORM_L2",normTypeStr) == 0) {
+		normType = NORM_L2;
+	} else if (strcmp("NORM_L1",normTypeStr) == 0) {
+		normType = NORM_L1;
+	} else if (strcmp("NORM_MINMAX",normTypeStr) == 0) {
+		normType = NORM_MINMAX;
+	} else if (strcmp("NORM_INF",normTypeStr) == 0) {
+		normType = NORM_INF;
+	} else {
+		errMsg = "Unknown normType";
+	}
+
+	if (!errMsg) {
+		normalize(image, image, alpha, beta, normType);
+	}
+
+	return stageOK("apply_normalize(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	double threshold1 = jo_double(pStage, "threshold1", 0);
 	double threshold2 = jo_double(pStage, "threshold2", 50);
@@ -650,14 +767,14 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
 		apply_calcHist(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "convertTo")==0) {
 		apply_convertTo(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "cout")==0) {
+		apply_cout(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "Canny")==0) {
 		apply_Canny(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "cvtColor")==0) {
 		apply_cvtColor(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "dft")==0) {
 		apply_dft(pStage, pStageModel, pModel, workingImage);
-	} else if (strcmp(pOp, "dftShift")==0) {
-		apply_dftShift(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "dftSpectrum")==0) {
 		apply_dftSpectrum(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "dilate")==0) {
@@ -680,6 +797,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
 		apply_Mat(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "MSER")==0) {
 		apply_MSER(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "normalize")==0) {
+		apply_normalize(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "rectangle")==0) {
 		apply_rectangle(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "SimpleBlobDetector")==0) {

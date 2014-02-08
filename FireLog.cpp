@@ -63,22 +63,22 @@ int firelog_level(int newLevel) {
   logLevel = newLevel;
 	switch (newLevel) {
 	  case FIRELOG_ERROR:
-			LOGINFO1("firelog_level(%s)", "FIRELOG_ERROR");
+			LOGDEBUG1("firelog_level(%s)", "FIRELOG_ERROR");
 			break;
 	  case FIRELOG_WARN:
-			LOGINFO1("firelog_level(%s)", "FIRELOG_WARN");
+			LOGDEBUG1("firelog_level(%s)", "FIRELOG_WARN");
 			break;
 	  case FIRELOG_INFO:
-			LOGINFO1("firelog_level(%s)", "FIRELOG_INFO");
+			LOGDEBUG1("firelog_level(%s)", "FIRELOG_INFO");
 			break;
 	  case FIRELOG_DEBUG:
-			LOGINFO1("firelog_level(%s)", "FIRELOG_DEBUG");
+			LOGDEBUG1("firelog_level(%s)", "FIRELOG_DEBUG");
 			break;
 	  case FIRELOG_TRACE:
-			LOGINFO1("firelog_level(%s)", "FIRELOG_TRACE");
+			LOGDEBUG1("firelog_level(%s)", "FIRELOG_TRACE");
 			break;
 		default:
-			LOGINFO1("firelog_level(unknown level %d)", newLevel);
+			LOGERROR1("firelog_level(unknown level %d)", newLevel);
 			break;
 	}
   return oldLevel;

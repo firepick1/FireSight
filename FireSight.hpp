@@ -78,9 +78,10 @@ namespace FireSight {
 			bool processModel(Mat &mat, Model &model);
 			bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
 			bool apply_Mat(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_normalize(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_log(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_split(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_dftShift(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_cout(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_dftSpectrum(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_calcHist(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
