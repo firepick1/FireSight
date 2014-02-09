@@ -77,29 +77,32 @@ namespace FireSight {
 	  private:
 			bool processModel(Mat &mat, Model &model);
 			bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
-			bool apply_Mat(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_normalize(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_log(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_split(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_cout(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_dftSpectrum(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+
+			bool apply_blur(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_calcHist(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_imread(json_t *pStage, json_t *pStageModel, json_t *pMode, Mat &image);
-			bool apply_imwrite(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_convertTo(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_cout(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_dft(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_dftSpectrum(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_dilate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_drawRects(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_dilate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_erode(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_blur(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_imread(json_t *pStage, json_t *pStageModel, json_t *pMode, Mat &image);
+			bool apply_imwrite(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_log(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_Mat(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_normalize(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_proto(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
 			bool apply_rectangle(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_dft(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_split(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+
 			const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage);
 			void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
 			void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);

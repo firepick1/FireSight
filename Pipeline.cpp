@@ -824,12 +824,15 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
 		apply_MSER(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "normalize")==0) {
 		apply_normalize(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "proto")==0) {
+		apply_proto(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "rectangle")==0) {
 		apply_rectangle(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "SimpleBlobDetector")==0) {
 		apply_SimpleBlobDetector(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "split")==0) {
 		apply_split(pStage, pStageModel, pModel, workingImage);
+
 	} else if (strncmp(pOp, "nop", 3)==0) {
 		LOGDEBUG("Skipping nop...");
 	} else {

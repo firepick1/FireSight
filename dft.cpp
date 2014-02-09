@@ -119,6 +119,8 @@ bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, json_t *pM
 
 bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
 	const char *errMsg = NULL;
+	const char *depthStr = jo_string(pStage, "depth", "CV_8U");
+
 	char errBuf[150];
 	json_t *pFlags = json_object_get(pStage, "flags");
 	int flags = 0;
@@ -162,7 +164,7 @@ bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, json_t *pModel, Ma
 		LOGTRACE1("apply_dft() flags:%d", flags);
 		dft(image, dftImage, flags);
 		image = dftImage;
-		if (flags & DFT_INVERSE) {
+		if (flags & DFT_INVERSE && strcmp("CV_8U",depthStr)==0) {
 			Mat invImage;
 			LOGTRACE("apply_dft(): Convert image to CV_8U");
 			image.convertTo(invImage, CV_8U);

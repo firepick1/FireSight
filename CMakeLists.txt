@@ -4,7 +4,7 @@ project( firesight )
 SET(COMPILE_DEFINITIONS -Werror)
 SET(PROJECT_VERSION_MAJOR 0)
 SET(PROJECT_VERSION_MINOR 3)
-set(PROJECT_VERSION_PATCH 5)
+set(PROJECT_VERSION_PATCH 6)
 set(PROJECT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64")
@@ -32,7 +32,17 @@ find_package( OpenCV REQUIRED )
 include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} )
 link_directories( ${BUILD_TARGET_DIR} )
 
-add_library(_firesight SHARED FireLog.cpp HoleRecognizer.cpp MatchedRegion.cpp dft.cpp MSER.cpp Model.cpp jo_util.cpp Pipeline.cpp )
+add_library(_firesight SHARED 
+	dft.cpp 
+	FireLog.cpp 
+	HoleRecognizer.cpp 
+	jo_util.cpp 
+	MatchedRegion.cpp 
+	Model.cpp 
+	MSER.cpp 
+	Pipeline.cpp 
+	proto.cpp 
+	)
 target_link_libraries(_firesight libjansson.so ${OpenCV_LIBS} )
 set_target_properties(_firesight PROPERTIES VERSION ${PROJECT_VERSION_STRING} SOVERSION ${PROJECT_VERSION_MAJOR})
 
