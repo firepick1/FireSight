@@ -38,6 +38,7 @@ add_library(_firesight SHARED
 	HoleRecognizer.cpp 
 	jo_util.cpp 
 	MatchedRegion.cpp 
+	MatUtil.cpp
 	Model.cpp 
 	MSER.cpp 
 	Pipeline.cpp 

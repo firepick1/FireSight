@@ -9,6 +9,7 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
 #include "jo_util.hpp"
+#include "MatUtil.hpp"
 
 using namespace cv;
 using namespace std;
@@ -42,6 +43,54 @@ static void dftShift(Mat &image, const char *&errMsg) {
 	q2.copyTo(tmp);
 	q3.copyTo(q2);
 	tmp.copyTo(q3);
+}
+
+bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+  const char * methodStr = jo_string(pStage, "method", "CV_TM_CCORR");
+  const char *tmpltPath = jo_string(pStage, "template", NULL);
+  const char *errMsg = NULL;
+	int method;
+	Mat tmplt;
+
+	assert(0<image.rows && 0<image.cols);
+
+	if (!tmpltPath) {
+		errMsg = "Expected template path for imread";
+	} else {
+		tmplt = imread(tmpltPath, CV_LOAD_IMAGE_COLOR);
+		if (tmplt.data) {
+			LOGTRACE2("apply_matchTemplate %s %s", tmpltPath, matInfo(tmplt).c_str());
+			if (image.rows<tmplt.rows || image.cols<tmplt.cols) {
+				errMsg = "Expected template smaller than image to match";
+			}
+		} else {
+			errMsg = "imread failed";
+		}
+	}
+
+	if (!errMsg) {
+		if (strcmp(methodStr, "CV_TM_SQDIFF_NORMED")==0) {
+			method = CV_TM_SQDIFF_NORMED;
+		} else if (strcmp(methodStr, "CV_TM_CCORR")==0) {
+			method = CV_TM_CCORR;
+		} else if (strcmp(methodStr, "CV_TM_CCORR_NORMED")==0) {
+			method = CV_TM_CCORR_NORMED;
+		} else if (strcmp(methodStr, "CV_TM_CCOEFF")==0) {
+			method = CV_TM_CCOEFF;
+		} else if (strcmp(methodStr, "CV_TM_CCOEFF_NORMED")==0) {
+			method = CV_TM_CCOEFF_NORMED;
+		} else {
+			errMsg = "Expected method name";
+		}
+	}
+
+	if (!errMsg) {
+		Mat result;
+		matchTemplate(image, tmplt, result, method);
+		image = result;
+	}
+
+	return stageOK("apply_matchTemplate(%s) %s", errMsg, pStage, pStageModel);
 }
 
 bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {

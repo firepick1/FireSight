@@ -9,21 +9,11 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
 #include "jo_util.hpp"
+#include "MatUtil.hpp"
 
 using namespace cv;
 using namespace std;
 using namespace FireSight;
-
-static const char *cv_depth_names[] = {
-	"CV_8U",
-	"CV_8S",
-	"CV_16U",
-	"CV_16S",
-	"CV_32S",
-	"CV_32F",
-	"CV_64F"
-};
-
 
 bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
 	if (errMsg) {
@@ -481,8 +471,8 @@ bool Pipeline::apply_split(json_t *pStage, json_t *pStageModel, json_t *pModel, 
 	if (!errMsg) {
 		int depth = image.depth();
 		int channels = 1;
-		LOGTRACE2("Creating output image %sC%d", cv_depth_names[depth], channels);
 		Mat outImage( image.rows, image.cols, CV_MAKETYPE(depth, channels) );
+		LOGTRACE1("Creating output image %s", matInfo(outImage).c_str());
 		Mat out[] = { outImage };
 		mixChannels( &image, 1, out, 1, fromTo, nFromTo/2 );
 		image = outImage;
@@ -536,8 +526,7 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 
 	if (!errMsg) {
 		int depth = image.depth();
-		cout << cv_depth_names[image.depth()] << "C" << image.channels();
-		cout << "(" << image.rows << "x" << image.cols << ")";
+		cout << matInfo(image);
 		cout << " show:[" << row << "-" << row+rows-1 << "," << col << "-" << col+cols-1 << "]";
 		if (comment) {
 			cout << " " << comment;
@@ -745,8 +734,7 @@ bool Pipeline::processModel(Mat &workingImage, Model &model) {
 		json_t *pStageModel = json_object();
 		json_object_set(pModel, pName, pStageModel);
 		// json_object_set(pStageModel, "comment", json_string(pComment));
-		sprintf(debugBuf,"process(%s) %sC%d(%dx%d) %s:%s", 
-			pName, cv_depth_names[workingImage.depth()], workingImage.channels(), workingImage.rows, workingImage.cols, pOp, pComment);
+		sprintf(debugBuf,"process(%s) %s %s:%s", pName, matInfo(workingImage).c_str(), pOp, pComment);
 		if (strncmp(pOp, "nop", 3)==0) {
 			LOGDEBUG1("(NOP) %s", debugBuf);
 		} else {
@@ -770,14 +758,10 @@ bool Pipeline::processModel(Mat &workingImage, Model &model) {
 			ok = false;
 			break;
 		}
-		sprintf(debugBuf,"%sC%d %dx%d", 
-			cv_depth_names[workingImage.depth()], workingImage.channels(), workingImage.rows, workingImage.cols);
-		LOGTRACE2("Working Image type:%sC%d", cv_depth_names[workingImage.depth()], workingImage.channels());
+		LOGTRACE1("Working Image type:%s", matInfo(workingImage).c_str());
 	} // json_array_foreach
 
-	sprintf(debugBuf,"%sC%d %dr x %dc", 
-		cv_depth_names[workingImage.depth()], workingImage.channels(), workingImage.rows, workingImage.cols);
-	LOGDEBUG2("Pipeline::processModel(stages:%d) -> %s", json_array_size(pPipeline), debugBuf);
+	LOGDEBUG2("Pipeline::processModel(stages:%d) -> %s", json_array_size(pPipeline), matInfo(workingImage).c_str());
 	json_decref(pModel);
 
 	return ok;
@@ -820,6 +804,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
 		apply_imwrite(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "Mat")==0) {
 		apply_Mat(pStage, pStageModel, pModel, workingImage);
+	} else if (strcmp(pOp, "matchTemplate")==0) {
+		apply_matchTemplate(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "MSER")==0) {
 		apply_MSER(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "normalize")==0) {

@@ -1,0 +1,15 @@
+[
+	{"op":"matchTemplate", "method":"CV_TM_CCORR", "path":"target/tmplt-30x40.jpg"},
+	{"op":"nop-matchTemplate", "method":"CV_TM_CCORR_NORMED", "path":"target/tmplt-30x40.jpg"},
+	{"op":"nop-matchTemplate", "method":"CV_TM_CCEFF", "path":"target/tmplt-30x40.jpg"},
+	{"op":"nop-matchTemplate", "method":"CV_TM_CCEFF_NORMED", "path":"target/tmplt-30x40.jpg"},
+	{"op":"nop-matchTemplate", "method":"CV_TM_SQDIFF_NORMED", "path":"target/tmplt-30x40.jpg"},
+	{"op":"cout", "cols":28, "rows":64, "comment":"matchTemplate output"},
+	{"op":"nop dft","flags":["DFT_INVERSE","DFT_COMPLEX_OUTPUT"], "depth":"CV_32F", "comment":"Compute inverse DFT to restore image"},
+	{"op":"nop split", "fromTo":[0,0], "comment":"real part"},
+	{"op":"nop cout", "cols":28, "rows":64, "comment":"inverse DFT"},
+	{"op":"nop-dftSpectrum", "comment":"Show spectrum magnitude"},
+	{"op":"nop normalize", "alpha":0, "beta":255, "normType":"NORM_MINMAX", "comment":"Normalize values in preparation for CV_8U conversion"},
+	{"op":"nop convertTo", "rType":"CV_8U", "comment":"Convert to grayscale"},
+	{"op":"nop","comment":"end of pipeline"}
+]
