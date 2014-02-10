@@ -415,30 +415,36 @@ bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, json_t *pModel, Ma
 }
 
 bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+	float rangeMin = jo_double(pStage, "rangeMin", 0);
+	float rangeMax = jo_double(pStage, "rangeMax", 256);
+	int locations = jo_int(pStage, "locations", 0);
+	int bins = jo_int(pStage, "bins", rangeMax-rangeMin);
+	int histSize = bins;
+	bool uniform = true;
+	bool accumulate = false;
 	const char *errMsg = NULL;
 	Mat mask;
 
 	assert(0<image.cols && 0<image.rows);
 
+	if (rangeMin > rangeMax) {
+		errMsg = "Expected rangeMin <= rangeMax";
+	} else if (bins < 2 || bins > 256 ) {
+		errMsg = "Expected 1<bins and bins<=256";
+	}
+
 	if (!errMsg) {
-		int binsC0 = 32;
-		int histSize[] = {binsC0};
-		float rangesC0[] = { 0, 256 }; // channel 0 ranges from 0..255
-		const float* ranges[] = { rangesC0 };
-		MatND hist;
-		int channels[] = {0};
-		calcHist(&image, 1, channels, mask, hist, 1, histSize, ranges, true, false);
-		double maxVal=0;
-		double minVal=255;
-		Point maxLoc;
-		Point minLoc;
-    minMaxLoc(hist, &minVal, &maxVal, &minLoc, &maxLoc);
-		json_object_set(pStageModel, "maxVal", json_real(maxVal));
-		json_object_set(pStageModel, "maxVal.x", json_real(maxLoc.x));
-		json_object_set(pStageModel, "maxVal.y", json_real(maxLoc.y));
-		json_object_set(pStageModel, "minVal", json_real(minVal));
-		json_object_set(pStageModel, "minVal.x", json_real(minLoc.x));
-		json_object_set(pStageModel, "minVal.y", json_real(minLoc.y));
+		float rangeC0[] = { rangeMin, rangeMax }; 
+		const float* ranges[] = { rangeC0 };
+		Mat hist;
+		calcHist(&image, 1, 0, mask, hist, 1, &histSize, ranges, uniform, accumulate);
+		json_t *pHist = json_array();
+		for (int i = 0; i < histSize; i++) {
+			json_array_append(pHist, json_real(hist.at<float>(i)));
+		}
+		json_object_set(pStageModel, "hist", pHist);
+		json_t *pLocations = json_array();
+		json_object_set(pStageModel, "locations", pLocations);
 	}
 
 	return stageOK("apply_calcHist(%s) %s", errMsg, pStage, pStageModel);
@@ -522,6 +528,12 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 
 	if (row<0 || col<0 || rows<=0 || cols<=0) {
 		errMsg = "Expected 0<=row and 0<=col and 0<cols and 0<rows";
+	}
+	if (rows > image.rows) {
+		rows = image.rows;
+	}
+	if (cols > image.cols) {
+		cols = image.cols;
 	}
 
 	if (!errMsg) {
@@ -768,61 +780,66 @@ bool Pipeline::processModel(Mat &workingImage, Model &model) {
 }
 
 const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage) {
+	bool ok = true;
   const char *errMsg = NULL;
  
 	if (strcmp(pOp, "blur")==0) {
-		apply_blur(pStage, pStageModel, pModel, workingImage);
+		ok = apply_blur(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "calcHist")==0) {
-		apply_calcHist(pStage, pStageModel, pModel, workingImage);
+		ok = apply_calcHist(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "convertTo")==0) {
-		apply_convertTo(pStage, pStageModel, pModel, workingImage);
+		ok = apply_convertTo(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "cout")==0) {
-		apply_cout(pStage, pStageModel, pModel, workingImage);
+		ok = apply_cout(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "Canny")==0) {
-		apply_Canny(pStage, pStageModel, pModel, workingImage);
+		ok = apply_Canny(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "cvtColor")==0) {
-		apply_cvtColor(pStage, pStageModel, pModel, workingImage);
+		ok = apply_cvtColor(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "dft")==0) {
-		apply_dft(pStage, pStageModel, pModel, workingImage);
+		ok = apply_dft(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "dftSpectrum")==0) {
-		apply_dftSpectrum(pStage, pStageModel, pModel, workingImage);
+		ok = apply_dftSpectrum(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "dilate")==0) {
-		apply_dilate(pStage, pStageModel, pModel, workingImage);
+		ok = apply_dilate(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "drawKeypoints")==0) {
-		apply_drawKeypoints(pStage, pStageModel, pModel, workingImage);
+		ok = apply_drawKeypoints(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "drawRects")==0) {
-		apply_drawRects(pStage, pStageModel, pModel, workingImage);
+		ok = apply_drawRects(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "equalizeHist")==0) {
-		apply_equalizeHist(pStage, pStageModel, pModel, workingImage);
+		ok = apply_equalizeHist(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "erode")==0) {
-		apply_erode(pStage, pStageModel, pModel, workingImage);
+		ok = apply_erode(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "HoleRecognizer")==0) {
-		apply_HoleRecognizer(pStage, pStageModel, pModel, workingImage);
+		ok = apply_HoleRecognizer(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "imread")==0) {
-		apply_imread(pStage, pStageModel, pModel, workingImage);
+		ok = apply_imread(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "imwrite")==0) {
-		apply_imwrite(pStage, pStageModel, pModel, workingImage);
+		ok = apply_imwrite(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "Mat")==0) {
-		apply_Mat(pStage, pStageModel, pModel, workingImage);
+		ok = apply_Mat(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "matchTemplate")==0) {
-		apply_matchTemplate(pStage, pStageModel, pModel, workingImage);
+		ok = apply_matchTemplate(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "MSER")==0) {
-		apply_MSER(pStage, pStageModel, pModel, workingImage);
+		ok = apply_MSER(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "normalize")==0) {
-		apply_normalize(pStage, pStageModel, pModel, workingImage);
+		ok = apply_normalize(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "proto")==0) {
-		apply_proto(pStage, pStageModel, pModel, workingImage);
+		ok = apply_proto(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "rectangle")==0) {
-		apply_rectangle(pStage, pStageModel, pModel, workingImage);
+		ok = apply_rectangle(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "SimpleBlobDetector")==0) {
-		apply_SimpleBlobDetector(pStage, pStageModel, pModel, workingImage);
+		ok = apply_SimpleBlobDetector(pStage, pStageModel, pModel, workingImage);
 	} else if (strcmp(pOp, "split")==0) {
-		apply_split(pStage, pStageModel, pModel, workingImage);
+		ok = apply_split(pStage, pStageModel, pModel, workingImage);
 
 	} else if (strncmp(pOp, "nop", 3)==0) {
 		LOGDEBUG("Skipping nop...");
 	} else {
 		errMsg = "unknown op";
+	}
+
+	if (!ok) {
+		errMsg = "Pipeline stage failed";
 	}
 
 	return errMsg;

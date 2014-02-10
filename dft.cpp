@@ -48,6 +48,10 @@ static void dftShift(Mat &image, const char *&errMsg) {
 bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
   const char * methodStr = jo_string(pStage, "method", "CV_TM_CCORR");
   const char *tmpltPath = jo_string(pStage, "template", NULL);
+	float rangeMin = jo_double(pStage, "rangeMin", 253);
+	float rangeMax = jo_double(pStage, "rangeMax", 256);
+	int bins = rangeMax-rangeMin;
+	float angle = jo_double(pStage, "angle", 0);
   const char *errMsg = NULL;
 	int method;
 	Mat tmplt;
@@ -57,9 +61,13 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *
 	if (!tmpltPath) {
 		errMsg = "Expected template path for imread";
 	} else {
-		tmplt = imread(tmpltPath, CV_LOAD_IMAGE_COLOR);
+		if (image.channels() == 1) {
+			tmplt = imread(tmpltPath, CV_LOAD_IMAGE_GRAYSCALE);
+		} else {
+			tmplt = imread(tmpltPath, CV_LOAD_IMAGE_COLOR);
+		}
 		if (tmplt.data) {
-			LOGTRACE2("apply_matchTemplate %s %s", tmpltPath, matInfo(tmplt).c_str());
+			LOGTRACE2("apply_matchTemplate(%s) %s", tmpltPath, matInfo(tmplt).c_str());
 			if (image.rows<tmplt.rows || image.cols<tmplt.cols) {
 				errMsg = "Expected template smaller than image to match";
 			}
@@ -82,12 +90,73 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *
 		} else {
 			errMsg = "Expected method name";
 		}
+	} 
+
+	if (!errMsg) {
+		if (rangeMin > rangeMax) {
+			errMsg = "Expected rangeMin <= rangeMax";
+		} else if (bins < 2 || bins > 256 ) {
+			errMsg = "Expected 1<bins and bins<=256";
+		}
 	}
 
 	if (!errMsg) {
 		Mat result;
 		matchTemplate(image, tmplt, result, method);
 		image = result;
+		int histSize = bins;
+		bool uniform = true;
+		bool accumulate = false;
+		const char *errMsg = NULL;
+		Mat mask;
+		float rangeC0[] = { rangeMin, rangeMax }; 
+		const float* ranges[] = { rangeC0 };
+		Mat hist;
+		normalize(result, result, 0, 255, NORM_MINMAX);
+		calcHist(&result, 1, 0, mask, hist, 1, &histSize, ranges, uniform, accumulate);
+		json_t *pHist = json_array();
+		assert(result.channels() == 1);
+		vector<RotatedRect> rects;
+		int rDelta = tmplt.rows/2;
+		int cDelta = tmplt.cols/2;
+		for (int r=0; r < result.rows; r++) {
+			for (int c=0; c < result.cols; c++) {
+				float val = result.at<float>(r,c);
+				bool isOverlap = false;
+				if (rangeMin <= val && val <= rangeMax) {
+					for (int irect=0; irect<rects.size(); irect++) {
+						int cx = rects[irect].center.x;
+						int cy = rects[irect].center.y;
+						if (cx-cDelta < c && c < cx+cDelta && cy-rDelta < r && r < cy+rDelta) {
+							isOverlap = true;
+							if (val > result.at<float>(cy, cx)) {
+								rects[irect].center.x = c;
+								rects[irect].center.y = r;
+							}
+							break;
+						}
+					}
+					if (!isOverlap) {
+						rects.push_back(RotatedRect(Point(c,r), Size(tmplt.cols, tmplt.rows), angle));
+					}
+				}
+			}
+		}
+		json_t *pRects = json_array();
+		json_object_set(pStageModel, "rects", pRects);
+		for (int irect=0; irect<rects.size(); irect++) {
+			int cx = rects[irect].center.x;
+			int cy = rects[irect].center.y;
+			float val = result.at<float>(cy,cx);
+			cout << val << "[" << cx << "," << cy << "]" << endl;
+			json_t *pRect = json_object();
+			json_object_set(pRect, "x", json_real(cx));
+			json_object_set(pRect, "y", json_real(cy));
+			json_object_set(pRect, "width", json_real(tmplt.cols));
+			json_object_set(pRect, "height", json_real(tmplt.rows));
+			json_object_set(pRect, "angle", json_real(angle));
+			json_array_append(pRects, pRect);
+		}
 	}
 
 	return stageOK("apply_matchTemplate(%s) %s", errMsg, pStage, pStageModel);
