@@ -1,0 +1,7 @@
+[
+  {"op":"cvtColor", "code":"CV_BGR2GRAY"},
+	{"name":"find-rects", "op":"matchTemplate", "rangeMin":240, "method":"CV_TM_CCORR", "template":"img/tmplt-37x29.jpg"},
+	{"op":"cvtColor", "code":"CV_GRAY2BGR"},
+	{"op":"drawRects", "model":"find-rects", "color":[255,0,255]},
+	{"op":"nop", "comment":"end of pipeline"}
+]

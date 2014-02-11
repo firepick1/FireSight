@@ -155,6 +155,7 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *
 			json_object_set(pRect, "width", json_real(tmplt.cols));
 			json_object_set(pRect, "height", json_real(tmplt.rows));
 			json_object_set(pRect, "angle", json_real(angle));
+			json_object_set(pRect, "corr", json_real(val));
 			json_array_append(pRects, pRect);
 		}
 	}
