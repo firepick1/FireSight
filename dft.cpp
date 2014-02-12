@@ -48,13 +48,18 @@ static void dftShift(Mat &image, const char *&errMsg) {
 bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
   const char * methodStr = jo_string(pStage, "method", "CV_TM_CCORR");
   const char *tmpltPath = jo_string(pStage, "template", NULL);
-	float rangeMin = jo_double(pStage, "rangeMin", 253);
+	float rangeMin = jo_double(pStage, "rangeMin", 240);
 	float rangeMax = jo_double(pStage, "rangeMax", 256);
+	float normMin = jo_double(pStage, "normMin", 0);
+	float normMax = jo_double(pStage, "normMax", 255);
+	const char* outputStr = jo_string(pStage, "output", "corr");
 	int bins = rangeMax-rangeMin;
 	float angle = jo_double(pStage, "angle", 0);
   const char *errMsg = NULL;
 	int method;
 	Mat tmplt;
+	bool isOutputImage = strcmp(outputStr, "image") == 0;
+	bool isOutputCorr = strcmp(outputStr, "corr") == 0;
 
 	assert(0<image.rows && 0<image.cols);
 
@@ -74,6 +79,10 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *
 		} else {
 			errMsg = "imread failed";
 		}
+	}
+
+	if (!errMsg && !isOutputImage && !isOutputCorr) {
+		errMsg = "Unknown value for output";
 	}
 
 	if (!errMsg) {
@@ -102,8 +111,8 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *
 
 	if (!errMsg) {
 		Mat result;
-		matchTemplate(image, tmplt, result, method);
-		image = result;
+		Mat imageSource = isOutputImage ? image.clone() : image;
+		matchTemplate(imageSource, tmplt, result, method);
 		int histSize = bins;
 		bool uniform = true;
 		bool accumulate = false;
@@ -112,7 +121,11 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *
 		float rangeC0[] = { rangeMin, rangeMax }; 
 		const float* ranges[] = { rangeC0 };
 		Mat hist;
-		normalize(result, result, 0, 255, NORM_MINMAX);
+		if (normMin < normMax) {
+			normalize(result, result, normMin, normMax, NORM_MINMAX);
+		}
+
+		// Filter matches
 		calcHist(&result, 1, 0, mask, hist, 1, &histSize, ranges, uniform, accumulate);
 		json_t *pHist = json_array();
 		assert(result.channels() == 1);
@@ -142,16 +155,19 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *
 				}
 			}
 		}
+
+		// Model matches
 		json_t *pRects = json_array();
 		json_object_set(pStageModel, "rects", pRects);
+		int xOffset = isOutputCorr ? 0 : tmplt.cols/2;
+		int yOffset = isOutputCorr ? 0 : tmplt.rows/2;
 		for (int irect=0; irect<rects.size(); irect++) {
 			int cx = rects[irect].center.x;
 			int cy = rects[irect].center.y;
 			float val = result.at<float>(cy,cx);
-			cout << val << "[" << cx << "," << cy << "]" << endl;
 			json_t *pRect = json_object();
-			json_object_set(pRect, "x", json_real(cx));
-			json_object_set(pRect, "y", json_real(cy));
+			json_object_set(pRect, "x", json_real(cx+xOffset));
+			json_object_set(pRect, "y", json_real(cy+yOffset));
 			json_object_set(pRect, "width", json_real(tmplt.cols));
 			json_object_set(pRect, "height", json_real(tmplt.rows));
 			json_object_set(pRect, "angle", json_real(angle));
