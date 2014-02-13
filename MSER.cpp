@@ -159,7 +159,7 @@ void Pipeline::detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regi
 	}
 }
 
-bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, Model &model) {
 	int delta = jo_int(pStage, "delta", 5);
 	int minArea = jo_int(pStage, "minArea", 60);
 	int maxArea = jo_int(pStage, "maxArea", 14400);
@@ -198,22 +198,22 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 			}
 			maskX = jo_int(pMask, "x", 0);
 			maskY = jo_int(pMask, "y", 0);
-			maskW = jo_int(pMask, "width", image.cols);
-			maskH = jo_int(pMask, "height", image.rows);
+			maskW = jo_int(pMask, "width", model.image.cols);
+			maskH = jo_int(pMask, "height", model.image.rows);
 			if (pMask) {
 				LOGTRACE("}");
 			}
-			if (maskX < 0 || image.cols <= maskX) {
-				sprintf(errBuf, "expected 0 <= mask.x < %d", image.cols);
+			if (maskX < 0 || model.image.cols <= maskX) {
+				sprintf(errBuf, "expected 0 <= mask.x < %d", model.image.cols);
 				errMsg = errBuf;
-			} else if (maskY < 0 || image.rows <= maskY) {
-				sprintf(errBuf, "expected 0 <= mask.y < %d", image.cols);
+			} else if (maskY < 0 || model.image.rows <= maskY) {
+				sprintf(errBuf, "expected 0 <= mask.y < %d", model.image.cols);
 				errMsg = errBuf;
-			} else if (maskW <= 0 || image.cols < maskW) {
-				sprintf(errBuf, "expected 0 < mask.width <= %d", image.cols);
+			} else if (maskW <= 0 || model.image.cols < maskW) {
+				sprintf(errBuf, "expected 0 < mask.width <= %d", model.image.cols);
 				errMsg = errBuf;
-			} else if (maskH <= 0 || image.rows < maskH) {
-				sprintf(errBuf, "expected 0 < mask.height <= %d", image.rows);
+			} else if (maskH <= 0 || model.image.rows < maskH) {
+				sprintf(errBuf, "expected 0 < mask.height <= %d", model.image.rows);
 				errMsg = errBuf;
 			}
 		}
@@ -242,11 +242,11 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 		Mat mask;
 		Rect maskRect(maskX, maskY, maskW, maskH);
 		if (pMask) {
-			mask = Mat::zeros(image.rows, image.cols, CV_8UC1);
+			mask = Mat::zeros(model.image.rows, model.image.cols, CV_8UC1);
 			mask(maskRect) = 1;
 		}
 		vector<vector<Point> > regions;
-		mser(image, regions, mask);
+		mser(model.image, regions, mask);
 
 		int nRegions = (int) regions.size();
 		LOGTRACE1("apply_MSER matched %d regions", nRegions);
@@ -259,16 +259,16 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 				break;
 		}
 		if (json_object_get(pStage, "color")) {
-			if (image.channels() == 1) {
-				cvtColor(image, image, CV_GRAY2BGR);
+			if (model.image.channels() == 1) {
+				cvtColor(model.image, model.image, CV_GRAY2BGR);
 				LOGTRACE("cvtColor(CV_GRAY2BGR)");
 			}
-			drawRegions(image, regions, color);
+			drawRegions(model.image, regions, color);
 			if (pMask) {
 				if (color[0]==-1 && color[1]==-1 && color[2]==-1 && color[3]==-1) {
-					rectangle(image, maskRect, Scalar(255, 0, 255));
+					rectangle(model.image, maskRect, Scalar(255, 0, 255));
 				} else {
-					rectangle(image, maskRect, color);
+					rectangle(model.image, maskRect, color);
 				}
 			}
 		}

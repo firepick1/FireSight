@@ -45,35 +45,33 @@ static void dftShift(Mat &image, const char *&errMsg) {
 	tmp.copyTo(q3);
 }
 
-bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
-  const char * methodStr = jo_string(pStage, "method", "CV_TM_CCORR");
+bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model) {
+  const char * methodStr = jo_string(pStage, "method", "CV_TM_CCOEFF_NORMED");
   const char *tmpltPath = jo_string(pStage, "template", NULL);
-	float rangeMin = jo_double(pStage, "rangeMin", 240);
-	float rangeMax = jo_double(pStage, "rangeMax", 256);
-	float normMin = jo_double(pStage, "normMin", 0);
-	float normMax = jo_double(pStage, "normMax", 255);
-	const char* outputStr = jo_string(pStage, "output", "corr");
-	int bins = rangeMax-rangeMin;
+	float threshold = jo_double(pStage, "threshold", 0.8);
+	float corr = jo_double(pStage, "corr", 0.92);
+	const char* outputStr = jo_string(pStage, "output", "current");
 	float angle = jo_double(pStage, "angle", 0);
   const char *errMsg = NULL;
 	int method;
 	Mat tmplt;
-	bool isOutputImage = strcmp(outputStr, "image") == 0;
+	bool isOutputCurrent = strcmp(outputStr, "current") == 0;
+	bool isOutputInput = strcmp(outputStr, "input") == 0;
 	bool isOutputCorr = strcmp(outputStr, "corr") == 0;
 
-	assert(0<image.rows && 0<image.cols);
+	assert(0<model.image.rows && 0<model.image.cols);
 
 	if (!tmpltPath) {
 		errMsg = "Expected template path for imread";
 	} else {
-		if (image.channels() == 1) {
+		if (model.image.channels() == 1) {
 			tmplt = imread(tmpltPath, CV_LOAD_IMAGE_GRAYSCALE);
 		} else {
 			tmplt = imread(tmpltPath, CV_LOAD_IMAGE_COLOR);
 		}
 		if (tmplt.data) {
 			LOGTRACE2("apply_matchTemplate(%s) %s", tmpltPath, matInfo(tmplt).c_str());
-			if (image.rows<tmplt.rows || image.cols<tmplt.cols) {
+			if (model.image.rows<tmplt.rows || model.image.cols<tmplt.cols) {
 				errMsg = "Expected template smaller than image to match";
 			}
 		} else {
@@ -81,8 +79,8 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *
 		}
 	}
 
-	if (!errMsg && !isOutputImage && !isOutputCorr) {
-		errMsg = "Unknown value for output";
+	if (!errMsg && !isOutputInput && !isOutputCorr && !isOutputCurrent) {
+		errMsg = "Expected \"output\" value: input, current, or corr";
 	}
 
 	if (!errMsg) {
@@ -102,62 +100,50 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *
 	} 
 
 	if (!errMsg) {
-		if (rangeMin > rangeMax) {
-			errMsg = "Expected rangeMin <= rangeMax";
-		} else if (bins < 2 || bins > 256 ) {
-			errMsg = "Expected 1<bins and bins<=256";
-		}
-	}
-
-	if (!errMsg) {
 		Mat result;
-		Mat imageSource = isOutputImage ? image.clone() : image;
+		Mat imageSource = isOutputCurrent ? model.image.clone() : model.image;
 		matchTemplate(imageSource, tmplt, result, method);
-		int histSize = bins;
-		bool uniform = true;
-		bool accumulate = false;
-		const char *errMsg = NULL;
-		Mat mask;
-		float rangeC0[] = { rangeMin, rangeMax }; 
-		const float* ranges[] = { rangeC0 };
-		Mat hist;
-		if (normMin < normMax) {
-			normalize(result, result, normMin, normMax, NORM_MINMAX);
-		}
-
-		// Filter matches
-		calcHist(&result, 1, 0, mask, hist, 1, &histSize, ranges, uniform, accumulate);
-		json_t *pHist = json_array();
+		assert(result.isContinuous());
 		assert(result.channels() == 1);
 		vector<RotatedRect> rects;
-		int rDelta = tmplt.rows/2;
-		int cDelta = tmplt.cols/2;
-		for (int r=0; r < result.rows; r++) {
-			for (int c=0; c < result.cols; c++) {
-				float val = result.at<float>(r,c);
-				bool isOverlap = false;
-				if (rangeMin <= val && val <= rangeMax) {
-					for (int irect=0; irect<rects.size(); irect++) {
-						int cx = rects[irect].center.x;
-						int cy = rects[irect].center.y;
-						if (cx-cDelta < c && c < cx+cDelta && cy-rDelta < r && r < cy+rDelta) {
-							isOverlap = true;
-							if (val > result.at<float>(cy, cx)) {
-								rects[irect].center.x = c;
-								rects[irect].center.y = r;
+
+		float maxVal = *max_element(result.begin<float>(),result.end<float>());
+		if (maxVal >= threshold) { // Filter matches
+			int rDelta = tmplt.rows/2;
+			int cDelta = tmplt.cols/2;
+			bool isMin = method == CV_TM_SQDIFF || method == CV_TM_SQDIFF_NORMED;
+			float rangeMin = isMin ? 0 : corr * maxVal;
+			float rangeMax = isMin ? corr * maxVal : maxVal;
+			for (int r=0; r < result.rows; r++) {
+				for (int c=0; c < result.cols; c++) {
+					float val = result.at<float>(r,c);
+					bool isOverlap = false;
+					if (rangeMin <= val && val <= rangeMax) {
+						for (int irect=0; irect<rects.size(); irect++) {
+							int cx = rects[irect].center.x;
+							int cy = rects[irect].center.y;
+							if (cx-cDelta < c && c < cx+cDelta && cy-rDelta < r && r < cy+rDelta) {
+								isOverlap = true;
+								if (val > result.at<float>(cy, cx)) {
+									rects[irect].center.x = c;
+									rects[irect].center.y = r;
+								}
+								break;
 							}
-							break;
 						}
-					}
-					if (!isOverlap) {
-						rects.push_back(RotatedRect(Point(c,r), Size(tmplt.cols, tmplt.rows), angle));
+						if (!isOverlap) {
+							rects.push_back(RotatedRect(Point(c,r), Size(tmplt.cols, tmplt.rows), angle));
+						}
 					}
 				}
 			}
+		} else {
+			LOGTRACE("No match (maxVal is below threshold)");
 		}
 
 		// Model matches
 		json_t *pRects = json_array();
+		json_object_set(pStageModel, "maxVal", json_real(maxVal));
 		json_object_set(pStageModel, "rects", pRects);
 		int xOffset = isOutputCorr ? 0 : tmplt.cols/2;
 		int yOffset = isOutputCorr ? 0 : tmplt.rows/2;
@@ -171,15 +157,23 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *
 			json_object_set(pRect, "width", json_real(tmplt.cols));
 			json_object_set(pRect, "height", json_real(tmplt.rows));
 			json_object_set(pRect, "angle", json_real(angle));
-			json_object_set(pRect, "corr", json_real(val));
+			json_object_set(pRect, "corr", json_real(val/maxVal));
 			json_array_append(pRects, pRect);
 		}
+
+		if (isOutputCorr) {
+			normalize(result, result, 0, 255, NORM_MINMAX);
+			result.convertTo(model.image, CV_8U); 
+		} else if (isOutputInput) {
+			model.image = model.imageMap["input"].clone();
+		}
+
 	}
 
 	return stageOK("apply_matchTemplate(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &model) {
 	int delta = jo_int(pStage, "delta", 1);
   bool isShift = jo_bool(pStage, "shift", true);	
   bool isLog = jo_bool(pStage, "log", true);	
@@ -191,7 +185,7 @@ bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, json_t *pM
 	const char * showStr = jo_string(pStage, "show", "magnitude");
 	const char *errMsg = NULL;
 
-	assert(0<image.rows && 0<image.cols);
+	assert(0<model.image.rows && 0<model.image.cols);
 
 	if (!errMsg) {
 		if (strcmp("magnitude", showStr) == 0) {
@@ -209,50 +203,50 @@ bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, json_t *pM
 
 	if (!errMsg) {
 		if (isReal) {
-			if (image.channels() != 1) {
+			if (model.image.channels() != 1) {
 				errMsg = "Expected real (1-channel) Mat";
 			}
 		} else {
-			if (image.channels() != 2) {
+			if (model.image.channels() != 2) {
 				errMsg = "Expected complex (2-channel) Mat";
 			}
 		}
 	}
 
 	if (!errMsg) {
-		if (image.channels() > 1) {
+		if (model.image.channels() > 1) {
 			Mat planes[] = {
-				Mat::zeros(image.size(), CV_32F),
-				Mat::zeros(image.size(), CV_32F)
+				Mat::zeros(model.image.size(), CV_32F),
+				Mat::zeros(model.image.size(), CV_32F)
 			};
-			split(image, planes);
+			split(model.image, planes);
 			if (isMagnitude) {
-				magnitude(planes[0], planes[1], image);
+				magnitude(planes[0], planes[1], model.image);
 			} else if (isPhase) {
-				phase(planes[0], planes[1], image);
+				phase(planes[0], planes[1], model.image);
 			} else if (isReal) {
-				image = planes[0];
+				model.image = planes[0];
 			} else if (isImaginary) {
-				image = planes[1];
+				model.image = planes[1];
 			}
 		}
 		if (delta) {
-			image += Scalar::all(delta);
+			model.image += Scalar::all(delta);
 		}
 		if (isLog) {
-			log(image, image);
+			log(model.image, model.image);
 		}
 		if (isShift) {
-			dftShift(image, errMsg);
+			dftShift(model.image, errMsg);
 		}
 		if (isMirror) {
-			dftMirror(image);
+			dftMirror(model.image);
 		}
 	}
 	return stageOK("apply_dftSpectrum(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, Model &model) {
 	const char *errMsg = NULL;
 	const char *depthStr = jo_string(pStage, "depth", "CV_8U");
 
@@ -286,24 +280,24 @@ bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, json_t *pModel, Ma
 		}
 	}
 
-	assert(0<image.rows && 0<image.cols);
+	assert(0<model.image.rows && 0<model.image.cols);
 
 	if (!errMsg) {
-		if (image.type() != CV_32F) {
+		if (model.image.type() != CV_32F) {
 			Mat fImage;
 			LOGTRACE("apply_dft(): Convert image to CV_32F");
-			image.convertTo(fImage, CV_32F);
-			image = fImage;
+			model.image.convertTo(fImage, CV_32F); 
+			model.image = fImage;
 		}
 		Mat dftImage;
 		LOGTRACE1("apply_dft() flags:%d", flags);
-		dft(image, dftImage, flags);
-		image = dftImage;
+		dft(model.image, dftImage, flags);
+		model.image = dftImage;
 		if (flags & DFT_INVERSE && strcmp("CV_8U",depthStr)==0) {
 			Mat invImage;
 			LOGTRACE("apply_dft(): Convert image to CV_8U");
-			image.convertTo(invImage, CV_8U);
-			image = invImage;
+			model.image.convertTo(invImage, CV_8U);
+			model.image = invImage;
 		}
 	}
 

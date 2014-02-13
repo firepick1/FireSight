@@ -3,6 +3,7 @@
 
 #include "opencv2/features2d/features2d.hpp"
 #include <vector>
+#include <map>
 #include "jansson.h"
 
 using namespace cv;
@@ -62,7 +63,7 @@ namespace FireSight {
 		private:
 			json_t *pJson;
 
-		public:
+		public: // methods
 			Model();
 			~Model();
 
@@ -70,41 +71,52 @@ namespace FireSight {
 			 * Return JSON root node of image recognition model.
 			 * Caller must json_decref() returned value.
 			 */
-			inline json_t *getJson() { return json_incref(pJson); };
+			inline json_t *getJson(bool incRef = true) { 
+				if (incRef) {
+					return json_incref(pJson);
+				} else {
+					return pJson;
+				}
+			};
+
+		public: // fields
+			Mat image;
+			map<string, Mat> imageMap;
 	} Model;
 
 	typedef class Pipeline {
 	  private:
-			bool processModel(Mat &mat, Model &model);
+			bool processModel(Model &model);
 			bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
 
-			bool apply_blur(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_matchTemplate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_calcHist(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_convertTo(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_cout(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_dft(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_dftSpectrum(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_dilate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_drawRects(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_erode(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_imread(json_t *pStage, json_t *pStageModel, json_t *pMode, Mat &image);
-			bool apply_imwrite(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_log(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_Mat(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_MSER(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_normalize(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_proto(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_rectangle(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
-			bool apply_split(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image);
+			bool apply_blur(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_Canny(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_cout(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_dft(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_dilate(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_erode(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_imread(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_Mat(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_MSER(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_normalize(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_proto(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_split(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model);
 
-			const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage);
+			const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, Model &model);
 			void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
 			void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);
 			int parseCvType(const char *typeName, const char *&errMsg);

@@ -16,12 +16,12 @@ using namespace std;
 using namespace FireSight;
 
 
-bool Pipeline::apply_proto(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_proto(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *tmpltPath = jo_string(pStage, "template", NULL);
 	const char *errMsg = NULL;
 	Mat tmplt;
 
-	assert(0<image.rows && 0<image.cols);
+	assert(0<model.image.rows && 0<model.image.cols);
 
 	if (!tmpltPath) {
 		errMsg = "Expected template path for imread";
@@ -29,7 +29,7 @@ bool Pipeline::apply_proto(json_t *pStage, json_t *pStageModel, json_t *pModel, 
 		tmplt = imread(tmpltPath, CV_LOAD_IMAGE_COLOR);
 		if (tmplt.data) {
 			LOGTRACE3("template %s %dx%d", tmpltPath, tmplt.rows, tmplt.cols);
-			if (image.rows<tmplt.rows || image.cols<tmplt.cols) {
+			if (model.image.rows<tmplt.rows || model.image.cols<tmplt.cols) {
 				errMsg = "Expected template smaller than image to match";
 			}
 		} else {
@@ -46,7 +46,7 @@ bool Pipeline::apply_proto(json_t *pStage, json_t *pStageModel, json_t *pModel, 
 		flip(tmplt,tmplt,-1);
 		assert(imwrite("target/flip.jpg", tmplt));
 		Mat paddedTmplt;
-		copyMakeBorder(tmplt, paddedTmplt, 0, image.cols - tmplt.rows, 0, image.cols - tmplt.cols, BORDER_CONSTANT, Scalar::all(0));
+		copyMakeBorder(tmplt, paddedTmplt, 0, model.image.cols - tmplt.rows, 0, model.image.cols - tmplt.cols, BORDER_CONSTANT, Scalar::all(0));
 		assert(paddedTmplt.channels() == 1);
 		Mat tmplt32F;
 		paddedTmplt.convertTo(tmplt32F, CV_32FC1);
@@ -57,15 +57,15 @@ bool Pipeline::apply_proto(json_t *pStage, json_t *pStageModel, json_t *pModel, 
 		assert(dftTmplt32F.channels() == 2);
 
 		// Compute image DFT
-		if (image.channels() == 3) {
-			cvtColor(image, image, CV_BGR2GRAY, 0);
+		if (model.image.channels() == 3) {
+			cvtColor(model.image, model.image, CV_BGR2GRAY, 0);
 		}
-		assert(image.channels() == 1);
+		assert(model.image.channels() == 1);
 		Mat image32F;
-		if (image.depth() == CV_32F) {
-			image32F = image;
+		if (model.image.depth() == CV_32F) {
+			image32F = model.image;
 		} else {
-			image.convertTo(image32F, CV_32F);
+			model.image.convertTo(image32F, CV_32F);
 		}
 		Mat dftImage32F;
 		LOGTRACE("Taking dft of image");
@@ -74,7 +74,7 @@ bool Pipeline::apply_proto(json_t *pStage, json_t *pStageModel, json_t *pModel, 
 		LOGTRACE("Product for convolution");
 		Mat dftProduct32F = dftImage32F * dftTmplt32F;
 
-		image = dftProduct32F;
+		model.image = dftProduct32F;
 	}
 
 	return stageOK("apply_proto(%s) %s", errMsg, pStage, pStageModel);

@@ -34,17 +34,34 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
 	return true;
 }
 
-bool Pipeline::apply_imread(json_t *pStage, json_t *pStageModel, json_t *pMode, Mat &image) {
+bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model) {
+  const char *stageStr = jo_string(pStage, "stage", NULL);
+	const char *errMsg = NULL;
+
+	if (!stageStr) {
+		errMsg = "Expected name of stage for image";
+	} else {
+		model.image = model.imageMap[stageStr];
+		if (!model.image.rows || !model.image.cols) {
+			model.image = model.imageMap["input"].clone();
+			LOGTRACE1("Could not locate stage image '%s', using input image", stageStr);
+		}
+	}
+
+	return stageOK("apply_stageImage(%s) %s", errMsg, pStage, pStageModel);
+}
+
+bool Pipeline::apply_imread(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *path = jo_string(pStage, "path", NULL);
 	const char *errMsg = NULL;
 
 	if (!path) {
 		errMsg = "expected path for imread";
 	} else {
-		image = imread(path, CV_LOAD_IMAGE_COLOR);
-		if (image.data) {
-			json_object_set(pStageModel, "rows", json_integer(image.rows));
-			json_object_set(pStageModel, "cols", json_integer(image.cols));
+		model.image = imread(path, CV_LOAD_IMAGE_COLOR);
+		if (model.image.data) {
+			json_object_set(pStageModel, "rows", json_integer(model.image.rows));
+			json_object_set(pStageModel, "cols", json_integer(model.image.cols));
 		} else {
 			errMsg = "imread failed";
 			cout << "ERROR:" << errMsg << endl;
@@ -54,29 +71,29 @@ bool Pipeline::apply_imread(json_t *pStage, json_t *pStageModel, json_t *pMode, 
 	return stageOK("apply_imread(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_imwrite(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *path = jo_string(pStage, "path", NULL);
 	const char *errMsg = NULL;
 
-	assert(0<image.cols && 0<image.rows);
+	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!path) {
 		errMsg = "expected path for imwrite";
 	} else {
-		bool result = imwrite(path, image);
+		bool result = imwrite(path, model.image);
 		json_object_set(pStageModel, "result", json_boolean(result));
 	}
 
 	return stageOK("apply_imwrite(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *codeStr = jo_string(pStage, "code", "CV_BGR2GRAY");
 	int dstCn = jo_int(pStage, "dstCn", 0);
 	const char *errMsg = NULL;
 	int code = CV_BGR2GRAY;
 
-	assert(0<image.cols && 0<image.rows);
+	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (strcmp("CV_RGB2GRAY",codeStr)==0) {
 	  code = CV_RGB2GRAY;
@@ -94,17 +111,18 @@ bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, json_t *pMode
 	}
 
 	if (!errMsg) {
-		cvtColor(image, image, code, dstCn);
+		cvtColor(model.image, model.image, code, dstCn);
 	}
 
 	return stageOK("apply_cvtColor(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model) {
 	const char *errMsg = NULL;
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
+	int thickness = jo_int(pStage, "thickness", 2);
 	const char* rectsModelName = jo_string(pStage, "model", "");
-	json_t *pRectsModel = json_object_get(pModel, rectsModelName);
+	json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName);
 
 	if (!json_is_object(pRectsModel)) {
 		errMsg = "Expected name of stage model with rects";
@@ -119,6 +137,9 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, json_t *pMod
 	}
 
 	if (!errMsg) {
+		if (model.image.channels() == 1) {
+			cvtColor(model.image, model.image, CV_GRAY2BGR, 0);
+		}
 		int index;
 		json_t *pRect;
 		Point2f vertices[4];
@@ -142,7 +163,7 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, json_t *pMod
 			RotatedRect rect(Point(x,y), Size(width, height), angle);
 			rect.points(vertices);
 			for (int i = 0; i < 4; i++) {
-		    line(image, vertices[i], vertices[(i+1)%4], color);
+		    line(model.image, vertices[i], vertices[(i+1)%4], color, thickness);
 			}
 		}
 	}
@@ -150,18 +171,18 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, json_t *pMod
 	return stageOK("apply_drawRects(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &model) {
 	const char *errMsg = NULL;
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
 	int flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG|DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 	const char *modelName = jo_string(pStage, "model", NULL);
-	json_t *pKeypointStage = json_object_get(pModel, modelName);
+	json_t *pKeypointStage = json_object_get(model.getJson(false), modelName);
 
-	assert(0<image.cols && 0<image.rows);
+	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!pKeypointStage) {
 		const char *keypointStageName = jo_string(pStage, "keypointStage", NULL);
-		pKeypointStage = json_object_get(pModel, keypointStageName);
+		pKeypointStage = json_object_get(model.getJson(false), keypointStageName);
 	}
 
 	if (!errMsg && flags < 0 || 7 < flags) {
@@ -192,69 +213,69 @@ bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, json_t *
 	}
 
 	if (!errMsg) {
-		drawKeypoints(image, keypoints, image, color, flags);
+		drawKeypoints(model.image, keypoints, model.image, color, flags);
 	}
 
 	return stageOK("apply_drawKeypoints(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_dilate(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_dilate(json_t *pStage, json_t *pStageModel, Model &model) {
 	const char *errMsg = NULL;
 	int kwidth = jo_int(pStage, "ksize.width", 3);
 	int kheight = jo_int(pStage, "ksize.height", 3);
 	int shape = jo_shape(pStage, "shape", errMsg);
 
-	assert(0<image.cols && 0<image.rows);
+	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!errMsg) {
 	  Mat structuringElement = getStructuringElement(shape, Size(kwidth, kheight));
-		dilate(image, image, structuringElement);
+		dilate(model.image, model.image, structuringElement);
 	}
 
 	return stageOK("apply_dilate(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_erode(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_erode(json_t *pStage, json_t *pStageModel, Model &model) {
 	const char *errMsg = NULL;
 	int kwidth = jo_int(pStage, "ksize.width", 3);
 	int kheight = jo_int(pStage, "ksize.height", 3);
 	int shape = jo_shape(pStage, "shape", errMsg);
 
-	assert(0<image.cols && 0<image.rows);
+	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!errMsg) {
 	  Mat structuringElement = getStructuringElement(shape, Size(kwidth, kheight));
-		erode(image, image, structuringElement);
+		erode(model.image, model.image, structuringElement);
 	}
 
 	return stageOK("apply_erode(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_equalizeHist(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model) {
 	const char *errMsg = NULL;
 
 	if (!errMsg) {
-		equalizeHist(image, image);
+		equalizeHist(model.image, model.image);
 	}
 
 	return stageOK("apply_equalizeHist(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_blur(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_blur(json_t *pStage, json_t *pStageModel, Model &model) {
 	const char *errMsg = NULL;
 	int width = jo_int(pStage, "ksize.width", 3);
 	int height = jo_int(pStage, "ksize.height", 3);
 	int anchorx = jo_int(pStage, "anchor.x", -1);
 	int anchory = jo_int(pStage, "anchor.y", -1);
 
-	assert(0<image.cols && 0<image.rows);
+	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (width <= 0 || height <= 0) {
 		errMsg = "expected 0<width and 0<height";
 	}
 
 	if (!errMsg) {
-		blur(image, image, Size(width,height));
+		blur(model.image, model.image, Size(width,height));
 	}
 
 	return stageOK("apply_blur(%s) %s", errMsg, pStage, pStageModel);
@@ -278,7 +299,7 @@ static const char * modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &k
 	}
 }
 
-bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model) {
 	SimpleBlobDetector::Params params;
 	params.thresholdStep = jo_double(pStage, "thresholdStep", params.thresholdStep);
 	params.minThreshold = jo_double(pStage, "minThreshold", params.minThreshold);
@@ -301,7 +322,7 @@ bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, jso
 	params.maxConvexity = jo_double(pStage, "maxConvexity", params.maxConvexity);
 	const char *errMsg = NULL;
 
-	assert(0<image.cols && 0<image.rows);
+	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!errMsg) {
 		SimpleBlobDetector detector(params);
@@ -309,18 +330,18 @@ bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, jso
 		detector.create("SimpleBlob");
 		vector<cv::KeyPoint> keyPoints;
 	  LOGTRACE("apply_SimpleBlobDetector detect()");
-		detector.detect(image, keyPoints);
+		detector.detect(model.image, keyPoints);
 		modelKeyPoints(pStageModel, keyPoints);
 	}
 
 	return stageOK("apply_SimpleBlobDetector(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model) {
 	double x = jo_double(pStage, "x", 0);
 	double y = jo_double(pStage, "y", 0);
-	double width = jo_double(pStage, "width", image.cols);
-	double height = jo_double(pStage, "height", image.rows);
+	double width = jo_double(pStage, "width", model.image.cols);
+	double height = jo_double(pStage, "height", model.image.rows);
 	int thickness = jo_int(pStage, "thickness", 1);
 	int lineType = jo_int(pStage, "lineType", 8);
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(0));
@@ -329,7 +350,7 @@ bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, json_t *pMod
 	int shift = jo_int(pStage, "shift", 0);
 	const char *errMsg = NULL;
 
-	assert(0<image.cols && 0<image.rows);
+	assert(0<model.image.cols && 0<model.image.rows);
 
   if ( x < 0 || y < 0) {
 		errMsg = "Expected 0<=x and 0<=y";
@@ -339,23 +360,23 @@ bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, json_t *pMod
 
 	if (!errMsg) {
 		if (thickness) {
-			rectangle(image, Rect(x,y,width,height), color, thickness, lineType, shift);
+			rectangle(model.image, Rect(x,y,width,height), color, thickness, lineType, shift);
 		}
 		if (thickness >= 0) {
 			double outThickness = thickness/2;
 			double inThickness = thickness - outThickness;
 			if (fill[0] >= 0) {
-				rectangle(image, Rect(x+inThickness,y+inThickness,width-2*inThickness,height-2*inThickness), fill, -1, lineType, shift);
+				rectangle(model.image, Rect(x+inThickness,y+inThickness,width-2*inThickness,height-2*inThickness), fill, -1, lineType, shift);
 			}
 			if (flood[0] >= 0) {
 				double left = x - outThickness;
 				double top = y - outThickness;
 				double right = x+width+outThickness;
 				double bot = y+height+outThickness;
-				rectangle(image, Rect(0,0,image.cols,top), flood, -1, lineType, shift);
-				rectangle(image, Rect(0,bot,image.cols,image.rows-bot), flood, -1, lineType, shift);
-				rectangle(image, Rect(0,top,left,height+2*outThickness), flood, -1, lineType, shift);
-				rectangle(image, Rect(right,top,image.cols-right,height+2*outThickness), flood, -1, lineType, shift);
+				rectangle(model.image, Rect(0,0,model.image.cols,top), flood, -1, lineType, shift);
+				rectangle(model.image, Rect(0,bot,model.image.cols,model.image.rows-bot), flood, -1, lineType, shift);
+				rectangle(model.image, Rect(0,top,left,height+2*outThickness), flood, -1, lineType, shift);
+				rectangle(model.image, Rect(right,top,model.image.cols-right,height+2*outThickness), flood, -1, lineType, shift);
 			}
 		}
 	}
@@ -389,9 +410,9 @@ int Pipeline::parseCvType(const char *typeStr, const char *&errMsg) {
 	return type;
 }
 
-bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
-	double width = jo_double(pStage, "width", image.cols);
-	double height = jo_double(pStage, "height", image.rows);
+bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, Model &model) {
+	double width = jo_double(pStage, "width", model.image.cols);
+	double height = jo_double(pStage, "height", model.image.rows);
 	const char *typeStr = jo_string(pStage, "type", "CV_8UC3");
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(0));
 	const char *errMsg = NULL;
@@ -408,13 +429,13 @@ bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, json_t *pModel, Ma
 	}
 
 	if (!errMsg) {
-		image = Mat(height, width, type, color);
+		model.image = Mat(height, width, type, color);
 	}
 
 	return stageOK("apply_Mat(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model) {
 	float rangeMin = jo_double(pStage, "rangeMin", 0);
 	float rangeMax = jo_double(pStage, "rangeMax", 256);
 	int locations = jo_int(pStage, "locations", 0);
@@ -425,7 +446,7 @@ bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, json_t *pMode
 	const char *errMsg = NULL;
 	Mat mask;
 
-	assert(0<image.cols && 0<image.rows);
+	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (rangeMin > rangeMax) {
 		errMsg = "Expected rangeMin <= rangeMax";
@@ -437,7 +458,7 @@ bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, json_t *pMode
 		float rangeC0[] = { rangeMin, rangeMax }; 
 		const float* ranges[] = { rangeC0 };
 		Mat hist;
-		calcHist(&image, 1, 0, mask, hist, 1, &histSize, ranges, uniform, accumulate);
+		calcHist(&model.image, 1, 0, mask, hist, 1, &histSize, ranges, uniform, accumulate);
 		json_t *pHist = json_array();
 		for (int i = 0; i < histSize; i++) {
 			json_array_append(pHist, json_real(hist.at<float>(i)));
@@ -450,7 +471,7 @@ bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, json_t *pMode
 	return stageOK("apply_calcHist(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_split(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_split(json_t *pStage, json_t *pStageModel, Model &model) {
 	json_t *pFromTo = json_object_get(pStage, "fromTo");
 	const char *errMsg = NULL;
 #define MAX_FROMTO 32
@@ -475,19 +496,19 @@ bool Pipeline::apply_split(json_t *pStage, json_t *pStageModel, json_t *pModel, 
 	}
 
 	if (!errMsg) {
-		int depth = image.depth();
+		int depth = model.image.depth();
 		int channels = 1;
-		Mat outImage( image.rows, image.cols, CV_MAKETYPE(depth, channels) );
-		LOGTRACE1("Creating output image %s", matInfo(outImage).c_str());
+		Mat outImage( model.image.rows, model.image.cols, CV_MAKETYPE(depth, channels) );
+		LOGTRACE1("Creating output model.image %s", matInfo(outImage).c_str());
 		Mat out[] = { outImage };
-		mixChannels( &image, 1, out, 1, fromTo, nFromTo/2 );
-		image = outImage;
+		mixChannels( &model.image, 1, out, 1, fromTo, nFromTo/2 );
+		model.image = outImage;
 	}
 
 	return stageOK("apply_split(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model) {
 	double alpha = jo_double(pStage, "alpha", 1);
 	double delta = jo_double(pStage, "delta", 0);
 	const char *transform = jo_string(pStage, "transform", NULL);
@@ -495,7 +516,7 @@ bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, json_t *pMod
 	const char *errMsg = NULL;
 	int rType;
 
-	assert(0<image.cols && 0<image.rows);
+	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!errMsg) {
 		rType = parseCvType(rTypeStr, errMsg);
@@ -504,22 +525,22 @@ bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, json_t *pMod
 	if (transform) {
 		if (strcmp("log", transform) == 0) {
 			LOGTRACE("log()");
-			log(image, image);
+			log(model.image, model.image);
 		}
 	}
 	
 	if (!errMsg) {
-		image.convertTo(image, rType, alpha, delta);
+		model.image.convertTo(model.image, rType, alpha, delta);
 	}
 
 	return stageOK("apply_convertTo(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
 	int col = jo_int(pStage, "col", 0);
 	int row = jo_int(pStage, "row", 0);
-	int cols = jo_int(pStage, "cols", image.cols);
-	int rows = jo_int(pStage, "rows", image.rows);
+	int cols = jo_int(pStage, "cols", model.image.cols);
+	int rows = jo_int(pStage, "rows", model.image.rows);
 	int precision = jo_int(pStage, "precision", 1);
 	int width = jo_int(pStage, "width", 5);
 	int channel = jo_int(pStage, "channel", 0);
@@ -529,16 +550,16 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 	if (row<0 || col<0 || rows<=0 || cols<=0) {
 		errMsg = "Expected 0<=row and 0<=col and 0<cols and 0<rows";
 	}
-	if (rows > image.rows) {
-		rows = image.rows;
+	if (rows > model.image.rows) {
+		rows = model.image.rows;
 	}
-	if (cols > image.cols) {
-		cols = image.cols;
+	if (cols > model.image.cols) {
+		cols = model.image.cols;
 	}
 
 	if (!errMsg) {
-		int depth = image.depth();
-		cout << matInfo(image);
+		int depth = model.image.depth();
+		cout << matInfo(model.image);
 		cout << " show:[" << row << "-" << row+rows-1 << "," << col << "-" << col+cols-1 << "]";
 		if (comment) {
 			cout << " " << comment;
@@ -548,28 +569,28 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 			for (int c = col; c < col+cols; c++) {
 				cout.precision(precision);
 				cout.width(width);
-				if (image.channels() == 1) {
+				if (model.image.channels() == 1) {
 					switch (depth) {
 						case CV_8S:
 						case CV_8U:
-							cout << (int) image.at<unsigned char>(r,c,channel) << " ";
+							cout << (int) model.image.at<unsigned char>(r,c,channel) << " ";
 							break;
 						case CV_16U:
-							cout << image.at<unsigned short>(r,c) << " ";
+							cout << model.image.at<unsigned short>(r,c) << " ";
 							break;
 						case CV_16S:
-							cout << image.at<short>(r,c) << " ";
+							cout << model.image.at<short>(r,c) << " ";
 							break;
 						case CV_32S:
-							cout << image.at<int>(r,c) << " ";
+							cout << model.image.at<int>(r,c) << " ";
 							break;
 						case CV_32F:
 							cout << std::fixed;
-							cout << image.at<float>(r,c) << " ";
+							cout << model.image.at<float>(r,c) << " ";
 							break;
 						case CV_64F:
 							cout << std::fixed;
-							cout << image.at<double>(r,c) << " ";
+							cout << model.image.at<double>(r,c) << " ";
 							break;
 						default:
 							cout << "UNSUPPORTED-CONVERSION" << " ";
@@ -579,24 +600,24 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 					switch (depth) {
 						case CV_8S:
 						case CV_8U:
-							cout << image.at<Vec2b>(r,c)[channel] << " ";
+							cout << model.image.at<Vec2b>(r,c)[channel] << " ";
 							break;
 						case CV_16U:
-							cout << image.at<Vec2w>(r,c)[channel] << " ";
+							cout << model.image.at<Vec2w>(r,c)[channel] << " ";
 							break;
 						case CV_16S:
-							cout << image.at<Vec2s>(r,c)[channel] << " ";
+							cout << model.image.at<Vec2s>(r,c)[channel] << " ";
 							break;
 						case CV_32S:
-							cout << image.at<Vec2i>(r,c)[channel] << " ";
+							cout << model.image.at<Vec2i>(r,c)[channel] << " ";
 							break;
 						case CV_32F:
 							cout << std::fixed;
-							cout << image.at<Vec2f>(r,c)[channel] << " ";
+							cout << model.image.at<Vec2f>(r,c)[channel] << " ";
 							break;
 						case CV_64F:
 							cout << std::fixed;
-							cout << image.at<Vec2d>(r,c)[channel] << " ";
+							cout << model.image.at<Vec2d>(r,c)[channel] << " ";
 							break;
 						default:
 							cout << "UNSUPPORTED-CONVERSION" << " ";
@@ -611,7 +632,7 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, json_t *pModel, M
 	return stageOK("apply_cout(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model) {
 	double alpha = jo_double(pStage, "alpha", 1);
 	double beta = jo_double(pStage, "beta", 0);
 	const char * normTypeStr = jo_string(pStage, "normType", "NORM_L2");
@@ -631,35 +652,35 @@ bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, json_t *pMod
 	}
 
 	if (!errMsg) {
-		normalize(image, image, alpha, beta, normType);
+		normalize(model.image, model.image, alpha, beta, normType);
 	}
 
 	return stageOK("apply_normalize(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, Model &model) {
 	double threshold1 = jo_double(pStage, "threshold1", 0);
 	double threshold2 = jo_double(pStage, "threshold2", 50);
 	double apertureSize = jo_double(pStage, "apertureSize", 3);
 	bool L2gradient = jo_bool(pStage, "L2gradient", false);
 	const char *errMsg = NULL;
 
-	assert(0<image.cols && 0<image.rows);
+	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!errMsg) {
-		Canny(image, image, threshold1, threshold2, apertureSize, L2gradient);
+		Canny(model.image, model.image, threshold1, threshold2, apertureSize, L2gradient);
 	}
 
 	return stageOK("apply_Canny(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &image) {
+bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model) {
 	double diamMin = jo_double(pStage, "diamMin");
 	double diamMax = jo_double(pStage, "diamMax");
 	int showMatches = jo_int(pStage, "show", 0);
 	const char *errMsg = NULL;
 
-	assert(0<image.cols && 0<image.rows);
+	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (diamMin <= 0 || diamMax <= 0 || diamMin > diamMax) {
 		errMsg = "expected: 0 < diamMin < diamMax ";
@@ -674,7 +695,7 @@ bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, json_t 
 		vector<MatchedRegion> matches;
 		HoleRecognizer recognizer(diamMin, diamMax);
 		recognizer.showMatches(showMatches);
-		recognizer.scan(image, matches);
+		recognizer.scan(model.image, matches);
 		json_t *holes = json_array();
 		json_object_set(pStageModel, "holes", holes);
 		for (int i = 0; i < matches.size(); i++) {
@@ -720,12 +741,21 @@ static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStag
 
 json_t *Pipeline::process(Mat &workingImage) { 
 	Model model;
-	bool ok = processModel(workingImage, model);
-	json_t *pJson = model.getJson();
-	return pJson;
+	if (workingImage.cols == 0 || workingImage.rows == 0) {
+		model.image = Mat(100,100, CV_8UC3);
+		putText(model.image, "FireSight:", Point(10,20), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
+		putText(model.image, "No input", Point(10,40), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
+		putText(model.image, "image?", Point(10,60), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
+	} else {
+		model.image = workingImage;
+	}
+	model.imageMap["input"] = model.image.clone();
+	bool ok = processModel(model);
+	workingImage = model.image;
+	return model.getJson(true);
 }
 
-bool Pipeline::processModel(Mat &workingImage, Model &model) { 
+bool Pipeline::processModel(Model &model) { 
 	if (!json_is_array(pPipeline)) {
 		const char * errMsg = "Pipeline::process expected json array for pipeline definition";
 		LOGERROR1(errMsg, "");
@@ -735,7 +765,6 @@ bool Pipeline::processModel(Mat &workingImage, Model &model) {
 	bool ok = 1;
 	size_t index;
 	json_t *pStage;
-	json_t *pModel = model.getJson();
 	char nameBuf[16];
 	char debugBuf[100];
 	json_array_foreach(pPipeline, index, pStage) {
@@ -744,15 +773,15 @@ bool Pipeline::processModel(Mat &workingImage, Model &model) {
 		const char *pName = jo_string(pStage, "name", nameBuf);
 		const char *pComment = jo_string(pStage, "comment", "");
 		json_t *pStageModel = json_object();
-		json_object_set(pModel, pName, pStageModel);
+		json_object_set(model.getJson(false), pName, pStageModel);
 		// json_object_set(pStageModel, "comment", json_string(pComment));
-		sprintf(debugBuf,"process(%s) %s %s:%s", pName, matInfo(workingImage).c_str(), pOp, pComment);
+		sprintf(debugBuf,"process() %s op:%s stage:%s %s", matInfo(model.image).c_str(), pOp, pName, pComment);
 		if (strncmp(pOp, "nop", 3)==0) {
-			LOGDEBUG1("(NOP) %s", debugBuf);
+			LOGTRACE1("%s (NO ACTION TAKEN)", debugBuf);
 		} else {
 			LOGDEBUG1("%s", debugBuf);
 			try {
-			  const char *errMsg = dispatch(pOp, pStage, pStageModel, pModel, workingImage);
+			  const char *errMsg = dispatch(pOp, pStage, pStageModel, model);
 				ok = logErrorMessage(errMsg, pName, pStage);
 			} catch (runtime_error &ex) {
 				ok = logErrorMessage(ex.what(), pName, pStage);
@@ -765,72 +794,72 @@ bool Pipeline::processModel(Mat &workingImage, Model &model) {
 			ok = false;
 			break; 
 		}
-		if (workingImage.cols <=0 || workingImage.rows<=0) {
-			LOGERROR2("Empty working image: %dr x %dc", workingImage.rows, workingImage.cols);
+		if (model.image.cols <=0 || model.image.rows<=0) {
+			LOGERROR2("Empty working image: %dr x %dc", model.image.rows, model.image.cols);
 			ok = false;
 			break;
 		}
-		LOGTRACE1("Working Image type:%s", matInfo(workingImage).c_str());
 	} // json_array_foreach
 
-	LOGDEBUG2("Pipeline::processModel(stages:%d) -> %s", json_array_size(pPipeline), matInfo(workingImage).c_str());
-	json_decref(pModel);
+	LOGDEBUG2("Pipeline::processModel(stages:%d) -> %s", json_array_size(pPipeline), matInfo(model.image).c_str());
 
 	return ok;
 }
 
-const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, json_t *pModel, Mat &workingImage) {
+const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, Model &model) {
 	bool ok = true;
   const char *errMsg = NULL;
  
 	if (strcmp(pOp, "blur")==0) {
-		ok = apply_blur(pStage, pStageModel, pModel, workingImage);
+		ok = apply_blur(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "calcHist")==0) {
-		ok = apply_calcHist(pStage, pStageModel, pModel, workingImage);
+		ok = apply_calcHist(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "convertTo")==0) {
-		ok = apply_convertTo(pStage, pStageModel, pModel, workingImage);
+		ok = apply_convertTo(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "cout")==0) {
-		ok = apply_cout(pStage, pStageModel, pModel, workingImage);
+		ok = apply_cout(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "Canny")==0) {
-		ok = apply_Canny(pStage, pStageModel, pModel, workingImage);
+		ok = apply_Canny(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "cvtColor")==0) {
-		ok = apply_cvtColor(pStage, pStageModel, pModel, workingImage);
+		ok = apply_cvtColor(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "dft")==0) {
-		ok = apply_dft(pStage, pStageModel, pModel, workingImage);
+		ok = apply_dft(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "dftSpectrum")==0) {
-		ok = apply_dftSpectrum(pStage, pStageModel, pModel, workingImage);
+		ok = apply_dftSpectrum(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "dilate")==0) {
-		ok = apply_dilate(pStage, pStageModel, pModel, workingImage);
+		ok = apply_dilate(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "drawKeypoints")==0) {
-		ok = apply_drawKeypoints(pStage, pStageModel, pModel, workingImage);
+		ok = apply_drawKeypoints(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "drawRects")==0) {
-		ok = apply_drawRects(pStage, pStageModel, pModel, workingImage);
+		ok = apply_drawRects(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "equalizeHist")==0) {
-		ok = apply_equalizeHist(pStage, pStageModel, pModel, workingImage);
+		ok = apply_equalizeHist(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "erode")==0) {
-		ok = apply_erode(pStage, pStageModel, pModel, workingImage);
+		ok = apply_erode(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "HoleRecognizer")==0) {
-		ok = apply_HoleRecognizer(pStage, pStageModel, pModel, workingImage);
+		ok = apply_HoleRecognizer(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "imread")==0) {
-		ok = apply_imread(pStage, pStageModel, pModel, workingImage);
+		ok = apply_imread(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "imwrite")==0) {
-		ok = apply_imwrite(pStage, pStageModel, pModel, workingImage);
+		ok = apply_imwrite(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "Mat")==0) {
-		ok = apply_Mat(pStage, pStageModel, pModel, workingImage);
+		ok = apply_Mat(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "matchTemplate")==0) {
-		ok = apply_matchTemplate(pStage, pStageModel, pModel, workingImage);
+		ok = apply_matchTemplate(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "MSER")==0) {
-		ok = apply_MSER(pStage, pStageModel, pModel, workingImage);
+		ok = apply_MSER(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "normalize")==0) {
-		ok = apply_normalize(pStage, pStageModel, pModel, workingImage);
+		ok = apply_normalize(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "proto")==0) {
-		ok = apply_proto(pStage, pStageModel, pModel, workingImage);
+		ok = apply_proto(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "rectangle")==0) {
-		ok = apply_rectangle(pStage, pStageModel, pModel, workingImage);
+		ok = apply_rectangle(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "SimpleBlobDetector")==0) {
-		ok = apply_SimpleBlobDetector(pStage, pStageModel, pModel, workingImage);
+		ok = apply_SimpleBlobDetector(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "split")==0) {
-		ok = apply_split(pStage, pStageModel, pModel, workingImage);
+		ok = apply_split(pStage, pStageModel, model);
+	} else if (strcmp(pOp, "stageImage")==0) {
+		ok = apply_stageImage(pStage, pStageModel, model);
 
 	} else if (strncmp(pOp, "nop", 3)==0) {
 		LOGDEBUG("Skipping nop...");
