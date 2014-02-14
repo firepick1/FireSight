@@ -10,6 +10,7 @@
 #include "jansson.h"
 #include "jo_util.hpp"
 #include "MatUtil.hpp"
+#include "version.h"
 
 using namespace cv;
 using namespace std;
@@ -41,6 +42,27 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 	assert(model.image.cols>0 && model.image.rows>0);
   double dx = jo_double(pStage, "dx", (scale-1)*model.image.cols/2.0);
   double dy = jo_double(pStage, "dy", (scale-1)*model.image.rows/2.0);
+	const char* borderModeStr = jo_string(pStage, "borderMode", "BORDER_CONSTANT");
+	int borderMode;
+
+	if (!errMsg) {
+		if (strcmp("BORDER_CONSTANT", borderModeStr) == 0) {
+			borderMode = BORDER_CONSTANT;
+		} else if (strcmp("BORDER_REPLICATE", borderModeStr) == 0) {
+			borderMode = BORDER_REPLICATE;
+		} else if (strcmp("BORDER_REFLECT", borderModeStr) == 0) {
+			borderMode = BORDER_REFLECT;
+		} else if (strcmp("BORDER_REFLECT_101", borderModeStr) == 0) {
+			borderMode = BORDER_REFLECT_101;
+		} else if (strcmp("BORDER_REFLECT101", borderModeStr) == 0) {
+			borderMode = BORDER_REFLECT101;
+		} else if (strcmp("BORDER_WRAP", borderModeStr) == 0) {
+			borderMode = BORDER_WRAP;
+		} else {
+			errMsg = "Expected borderMode: BORDER_CONSTANT, BORDER_REPLICATE, BORDER_REFLECT, BORDER_REFLECT_101, BORDER_WRAP";
+		}
+	}
+
 	if (scale <= 0) {
 		errMsg = "Expected 0<scale";
 	}
@@ -51,7 +73,7 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 	Scalar borderValue = jo_Scalar(pStage, "borderValue", Scalar::all(0));
 
 	if (!errMsg) {
-		matWarpAffine(model.image, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), borderValue);
+		matWarpAffine(model.image, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), borderValue, borderMode);
 	}
 
 	return stageOK("apply_warpAffine(%s) %s", errMsg, pStage, pStageModel);
@@ -764,6 +786,15 @@ static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStag
 
 json_t *Pipeline::process(Mat &workingImage) { 
 	Model model;
+	json_t *pModelJson = model.getJson(true);
+
+	json_t *pFireSight = json_object();
+	char version[30];
+	sprintf(version, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+	json_object_set(pFireSight, "version", json_string(version));
+	json_object_set(pFireSight, "url", json_string("https://github.com/firepick1/FireSight"));
+	json_object_set(pModelJson, "FireSight", pFireSight);
+
 	if (workingImage.cols == 0 || workingImage.rows == 0) {
 		model.image = Mat(100,100, CV_8UC3);
 		putText(model.image, "FireSight:", Point(10,20), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
@@ -775,7 +806,8 @@ json_t *Pipeline::process(Mat &workingImage) {
 	model.imageMap["input"] = model.image.clone();
 	bool ok = processModel(model);
 	workingImage = model.image;
-	return model.getJson(true);
+
+	return pModelJson;
 }
 
 bool Pipeline::processModel(Model &model) { 

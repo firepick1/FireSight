@@ -137,12 +137,6 @@ static int uiVideo(const char * pJsonPipeline) {
 
 int main(int argc, char *argv[])
 {
-	char version[30];
-	sprintf(version, "FireSight v%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-	LOGINFO1("%s", version);
-	cout << version << endl;
-	cout << "https://github.com/firepick1/FireSight" << endl;
-
 	UIMode uimode;
 	string pipelineString;
 	char * imagePath = NULL;
@@ -185,5 +179,3 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
-

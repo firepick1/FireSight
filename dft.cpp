@@ -51,10 +51,13 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 	float threshold = jo_double(pStage, "threshold", 0.8);
 	float corr = jo_double(pStage, "corr", 0.92);
 	const char* outputStr = jo_string(pStage, "output", "current");
+	const char* borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE");
 	float angle = jo_double(pStage, "angle", 0);
   const char *errMsg = NULL;
+	int flags = INTER_LINEAR;
 	int method;
 	Mat tmplt;
+	int borderMode;
 	bool isOutputCurrent = strcmp(outputStr, "current") == 0;
 	bool isOutputInput = strcmp(outputStr, "input") == 0;
 	bool isOutputCorr = strcmp(outputStr, "corr") == 0;
@@ -76,6 +79,24 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 			}
 		} else {
 			errMsg = "imread failed";
+		}
+	}
+
+	if (!errMsg) {
+		if (strcmp("BORDER_CONSTANT", borderModeStr) == 0) {
+			borderMode = BORDER_CONSTANT;
+		} else if (strcmp("BORDER_REPLICATE", borderModeStr) == 0) {
+			borderMode = BORDER_REPLICATE;
+		} else if (strcmp("BORDER_REFLECT", borderModeStr) == 0) {
+			borderMode = BORDER_REFLECT;
+		} else if (strcmp("BORDER_REFLECT_101", borderModeStr) == 0) {
+			borderMode = BORDER_REFLECT_101;
+		} else if (strcmp("BORDER_REFLECT101", borderModeStr) == 0) {
+			borderMode = BORDER_REFLECT101;
+		} else if (strcmp("BORDER_WRAP", borderModeStr) == 0) {
+			borderMode = BORDER_WRAP;
+		} else {
+			errMsg = "Expected borderMode: BORDER_CONSTANT, BORDER_REPLICATE, BORDER_REFLECT, BORDER_REFLECT_101, BORDER_WRAP";
 		}
 	}
 
@@ -102,6 +123,14 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 	if (!errMsg) {
 		Mat result;
 		Mat imageSource = isOutputCurrent ? model.image.clone() : model.image;
+		int tw = tmplt.cols;
+		int th = tmplt.rows;
+
+		if (angle) {
+			matWarpAffine(tmplt, Point(tw/2.0,th/2.0), angle, 1, Point(0,0), Size(-1,-1), Scalar(0,0,0), 
+				borderMode, flags);
+		}
+
 		matchTemplate(imageSource, tmplt, result, method);
 		assert(result.isContinuous());
 		assert(result.channels() == 1);
@@ -132,7 +161,7 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 							}
 						}
 						if (!isOverlap) {
-							rects.push_back(RotatedRect(Point(c,r), Size(tmplt.cols, tmplt.rows), angle));
+							rects.push_back(RotatedRect(Point(c,r), Size(tw,th), -angle));
 						}
 					}
 				}
@@ -154,9 +183,9 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 			json_t *pRect = json_object();
 			json_object_set(pRect, "x", json_real(cx+xOffset));
 			json_object_set(pRect, "y", json_real(cy+yOffset));
-			json_object_set(pRect, "width", json_real(tmplt.cols));
-			json_object_set(pRect, "height", json_real(tmplt.rows));
-			json_object_set(pRect, "angle", json_real(angle));
+			json_object_set(pRect, "width", json_real(tw));
+			json_object_set(pRect, "height", json_real(th));
+			json_object_set(pRect, "angle", json_real(-angle));
 			json_object_set(pRect, "corr", json_real(val/maxVal));
 			json_array_append(pRects, pRect);
 		}

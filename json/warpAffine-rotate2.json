@@ -1,0 +1,3 @@
+[
+	{"op":"warpAffine", "angle":30, "borderMode":"BORDER_REPLICATE", "scale":0.5, "width":-1, "height":-1}
+]
