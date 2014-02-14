@@ -34,6 +34,29 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
 	return true;
 }
 
+bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &model) {
+	const char *errMsg = NULL;
+  double scale = jo_double(pStage, "scale", 1);
+  double angle = jo_double(pStage, "angle", 0);
+	assert(model.image.cols>0 && model.image.rows>0);
+  double dx = jo_double(pStage, "dx", (scale-1)*model.image.cols/2.0);
+  double dy = jo_double(pStage, "dy", (scale-1)*model.image.rows/2.0);
+	if (scale <= 0) {
+		errMsg = "Expected 0<scale";
+	}
+	int width = jo_int(pStage, "width", model.image.cols);
+	int height = jo_int(pStage, "height", model.image.rows);
+	double cx = jo_double(pStage, "cx", model.image.cols/2.0);
+	double cy = jo_double(pStage, "cy", model.image.rows/2.0);
+	Scalar borderValue = jo_Scalar(pStage, "borderValue", Scalar::all(0));
+
+	if (!errMsg) {
+		matWarpAffine(model.image, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), borderValue);
+	}
+
+	return stageOK("apply_warpAffine(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *stageStr = jo_string(pStage, "stage", NULL);
 	const char *errMsg = NULL;
@@ -860,6 +883,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
 		ok = apply_split(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "stageImage")==0) {
 		ok = apply_stageImage(pStage, pStageModel, model);
+	} else if (strcmp(pOp, "warpAffine")==0) {
+		ok = apply_warpAffine(pStage, pStageModel, model);
 
 	} else if (strncmp(pOp, "nop", 3)==0) {
 		LOGDEBUG("Skipping nop...");

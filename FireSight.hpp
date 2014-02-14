@@ -115,6 +115,7 @@ namespace FireSight {
 			bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_split(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &model);
 
 			const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, Model &model);
 			void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);

@@ -11,6 +11,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
+#include "MatUtil.hpp"
 
 using namespace cv;
 using namespace std;
@@ -24,6 +25,42 @@ static void assertKeypoint(const KeyPoint &keypoint, double x, double y, double 
 	assert(y-tolerance <= keypoint.pt.y && keypoint.pt.y <= y+tolerance);
 	assert(size-tolerance <= keypoint.size && keypoint.size <= size+tolerance);
 	assert(angle-tolerance <= keypoint.angle && keypoint.angle <= angle+tolerance);
+}
+
+static void test_warpAffine() {
+	cout << "-------------------test_warpAffine--------" << endl;
+	Matx<double,3,4> pts(
+		0, 1, 1, 0,
+		0, 0, 1, 1,
+		1, 1, 1, 1);
+	Mat transform = getRotationMatrix2D(Point(0.5,0.5), 30, 1);
+	cout << "transform:" << matInfo(transform) << endl;
+	Mat mpts(pts);
+	cout << "pts:" << matInfo(mpts) << endl;
+	Mat newPts = transform * mpts;
+	cout << "test_warpAffine()" << newPts << endl;
+	double minx = newPts.at<double>(0,0);
+	double maxx = newPts.at<double>(0,0);
+	double miny = newPts.at<double>(1,0);
+	double maxy = newPts.at<double>(1,0);
+	for (int c=1; c<4; c++) {
+		double x = newPts.at<double>(0,c);
+		minx = min(minx, x);
+		maxx = max(maxx, x);
+		double y = newPts.at<double>(1,c);
+		miny = min(miny, y);
+		maxy = max(maxy, y);
+	}
+	double width = maxx - minx;
+	double height = maxy - miny;
+	cout << width << "x" << height << endl;
+	transform.at<double>(0,2) -= minx;
+	transform.at<double>(1,2) -= miny;
+	cout << "transform:" << matInfo(transform) << endl;
+	newPts = transform * mpts;
+	cout << "test_warpAffine()" << newPts << endl;
+	//[0, 0.8660254037844387, 1.366025403784439, 0.4999999999999999;
+	//  0.4999999999999999, 0, 0.8660254037844387, 1.366025403784439]
 }
 
 static void test_regionKeypoint() {
@@ -148,4 +185,5 @@ int main(int argc, char *argv[])
 	firelog_level(FIRELOG_TRACE);
 
 	test_regionKeypoint();
+	test_warpAffine();
 }

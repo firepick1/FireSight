@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
 			exit(-1);
 		}
 	} else {
-		LOGDEBUG("No image specified. Pipeline may fail if image is required.");
+		LOGDEBUG("No image specified.");
 	}
 
   const char *pJsonPipeline = pipelineString.c_str();
