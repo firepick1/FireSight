@@ -16,7 +16,6 @@ static const char *cv_depth_names[] = {
 	"CV_64F"
 };
 
-
 string matInfo(Mat &m) {
 	char buf[100];
 	sprintf(buf, "%sC%d(%dx%d)", cv_depth_names[m.depth()], m.channels(), m.rows, m.cols);

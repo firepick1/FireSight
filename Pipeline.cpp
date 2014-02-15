@@ -79,6 +79,18 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 	return stageOK("apply_warpAffine(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_ring(json_t *pStage, json_t *pStageModel, Model &model) {
+  const char *angleStr = jo_string(pStage, "angle", "ring");
+	const char *errMsg = NULL;
+	assert(0<model.image.rows && 0<model.image.cols);
+
+	if (!errMsg) {
+		matRing(model.image, angleStr);
+	}
+
+	return stageOK("apply_ring(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *stageStr = jo_string(pStage, "stage", NULL);
 	const char *errMsg = NULL;
@@ -909,6 +921,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
 		ok = apply_proto(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "rectangle")==0) {
 		ok = apply_rectangle(pStage, pStageModel, model);
+	} else if (strcmp(pOp, "ring")==0) {
+		ok = apply_ring(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "SimpleBlobDetector")==0) {
 		ok = apply_SimpleBlobDetector(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "split")==0) {
