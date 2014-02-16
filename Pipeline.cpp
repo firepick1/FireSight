@@ -85,7 +85,7 @@ bool Pipeline::apply_ring(json_t *pStage, json_t *pStageModel, Model &model) {
 	assert(0<model.image.rows && 0<model.image.cols);
 
 	if (!errMsg) {
-		matRing(model.image, angleStr);
+		matRing(model.image, model.image);
 	}
 
 	return stageOK("apply_ring(%s) %s", errMsg, pStage, pStageModel);

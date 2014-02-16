@@ -8,7 +8,7 @@
 
 std::string matInfo(cv::Mat &m);
 
-void matRing(cv::Mat &image, const char *angleStr);
+void matRing(const cv::Mat &image, cv::Mat &result);
 
 void matWarpAffine(
 		cv::Mat &image, 

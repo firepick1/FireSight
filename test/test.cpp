@@ -27,89 +27,81 @@ static void assertKeypoint(const KeyPoint &keypoint, double x, double y, double 
 	assert(angle-tolerance <= keypoint.angle && keypoint.angle <= angle+tolerance);
 }
 
-void matRing(Mat &image, const char *angleStr) {
-	int mx = image.cols - 1;
-	int my = image.rows - 1;
-	bool xodd = image.cols & 1;
-	bool yodd = image.rows & 1;
-	int cx = mx/2;
-	int cx2 = xodd ? cx : cx+1;
-	int cy = my/2;
-	int cy2 = yodd ? cy : cy+1;
-	double radius = max(sqrt(image.rows*image.rows+image.cols*image.cols)/2.0, 1.0);
-	assert(radius<256);
-	Mat mapMat(cy+1, cx+1, CV_32F, Scalar(0));
-	Mat count1D(radius, 1, CV_32F, Scalar(0));
-	Mat sum1D(radius, 1, CV_32F, Scalar(0));
-
-	int depth = image.depth();
-
-	for (int c=0; c<=cx; c++) {
-		for (int r=0; r<=cy; r++) {
-			int d = floor(sqrt(c*c+r*r));
-			mapMat.at<float>(r,c) = d;
-			// top-left image
-			int count = 1;
-			float rcSum = image.at<uchar>(cy-r,cx-c);
-			// top-right image
-			if (!xodd || c) {
-				count1D.at<float>(d,0)++; 
-				rcSum += image.at<uchar>(cy-r,cx2+c);
-			}
-			// bottom-left image
-			if (!yodd || r) {
-				count1D.at<float>(d,0)++; 
-				rcSum += image.at<uchar>(cy2+r,cx-c);
-			}
-			// bottom-right image
-			if (r && c || !xodd && !yodd) {
-				count1D.at<float>(d,0)++;
-				rcSum += image.at<uchar>(cy2+r,cx2+c);
-			}
-			count1D.at<float>(d,0) += count;
-			sum1D.at<float>(d,0) += rcSum;
-		}
-	}
-	Mat avg1D(radius, 1, CV_32F, Scalar(0));
-	for (int i=0; i < radius; i++) {
-		avg1D.at<float>(i,0) = sum1D.at<float>(i,0) / count1D.at<float>(i,0);
-	}
-	cout << matInfo(image) << endl;
-	cout << mapMat << endl;
-	cout << "count:" << count1D << endl;
-	cout << "sum:" << sum1D << endl;
-	cout << "avg:" << avg1D << endl;
-
-	for (int c=0; c<=cx; c++) {
-		for (int r=0; r<=cy; r++) {
-			int d = mapMat.at<float>(r,c);
-			float rcAvg = avg1D.at<float>(d,0);
-			image.at<uchar>(cy-r,cx-c) = rcAvg;
-			image.at<uchar>(cy-r,cx2+c) = rcAvg;
-			image.at<uchar>(cy2+r,cx-c) = rcAvg;
-			image.at<uchar>(cy2+r,cx2+c) = rcAvg;
-		}
-	}
-
-	cout << image << endl;
-	cout << endl;
-}
+extern void generate_ringMat();
 
 static void test_matRing() {
 	Scalar data = Scalar::all(255);
 	Mat image;
+	Mat result;
 	image = Mat(1,1,CV_8U,data);
-	matRing(image, "ring");
-	image = Mat(2,2,CV_8U,data);
-	matRing(image, "ring");
-	image = Mat(3,3,CV_8U,data);
-	matRing(image, "ring");
+	matRing(image, result);
+	assert(result.rows == 1 && result.cols == 1);
+	assert(result.at<uchar>(0,0) == 255);
+
 	image = Mat(8,8,CV_8U,data);
 	image(Rect(0,0,4,4)) = Scalar::all(0);
-	matRing(image, "ring");
+	matRing(image, result);
+	cout << matInfo(result) << endl << result << endl;
+	assert(result.rows == 8 && result.cols == 8);
+	uchar expected8x8[8][8] = { 
+		191, 191, 191, 191, 191, 191, 191, 191,
+		191, 191, 191, 191, 191, 191, 191, 191,
+		191, 191, 191, 191, 191, 191, 191, 191,
+		191, 191, 191, 191, 191, 191, 191, 191,
+		191, 191, 191, 191, 191, 191, 191, 191,
+		191, 191, 191, 191, 191, 191, 191, 191,
+		191, 191, 191, 191, 191, 191, 191, 191,
+		191, 191, 191, 191, 191, 191, 191, 191
+	};
+	for (int r=0; r<8; r++) {
+		for (int c=0; c<8; c++) {
+			assert(expected8x8[r][c] == result.at<uchar>(r,c));
+		}
+	}
+
 	image = Mat(9,9,CV_8U,data);
 	image(Rect(0,0,4,4)) = Scalar::all(0);
-	matRing(image, "ring");
+	matRing(image, result);
+	cout << matInfo(result) << endl << result << endl;
+	assert(result.rows == 9 && result.cols == 9);
+	uchar expected9x9[9][9] = {
+		191, 191, 202, 202, 202, 202, 202, 191, 191,
+		191, 202, 204, 204, 204, 204, 204, 202, 191,
+		202, 204, 207, 207, 207, 207, 207, 204, 202,
+		202, 204, 207, 223, 223, 223, 207, 204, 202,
+		202, 204, 207, 223, 255, 223, 207, 204, 202,
+		202, 204, 207, 223, 223, 223, 207, 204, 202,
+		202, 204, 207, 207, 207, 207, 207, 204, 202,
+		191, 202, 204, 204, 204, 204, 204, 202, 191,
+		191, 191, 202, 202, 202, 202, 202, 191, 191
+	};
+	for (int r=0; r<9; r++) {
+		for (int c=0; c<9; c++) {
+			assert(expected9x9[r][c] == result.at<uchar>(r,c));
+		}
+	}
+
+	image = Mat(7,9,CV_8U,Scalar::all(0));
+	image(Rect(1,1,7,5)) = Scalar::all(255);
+	matRing(image, result);
+	cout << matInfo(result) << endl << result << endl;
+	assert(result.rows == 9 && result.cols == 9);
+	uchar expected7x9[9][9] = {
+		191, 191, 202, 202, 202, 202, 202, 191, 191,
+		191, 202, 204, 204, 204, 204, 204, 202, 191,
+		202, 204, 207, 207, 207, 207, 207, 204, 202,
+		202, 204, 207, 223, 223, 223, 207, 204, 202,
+		202, 204, 207, 223, 255, 223, 207, 204, 202,
+		202, 204, 207, 223, 223, 223, 207, 204, 202,
+		202, 204, 207, 207, 207, 207, 207, 204, 202,
+		191, 202, 204, 204, 204, 204, 204, 202, 191,
+		191, 191, 202, 202, 202, 202, 202, 191, 191
+	};
+	for (int r=0; r<9; r++) {
+		for (int c=0; c<9; c++) {
+			assert(expected7x9[r][c] == result.at<uchar>(r,c));
+		}
+	}
 }
 
 static void test_warpAffine() {

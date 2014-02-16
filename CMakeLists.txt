@@ -35,6 +35,7 @@ link_directories( ${BUILD_TARGET_DIR} )
 add_library(_firesight SHARED 
 	dft.cpp 
 	FireLog.cpp 
+	generated_code.cpp
 	HoleRecognizer.cpp 
 	jo_util.cpp 
 	MatchedRegion.cpp 
@@ -43,9 +44,12 @@ add_library(_firesight SHARED
 	MSER.cpp 
 	Pipeline.cpp 
 	proto.cpp 
+	warpRing.cpp
 	)
 target_link_libraries(_firesight libjansson.so ${OpenCV_LIBS} )
 set_target_properties(_firesight PROPERTIES VERSION ${PROJECT_VERSION_STRING} SOVERSION ${PROJECT_VERSION_MAJOR})
+
+add_executable(gencode gencode.cpp)
 
 add_executable(firesight FireSight.cpp)
 target_link_libraries(firesight libjansson.so lib_firesight.so ${OpenCV_LIBS} )
