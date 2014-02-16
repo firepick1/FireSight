@@ -1,4 +1,11 @@
 #! /bin/bash
+
+if [ ! -e /usr/local/bin/cmake ]
+then
+	echo "++++++++++++++++++ INSTALLING CMAKE ++++++++++++"
+	apt-get -y install cmake
+fi
+
 if [ ! -e /usr/local/include/jansson.h ]
 then
 	echo "++++++++++++++++++ INSTALLING JANNSON C LIBRARY ++++++++++++"
@@ -14,7 +21,7 @@ fi
 if [ ! -e /usr/include/boost ]
 then
 	echo "++++++++++++++++++ INSTALLING BOOST C++ LIBRARIES ++++++++++++"
-	apt-get -y install libboost1.50-all
+	apt-get -y install libboost-all
 fi
 if [ ! -e /usr/include/fuse.h ] 
 then
