@@ -12,22 +12,26 @@ extern "C" {
 #define FIRELOG_DEBUG 3
 #define FIRELOG_TRACE 4
 
+#define LOGERROR4(fmt,v1,v2,v3,v4) if (logLevel >= FIRELOG_ERROR) {firelog(fmt, FIRELOG_ERROR, (void *)v1, (void *)v2, (void *)v3,(void*)v4);}
 #define LOGERROR3(fmt,v1,v2,v3) if (logLevel >= FIRELOG_ERROR) {firelog(fmt, FIRELOG_ERROR, (void *)v1, (void *)v2, (void *)v3);}
 #define LOGERROR2(fmt,v1,v2) if (logLevel >= FIRELOG_ERROR) {firelog(fmt, FIRELOG_ERROR, (void *)v1, (void *)v2, fmt);}
 #define LOGERROR1(fmt,v1) if (logLevel >= FIRELOG_ERROR) {firelog(fmt, FIRELOG_ERROR, (void *)v1, fmt, fmt);}
 #define LOGERROR(fmt) if (logLevel >= FIRELOG_ERROR) {firelog(fmt, FIRELOG_ERROR, fmt, fmt, fmt);}
+#define LOGWARN4(fmt,v1,v2,v3,v4) if (logLevel >= FIRELOG_WARN) {firelog(fmt, FIRELOG_WARN, (void *)v1, (void *)v2, (void *)v3,(void*)v4);}
 #define LOGWARN3(fmt,v1,v2,v3) if (logLevel >= FIRELOG_WARN) {firelog(fmt, FIRELOG_WARN, (void *)v1, (void *)v2, (void *)v3);}
 #define LOGWARN2(fmt,v1,v2) if (logLevel >= FIRELOG_WARN) {firelog(fmt, FIRELOG_WARN, (void *)v1, (void *)v2, fmt);}
 #define LOGWARN1(fmt,v1) if (logLevel >= FIRELOG_WARN) {firelog(fmt, FIRELOG_WARN, (void *)v1, fmt, fmt);}
 #define LOGWARN(fmt,v1,v2,v3) if (logLevel >= FIRELOG_WARN) {firelog(fmt, FIRELOG_WARN, fmt, fmt, fmt);}
+#define LOGINFO4(fmt,v1,v2,v3,v4) if (logLevel >= FIRELOG_INFO) {firelog(fmt, FIRELOG_INFO, (void *)v1, (void *)v2, (void *)v3, (void*)v4);}
 #define LOGINFO3(fmt,v1,v2,v3) if (logLevel >= FIRELOG_INFO) {firelog(fmt, FIRELOG_INFO, (void *)v1, (void *)v2, (void *)v3);}
 #define LOGINFO2(fmt,v1,v2) if (logLevel >= FIRELOG_INFO) {firelog(fmt, FIRELOG_INFO, (void *)v1, (void *)v2, fmt);}
 #define LOGINFO1(fmt,v1) if (logLevel >= FIRELOG_INFO) {firelog(fmt, FIRELOG_INFO, (void *)v1, fmt, fmt);}
 #define LOGINFO(fmt) if (logLevel >= FIRELOG_INFO) {firelog(fmt, FIRELOG_INFO, fmt, fmt, fmt);}
-#define LOGDEBUG3(fmt,v1,v2,v3) if (logLevel >= FIRELOG_DEBUG) {firelog(fmt, FIRELOG_DEBUG, (void *)v1, (void *)v2, (void *)v3);}
+#define LOGDEBUG4(fmt,v1,v2,v3,v4) if (logLevel >= FIRELOG_DEBUG) {firelog(fmt, FIRELOG_DEBUG, (void *)v1, (void *)v2, (void *)v3, (void*)v4);}
 #define LOGDEBUG2(fmt,v1,v2) if (logLevel >= FIRELOG_DEBUG) {firelog(fmt, FIRELOG_DEBUG, (void *)v1, (void *)v2, fmt);}
 #define LOGDEBUG1(fmt,v1) if (logLevel >= FIRELOG_DEBUG) {firelog(fmt, FIRELOG_DEBUG, (void *)v1, fmt, fmt);}
 #define LOGDEBUG(fmt) if (logLevel >= FIRELOG_DEBUG) {firelog(fmt, FIRELOG_DEBUG, fmt, fmt, fmt);}
+#define LOGTRACE4(fmt,v1,v2,v3,v4) if (logLevel >= FIRELOG_TRACE) {firelog(fmt, FIRELOG_TRACE, (void *)v1, (void *)v2, (void *)v3, (void*)v4);}
 #define LOGTRACE3(fmt,v1,v2,v3) if (logLevel >= FIRELOG_TRACE) {firelog(fmt, FIRELOG_TRACE, (void *)v1, (void *)v2, (void *)v3);}
 #define LOGTRACE2(fmt,v1,v2) if (logLevel >= FIRELOG_TRACE) {firelog(fmt, FIRELOG_TRACE, (void *)v1, (void *)v2, fmt);}
 #define LOGTRACE1(fmt,v1) if (logLevel >= FIRELOG_TRACE) {firelog(fmt, FIRELOG_TRACE, (void *)v1, fmt, fmt);}
@@ -92,7 +96,7 @@ void firelog_lastMessageClear();
  * Do not call main logging function directly.
  * Use logging defines instead.
  */
-void firelog(const char *fmt, int level, const void * value1, const void * value2, const void * value3);
+void firelog(const char *fmt, int level, const void * value1, const void * value2, const void * value3, const void * value4=NULL);
 
 #ifdef __cplusplus
 }

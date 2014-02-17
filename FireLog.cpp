@@ -84,7 +84,7 @@ int firelog_level(int newLevel) {
   return oldLevel;
 }
 
-void firelog(const char *fmt, int level, const void * value1, const void * value2, const void * value3) {
+void firelog(const char *fmt, int level, const void * value1, const void * value2, const void * value3, const void * value4) {
 	time_t now = time(NULL);
 	struct tm *pLocalNow = localtime(&now);
 	int tid = syscall(SYS_gettid);
@@ -103,8 +103,8 @@ void firelog(const char *fmt, int level, const void * value1, const void * value
 		if (logTID) {
 		  fprintf(logFile, "%d ", tid);
 		}
-		sprintf(lastMessage[level], fmt, value1, value2, value3);
-    fprintf(logFile, fmt, value1, value2, value3);
+		sprintf(lastMessage[level], fmt, value1, value2, value3, value4);
+    fprintf(logFile, fmt, value1, value2, value3, value4);
     fprintf(logFile, "\n");
     fflush(logFile);
   }
@@ -122,7 +122,7 @@ void firelog(const char *fmt, int level, const void * value1, const void * value
 		if (logTID) {
 		  cout << tid << " ";
 		}
-		sprintf(lastMessage[level], fmt, value1, value2, value3);
+		sprintf(lastMessage[level], fmt, value1, value2, value3, value4);
 		cout << lastMessage[level] << endl;
 	}
 #endif

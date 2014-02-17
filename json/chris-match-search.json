@@ -1,0 +1,10 @@
+[
+  {"op":"matchTemplate", "name":"match0", "angle":0, "template":"img/chris-search.png"},
+  {"op":"matchTemplate", "name":"match90", "angle":90, "template":"img/chris-search.png"},
+  {"op":"matchTemplate", "name":"match180", "angle":180, "template":"img/chris-search.png"},
+  {"op":"matchTemplate", "name":"match270", "angle":270, "template":"img/chris-search.png"},
+	{"op":"drawRects", "model":"match0", "color":[32,255,32]},
+	{"op":"drawRects", "model":"match90", "color":[255,255,32]},
+	{"op":"drawRects", "model":"match180", "color":[32,255,255]},
+	{"op":"drawRects", "model":"match270", "color":[255,32,255]}
+]

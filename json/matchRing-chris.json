@@ -1,0 +1,4 @@
+[
+  {"op":"matchTemplate", "name":"match", "separation":0, "threshold":0.2, "template":"img/chris-ring.png"},
+	{"op":"drawRects", "model":"match", "color":[32,255,32]}
+]

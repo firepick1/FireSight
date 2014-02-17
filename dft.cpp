@@ -82,6 +82,8 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 		}
 	}
 
+	int separation = jo_int(pStage, "separation", min(tmplt.cols,tmplt.rows));
+
 	if (!errMsg) {
 		if (strcmp("BORDER_CONSTANT", borderModeStr) == 0) {
 			borderMode = BORDER_CONSTANT;
@@ -105,7 +107,9 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 	}
 
 	if (!errMsg) {
-		if (strcmp(methodStr, "CV_TM_SQDIFF_NORMED")==0) {
+		if (strcmp(methodStr, "CV_TM_SQDIFF")==0) {
+			method = CV_TM_SQDIFF;
+		} else if (strcmp(methodStr, "CV_TM_SQDIFF_NORMED")==0) {
 			method = CV_TM_SQDIFF_NORMED;
 		} else if (strcmp(methodStr, "CV_TM_CCORR")==0) {
 			method = CV_TM_CCORR;
@@ -136,18 +140,25 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 		assert(result.channels() == 1);
 		vector<RotatedRect> rects;
 
+		bool isMin = method == CV_TM_SQDIFF || method == CV_TM_SQDIFF_NORMED;
 		float maxVal = *max_element(result.begin<float>(),result.end<float>());
-		if (maxVal >= threshold) { // Filter matches
-			int rDelta = tmplt.rows/2;
-			int cDelta = tmplt.cols/2;
-			bool isMin = method == CV_TM_SQDIFF || method == CV_TM_SQDIFF_NORMED;
+		float minVal = *min_element(result.begin<float>(),result.end<float>());
+		float rejectedMax = -1;
+		float rejectedMin = maxVal+1;
+		if (isMin && minVal <= threshold || !isMin && threshold <= maxVal) { // Filter matches
+			int rDelta = separation/2; // tmplt.rows/2;
+			int cDelta = separation/2; // tmplt.cols/2;
 			float rangeMin = isMin ? 0 : corr * maxVal;
 			float rangeMax = isMin ? corr * maxVal : maxVal;
 			for (int r=0; r < result.rows; r++) {
 				for (int c=0; c < result.cols; c++) {
 					float val = result.at<float>(r,c);
 					bool isOverlap = false;
-					if (rangeMin <= val && val <= rangeMax) {
+					if (val < rangeMin) {
+						rejectedMax = max(rejectedMax, val);
+					} else if (val > rangeMax) {
+						rejectedMin = min(rejectedMin, val);
+					} else {
 						for (int irect=0; irect<rects.size(); irect++) {
 							int cx = rects[irect].center.x;
 							int cy = rects[irect].center.y;
@@ -167,12 +178,19 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 				}
 			}
 		} else {
+			rejectedMax = maxVal;
+			rejectedMin = minVal;
 			LOGTRACE("No match (maxVal is below threshold)");
 		}
 
 		// Model matches
 		json_t *pRects = json_array();
 		json_object_set(pStageModel, "maxVal", json_real(maxVal));
+		if (isMin) {
+			json_object_set(pStageModel, "rejectedMin", json_real(rejectedMin));
+		} else {
+			json_object_set(pStageModel, "rejectedMax", json_real(rejectedMax));
+		}
 		json_object_set(pStageModel, "rects", pRects);
 		int xOffset = isOutputCorr ? 0 : tmplt.cols/2;
 		int yOffset = isOutputCorr ? 0 : tmplt.rows/2;

@@ -1,0 +1,4 @@
+[
+  {"op":"matchTemplate", "name":"match", "threshold":0.3, "template":"img/warpRing.jpg"},
+	{"op":"drawRects", "model":"match", "color":[32,255,32]}
+]

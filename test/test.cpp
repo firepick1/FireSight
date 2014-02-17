@@ -34,13 +34,13 @@ static void test_matRing() {
 	Mat image;
 	Mat result;
 	image = Mat(1,1,CV_8U,data);
-	matRing(image, result);
+	matRing(image, result, false);
 	assert(result.rows == 1 && result.cols == 1);
 	assert(result.at<uchar>(0,0) == 255);
 
 	image = Mat(8,8,CV_8U,data);
 	image(Rect(0,0,4,4)) = Scalar::all(0);
-	matRing(image, result);
+	matRing(image, result, false);
 	cout << matInfo(result) << endl << result << endl;
 	assert(result.rows == 8 && result.cols == 8);
 	uchar expected8x8[8][8] = { 
@@ -61,7 +61,7 @@ static void test_matRing() {
 
 	image = Mat(9,9,CV_8U,data);
 	image(Rect(0,0,4,4)) = Scalar::all(0);
-	matRing(image, result);
+	matRing(image, result, false);
 	cout << matInfo(result) << endl << result << endl;
 	assert(result.rows == 9 && result.cols == 9);
 	uchar expected9x9[9][9] = {
@@ -81,21 +81,24 @@ static void test_matRing() {
 		}
 	}
 
-	image = Mat(7,9,CV_8U,Scalar::all(0));
-	image(Rect(1,1,7,5)) = Scalar::all(255);
+	image = Mat(7,9,CV_8U,Scalar::all(50));
+	image(Rect(1,1,7,5)) = Scalar::all(100);
+	image(Rect(2,2,5,3)) = Scalar::all(150);
+	image(Rect(3,3,3,1)) = Scalar::all(200);
+	cout << "image:" << matInfo(image) << endl << image << endl;
 	matRing(image, result);
-	cout << matInfo(result) << endl << result << endl;
+	cout << "output:" << matInfo(result) << endl << result << endl;
 	assert(result.rows == 9 && result.cols == 9);
 	uchar expected7x9[9][9] = {
-		191, 191, 202, 202, 202, 202, 202, 191, 191,
-		191, 202, 204, 204, 204, 204, 204, 202, 191,
-		202, 204, 207, 207, 207, 207, 207, 204, 202,
-		202, 204, 207, 223, 223, 223, 207, 204, 202,
-		202, 204, 207, 223, 255, 223, 207, 204, 202,
-		202, 204, 207, 223, 223, 223, 207, 204, 202,
-		202, 204, 207, 207, 207, 207, 207, 204, 202,
-		191, 202, 204, 204, 204, 204, 204, 202, 191,
-		191, 191, 202, 202, 202, 202, 202, 191, 191
+		 0,  0, 50, 50, 50, 50, 50,  0,  0,
+		 0, 50, 75, 75, 75, 75, 75, 50,  0,
+		50, 75,119,119,119,119,119, 75, 50,
+		50, 75,119,163,163,163,119, 75, 50,
+		50, 75,119,163,200,163,119, 75, 50,
+		50, 75,119,163,163,163,119, 75, 50,
+		50, 75,119,119,119,119,119, 75, 50,
+		 0, 50, 75, 75, 75, 75, 75, 50,  0,
+		 0,  0, 50, 50, 50, 50, 50,  0,  0
 	};
 	for (int r=0; r<9; r++) {
 		for (int c=0; c<9; c++) {

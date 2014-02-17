@@ -6,9 +6,9 @@
 #include "opencv2/imgproc/imgproc.hpp"
 
 
-std::string matInfo(cv::Mat &m);
+std::string matInfo(const cv::Mat &m);
 
-void matRing(const cv::Mat &image, cv::Mat &result);
+void matRing(const cv::Mat &image, cv::Mat &result, bool grow=1);
 
 void matWarpAffine(
 		cv::Mat &image, 
