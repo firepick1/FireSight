@@ -22,18 +22,22 @@ string matInfo(const Mat &m) {
 	return string(buf);
 }
 
-void matWarpAffine(Mat &image, Point center, double angle, double scale, 
-	Point offset, Size size, Scalar borderValue, int borderMode, int flags)
+void matWarpAffine(Mat &image, Point2f center, double angle, double scale, 
+	Point2f offset, Size size, Scalar borderValue, int borderMode, int flags)
 {
 	int cols = image.cols;
 	int rows = image.rows;
 	Mat transform = getRotationMatrix2D( center, angle, scale );
+	if (logLevel >= FIRELOG_TRACE) {
+		cout << "center.x:" << center.x << " center.y:" << center.y << endl;
+		cout << matInfo(transform) << endl << transform << endl;
+	}
 	transform.at<double>(0,2) += offset.x;
 	transform.at<double>(1,2) += offset.y;
 
 	Matx<double,3,4> pts(
-		0, cols, cols, 0,
-		0, 0, rows, rows,
+		0, cols-1, cols-1, 0,
+		0, 0, rows-1, rows-1,
 		1, 1, 1, 1);
 	Mat mpts(pts);
 	Mat newPts = transform * mpts;
@@ -49,25 +53,21 @@ void matWarpAffine(Mat &image, Point center, double angle, double scale,
 		miny = min(miny, y);
 		maxy = max(maxy, y);
 	}
+	char buf[100];
 	if (size.width <= 0) {
-		if (minx < 0) {
-			size.width = ceil(maxx - minx);
-			LOGTRACE1("matWarpAffine() auto-width:%d", size.width);
-			transform.at<double>(0,2) -= minx;
-		} else {
-			size.width = ceil(maxx);
-			LOGTRACE1("matWarpAffine() auto+width:%d", size.width);
-		}
+		size.width = maxx - minx + 1.5;
+		transform.at<double>(0,2) += (size.width-1)/2.0 - center.x;
 	}
 	if (size.height <= 0) {
-		if (miny < 0) {
-			size.height = ceil(maxy - miny);
-			LOGTRACE1("matWarpAffine() auto-height:%d", size.height);
-			transform.at<double>(1,2) -= miny;
-		} else {
-			size.height = ceil(maxy);
-			LOGTRACE1("matWarpAffine() auto+height:%d", size.height);
-		}
+		size.height = maxy - miny + 1.5;
+    transform.at<double>(1,2) += (size.height-1)/2.0 - center.y;
+	}
+	if (logLevel >= FIRELOG_TRACE) {
+		sprintf(buf, "matWarpAffine() minx:%f, maxx:%f, auto-width:%d", minx, maxx, size.width);
+		LOGTRACE(buf);
+		sprintf(buf, "matWarpAffine() miny:%f, maxy:%f, auto-height:%d", miny, maxy, size.height);
+		LOGTRACE(buf);
+		cout << matInfo(transform) << endl << transform << endl;
 	}
 
 	Mat result;

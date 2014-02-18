@@ -1,8 +1,3 @@
 [
-	{"op":"Mat", "width":29, "height":37, "color":[255,255,255]},
-	{"op":"rectangle"},
-	{"op":"noprectangle", "x":1, "y":1, "width":29, "height":33, "color":[0,0,0]},
-	{"op":"noprectangle", "x":2, "y":2, "width":27, "height":31, "color":[255,255,255]},
-	{"op":"imwrite", "path":"target/tmplt-37x29.jpg"},
-	{"op":"nop","comment":"end of pipeline"}
+	{"op":"proto"}
 ]

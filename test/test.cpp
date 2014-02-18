@@ -53,11 +53,7 @@ static void test_matRing() {
 		191, 191, 191, 191, 191, 191, 191, 191,
 		191, 191, 191, 191, 191, 191, 191, 191
 	};
-	for (int r=0; r<8; r++) {
-		for (int c=0; c<8; c++) {
-			assert(expected8x8[r][c] == result.at<uchar>(r,c));
-		}
-	}
+	assert(countNonZero(Mat(8,8,CV_8U,expected8x8) != result) == 0);
 
 	image = Mat(9,9,CV_8U,data);
 	image(Rect(0,0,4,4)) = Scalar::all(0);
@@ -75,11 +71,18 @@ static void test_matRing() {
 		191, 202, 204, 204, 204, 204, 204, 202, 191,
 		191, 191, 202, 202, 202, 202, 202, 191, 191
 	};
-	for (int r=0; r<9; r++) {
-		for (int c=0; c<9; c++) {
-			assert(expected9x9[r][c] == result.at<uchar>(r,c));
-		}
-	}
+	assert(countNonZero(Mat(9,9,CV_8U,expected9x9) != result) == 0);
+
+	image = Mat(Matx<uchar,3,3>(9,3,7,1,1,7,3,5,1));
+	matRing(image, result, false);
+	cout << matInfo(result) << endl << result << endl;
+	assert(result.rows == 3 && result.cols == 3);
+	uchar expected3x3[3][3] = {
+		5,5,5,
+		5,1,5,
+		5,5,5
+	};
+	assert(countNonZero(Mat(3,3,CV_8U,expected3x3) != result) == 0);
 
 	image = Mat(7,9,CV_8U,Scalar::all(50));
 	image(Rect(1,1,7,5)) = Scalar::all(100);
@@ -100,47 +103,7 @@ static void test_matRing() {
 		 0, 50, 75, 75, 75, 75, 75, 50,  0,
 		 0,  0, 50, 50, 50, 50, 50,  0,  0
 	};
-	for (int r=0; r<9; r++) {
-		for (int c=0; c<9; c++) {
-			assert(expected7x9[r][c] == result.at<uchar>(r,c));
-		}
-	}
-}
-
-static void test_warpAffine() {
-	cout << "-------------------test_warpAffine--------" << endl;
-	Matx<double,3,4> pts(
-		0, 1, 1, 0,
-		0, 0, 1, 1,
-		1, 1, 1, 1);
-	Mat transform = getRotationMatrix2D(Point(0.5,0.5), 30, 1);
-	cout << "transform:" << matInfo(transform) << endl;
-	Mat mpts(pts);
-	cout << "pts:" << matInfo(mpts) << endl;
-	Mat newPts = transform * mpts;
-	cout << "test_warpAffine()" << newPts << endl;
-	double minx = newPts.at<double>(0,0);
-	double maxx = newPts.at<double>(0,0);
-	double miny = newPts.at<double>(1,0);
-	double maxy = newPts.at<double>(1,0);
-	for (int c=1; c<4; c++) {
-		double x = newPts.at<double>(0,c);
-		minx = min(minx, x);
-		maxx = max(maxx, x);
-		double y = newPts.at<double>(1,c);
-		miny = min(miny, y);
-		maxy = max(maxy, y);
-	}
-	double width = maxx - minx;
-	double height = maxy - miny;
-	cout << width << "x" << height << endl;
-	transform.at<double>(0,2) -= minx;
-	transform.at<double>(1,2) -= miny;
-	cout << "transform:" << matInfo(transform) << endl;
-	newPts = transform * mpts;
-	cout << "test_warpAffine()" << newPts << endl;
-	//[0, 0.8660254037844387, 1.366025403784439, 0.4999999999999999;
-	//  0.4999999999999999, 0, 0.8660254037844387, 1.366025403784439]
+	assert(countNonZero(Mat(9,9,CV_8U,expected7x9) != result) == 0);
 }
 
 static void test_regionKeypoint() {
@@ -255,6 +218,130 @@ static void test_regionKeypoint() {
 
 }
 
+static void test_warpAffine() {
+	Mat result;
+
+	cout << "-------------------test_warpAffine 7x9 90 degrees --------" << endl;
+	Point center7x9(4,3);
+	uchar data7x9[][9] = {
+		11,12,13,14,15,16,17,18,19,
+		21,22,23,24,25,26,27,28,29,
+		31,32,33,34,35,36,37,38,39,
+		41,42,43,44,45,46,47,48,49,
+		51,52,53,54,55,56,57,58,59,
+		61,62,63,64,65,66,67,68,69,
+		71,72,73,74,75,76,77,78,79
+	};
+	Mat image7x9(7,9,CV_8U,data7x9);
+	result = image7x9.clone();
+	cout << matInfo(result) << endl << result << endl;
+	matWarpAffine(result, center7x9, 90, 1, Point(0,0), Size(0,0));
+	cout << "90 " << matInfo(result) << endl << result << endl;
+	uchar expected7x9_90[9][7] = {
+		19, 29, 39, 49, 59, 69, 79,
+		18, 28, 38, 48, 58, 68, 78,
+		17, 27, 37, 47, 57, 67, 77,
+		16, 26, 36, 46, 56, 66, 76,
+		15, 25, 35, 45, 55, 65, 75,
+		14, 24, 34, 44, 54, 64, 74,
+		13, 23, 33, 43, 53, 63, 73,
+		12, 22, 32, 42, 52, 62, 72,
+		11, 21, 31, 41, 51, 61, 71};
+	assert(countNonZero(Mat(9,7,CV_8U, expected7x9_90) != result) == 0);
+
+	cout << "-------------------test_warpAffine 7x9 180 degrees --------" << endl;
+	result = image7x9.clone();
+	cout << matInfo(result) << endl << result << endl;
+	matWarpAffine(result, center7x9, 180, 1, Point(0,0), Size(0,0));
+	cout << "180 " << matInfo(result) << endl << result << endl;
+	uchar expected7x9_180[7][9] = {
+		79,78,77,76,75,74,73,72,71,
+		69,68,67,66,65,64,63,62,61,
+		59,58,57,56,55,54,53,52,51,
+		49,48,47,46,45,44,43,42,41,
+		39,38,37,36,35,34,33,32,31,
+		29,28,27,26,25,24,23,22,21,
+		19,18,17,16,15,14,13,12,11
+		};
+	assert(countNonZero(Mat(7,9,CV_8U, expected7x9_180) != result) == 0);
+
+	cout << "-------------------test_warpAffine 7x9 270 degrees --------" << endl;
+	result = image7x9.clone();
+	cout << matInfo(result) << endl << result << endl;
+	matWarpAffine(result, center7x9, 270, 1, Point(0,0), Size(0,0));
+	cout << "270 " << matInfo(result) << endl << result << endl;
+	uchar expected7x9_270[9][7] = {
+		71, 61, 51, 41, 31, 21, 11,
+		72, 62, 52, 42, 32, 22, 12,
+		73, 63, 53, 43, 33, 23, 13,
+		74, 64, 54, 44, 34, 24, 14,
+		75, 65, 55, 45, 35, 25, 15,
+		76, 66, 56, 46, 36, 26, 16,
+		77, 67, 57, 47, 37, 27, 17,
+		78, 68, 58, 48, 38, 28, 18,
+		79, 69, 59, 49, 39, 29, 19
+		};
+	assert(countNonZero(Mat(9,7,CV_8U, expected7x9_270) != result) == 0);
+
+	cout << "-------------------test_warpAffine 6x8 90 degrees --------" << endl;
+	Point2f center6x8(3.5,2.5);
+	uchar data6x8[][8] = {
+		11,12,13,14,15,16,17,18,
+		21,22,23,24,25,26,27,28,
+		31,32,33,34,35,36,37,38,
+		41,42,43,44,45,46,47,48,
+		51,52,53,54,55,56,57,58,
+		61,62,63,64,65,66,67,68
+	};
+	Mat image6x8(6,8,CV_8U,data6x8);
+	result = image6x8.clone();
+	cout << matInfo(result) << endl << result << endl;
+	matWarpAffine(result, center6x8, 90, 1, Point(0,0), Size(0,0));
+	cout << "90 " << matInfo(result) << endl << result << endl;
+	uchar expected6x8_90[8][6] = {
+		18, 28, 38, 48, 58, 68, 
+		17, 27, 37, 47, 57, 67,
+		16, 26, 36, 46, 56, 66,
+		15, 25, 35, 45, 55, 65,
+		14, 24, 34, 44, 54, 64,
+		13, 23, 33, 43, 53, 63,
+		12, 22, 32, 42, 52, 62,
+		11, 21, 31, 41, 51, 61};
+	assert(countNonZero(Mat(8,6,CV_8U, expected6x8_90) != result) == 0);
+
+	cout << "-------------------test_warpAffine 6x8 180 degrees --------" << endl;
+	result = image6x8.clone();
+	cout << matInfo(result) << endl << result << endl;
+	matWarpAffine(result, center6x8, 180, 1, Point(0,0), Size(0,0));
+	cout << "180 " << matInfo(result) << endl << result << endl;
+	uchar expected6x8_180[6][8] = {
+		68,67,66,65,64,63,62,61,
+		58,57,56,55,54,53,52,51,
+		48,47,46,45,44,43,42,41,
+		38,37,36,35,34,33,32,31,
+		28,27,26,25,24,23,22,21,
+		18,17,16,15,14,13,12,11
+		};
+	assert(countNonZero(Mat(6,8,CV_8U, expected6x8_180) != result) == 0);
+
+	cout << "-------------------test_warpAffine 6x8 270 degrees --------" << endl;
+	result = image6x8.clone();
+	cout << matInfo(result) << endl << result << endl;
+	matWarpAffine(result, center6x8, 270, 1, Point(0,0), Size(0,0));
+	cout << "270 " << matInfo(result) << endl << result << endl;
+	uchar expected6x8_270[8][6] = {
+		61, 51, 41, 31, 21, 11,
+		62, 52, 42, 32, 22, 12,
+		63, 53, 43, 33, 23, 13,
+		64, 54, 44, 34, 24, 14,
+		65, 55, 45, 35, 25, 15,
+		66, 56, 46, 36, 26, 16,
+		67, 57, 47, 37, 27, 17,
+		68, 58, 48, 38, 28, 18
+		};
+	assert(countNonZero(Mat(8,6,CV_8U, expected6x8_270) != result) == 0);
+}
+
 int main(int argc, char *argv[])
 {
 	char version[30];
@@ -265,6 +352,6 @@ int main(int argc, char *argv[])
 	firelog_level(FIRELOG_TRACE);
 
 	test_regionKeypoint();
-	test_warpAffine();
 	test_matRing();
+	test_warpAffine();
 }

@@ -12,8 +12,10 @@ void matRing(const cv::Mat &image, cv::Mat &result, bool grow=1);
 
 void matWarpAffine(
 		cv::Mat &image, 
-		cv::Point center, double angle, double scale, 
-		cv::Point offset, 
+		cv::Point2f center, 
+		double angle, 
+		double scale, 
+		cv::Point2f offset, 
 		cv::Size size, 
 		cv::Scalar borderValue=cv::Scalar::all(0), 
 		int borderMode=cv::BORDER_CONSTANT, 
