@@ -23,7 +23,7 @@ string matInfo(const Mat &m) {
 }
 
 void matWarpAffine(Mat &image, Point2f center, double angle, double scale, 
-	Point2f offset, Size size, Scalar borderValue, int borderMode, int flags)
+	Point2f offset, Size size, int borderMode, Scalar borderValue, int flags)
 {
 	int cols = image.cols;
 	int rows = image.rows;

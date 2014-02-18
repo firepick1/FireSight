@@ -42,7 +42,7 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 	assert(model.image.cols>0 && model.image.rows>0);
   double dx = jo_double(pStage, "dx", (scale-1)*model.image.cols/2.0);
   double dy = jo_double(pStage, "dy", (scale-1)*model.image.rows/2.0);
-	const char* borderModeStr = jo_string(pStage, "borderMode", "BORDER_CONSTANT");
+	const char* borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE");
 	int borderMode;
 
 	if (!errMsg) {
@@ -73,7 +73,7 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 	Scalar borderValue = jo_Scalar(pStage, "borderValue", Scalar::all(0));
 
 	if (!errMsg) {
-		matWarpAffine(model.image, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), borderValue, borderMode);
+		matWarpAffine(model.image, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), borderMode, borderValue);
 	}
 
 	return stageOK("apply_warpAffine(%s) %s", errMsg, pStage, pStageModel);

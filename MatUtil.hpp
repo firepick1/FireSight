@@ -17,8 +17,8 @@ void matWarpAffine(
 		double scale, 
 		cv::Point2f offset, 
 		cv::Size size, 
+		int borderMode=cv::BORDER_REPLICATE, 
 		cv::Scalar borderValue=cv::Scalar::all(0), 
-		int borderMode=cv::BORDER_CONSTANT, 
 		int flags=cv::INTER_LINEAR);
 
 #endif

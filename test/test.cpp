@@ -340,6 +340,36 @@ static void test_warpAffine() {
 		68, 58, 48, 38, 28, 18
 		};
 	assert(countNonZero(Mat(8,6,CV_8U, expected6x8_270) != result) == 0);
+
+	cout << "-------------------test_warpAffine 7x8 45 degrees --------" << endl;
+	Point2f center7x8(3.5,3);
+	uchar data7x8[7][8] = {
+		255,255,255,255,255,255,255,255,
+		255,  0,  0,  0,  0,  0,  0,255,
+		255,  0,  0,  0,  0,  0,  0,255,
+		255,  0,  0,  0,  0,  0,  0,255,
+		255,  0,  0,  0,  0,  0,  0,255,
+		255,  0,  0,  0,  0,  0,  0,255,
+		255,255,255,255,255,255,255,255
+		};
+	Mat image7x8(7,8,CV_8U,data7x8);
+	result = image7x8.clone();
+	cout << matInfo(result) << endl << result << endl;
+	matWarpAffine(result, center7x8, 45, 1, Point(0,0), Size(0,0), BORDER_CONSTANT, Scalar(9));
+	cout << "45 " << matInfo(result) << endl << result << endl;
+	uchar expected7x8_45[10][10] = {
+	  	9,  9,  9,  9,124,247, 71,  9,  9,  9,
+	  	9,  9,  9,124,215,109,247, 71,  9,  9,
+	  	9,  9,124,215, 32,  0, 88,247, 71,  9,
+	  	9,124,207, 32,  0,  0,  0, 88,247, 71,
+		124,207, 32,  0,  0,  0,  0,  0,109,247,
+		247,102,  0,  0,  0,  0,  0, 32,215,124,
+		 71,247, 80,  0,  0,  0, 32,215,124,  9,
+	  	9, 71,247, 88,  0, 32,215,124,  9,  9,
+	  	9,  9, 71,247,109,215,124,  9,  9,  9,
+	  	9,  9,  9, 71,247,124,  9,  9,  9,  9
+		};
+	assert(countNonZero(Mat(10,10,CV_8U, expected7x8_45) != result) == 0);
 }
 
 int main(int argc, char *argv[])
