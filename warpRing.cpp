@@ -25,13 +25,63 @@ namespace FireSight {
 }
 
 bool Pipeline::apply_warpRing(json_t *pStage, json_t *pStageModel, Model &model) {
-  const char *angleStr = jo_string(pStage, "angle", "ring");
-  bool grow = jo_bool(pStage, "grow", true);
-	const char *errMsg = NULL;
 	assert(0<model.image.rows && 0<model.image.cols);
+	const char *errMsg = NULL;
+  json_t * pAngles = json_object_get(pStage, "angles");
+	vector<float> angles;
+	if (json_is_array(pAngles)) {
+		int index;
+		json_t *pAngle;
+		json_array_foreach(pAngles, index, pAngle) {
+			if (json_is_number(pAngle)) {
+				angles.push_back(json_number_value(pAngle));
+			} else if (json_is_string(pAngle)) {
+				float angle = atof(json_string_value(pAngle));
+				angles.push_back(angle);
+			} else {
+				errMsg = "Expected angle values in degrees";
+				break;
+			}
+		}
+	} else if (pAngles == NULL) {
+		// Ring
+	} else {
+		errMsg = "Expected JSON array of angles";
+	}
 
 	if (!errMsg) {
-		matRing(model.image, model.image, grow);
+		if (angles.size() == 0) { // ring
+			matRing(model.image, model.image, true);
+		} else { // discrete angles
+			int diam = M_SQRT2 * max(model.image.cols, model.image.rows) + 0.5;
+			int type = CV_MAKETYPE(CV_32F, model.image.channels());
+			Mat result;
+			Mat resultSum(diam, diam, type, Scalar(0));
+			float cx = (model.image.cols-1)/2.0;
+			float cy = (model.image.rows-1)/2.0;
+			Point2f center(cx,cy);
+			float cd = (diam-1)/2.0;
+			Point2f translate(cd - cx, cd - cy);
+			for (int i=0; i<angles.size(); i++) {
+				float angle = angles[i];
+				matWarpAffine(model.image, result, center, angle, 1, translate, Size(diam, diam));
+				if (result.type() != type ) {
+					result.convertTo(result, type);
+				}
+				if (logLevel >= FIRELOG_TRACE) {
+					cout << "result: " << matInfo(result) << endl;
+					cout << "resultSum: " << matInfo(resultSum) << endl;
+				}
+				resultSum += result;
+			}
+			float scale = 1.0/angles.size();
+			resultSum = resultSum * scale;
+			if (model.image.depth() != resultSum.depth()) {
+				resultSum.convertTo(model.image, model.image.type());
+			}
+		  json_object_set(pStageModel, "width", json_integer(model.image.cols));
+		  json_object_set(pStageModel, "height", json_integer(model.image.rows));
+		}
 	}
 
 	return stageOK("apply_ring(%s) %s", errMsg, pStage, pStageModel);

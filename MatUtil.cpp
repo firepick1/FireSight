@@ -22,7 +22,7 @@ string matInfo(const Mat &m) {
 	return string(buf);
 }
 
-void matWarpAffine(Mat &image, Point2f center, double angle, double scale, 
+void matWarpAffine(const Mat &image, Mat &result, Point2f center, double angle, double scale, 
 	Point2f offset, Size size, int borderMode, Scalar borderValue, int flags)
 {
 	int cols = image.cols;
@@ -70,8 +70,6 @@ void matWarpAffine(Mat &image, Point2f center, double angle, double scale,
 		cout << matInfo(transform) << endl << transform << endl;
 	}
 
-	Mat result;
 	warpAffine( image, result, transform, size, flags, borderMode, borderValue );
-	image = result;
 }
 

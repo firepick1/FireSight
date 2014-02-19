@@ -73,7 +73,7 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 	Scalar borderValue = jo_Scalar(pStage, "borderValue", Scalar::all(0));
 
 	if (!errMsg) {
-		matWarpAffine(model.image, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), borderMode, borderValue);
+		matWarpAffine(model.image, model.image, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), borderMode, borderValue);
 	}
 
 	return stageOK("apply_warpAffine(%s) %s", errMsg, pStage, pStageModel);
@@ -618,7 +618,7 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
 					switch (depth) {
 						case CV_8S:
 						case CV_8U:
-							cout << (int) model.image.at<unsigned char>(r,c,channel) << " ";
+							cout << (short) model.image.at<unsigned char>(r,c,channel) << " ";
 							break;
 						case CV_16U:
 							cout << model.image.at<unsigned short>(r,c) << " ";
@@ -645,7 +645,7 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
 					switch (depth) {
 						case CV_8S:
 						case CV_8U:
-							cout << model.image.at<Vec2b>(r,c)[channel] << " ";
+							cout << (short) model.image.at<Vec2b>(r,c)[channel] << " ";
 							break;
 						case CV_16U:
 							cout << model.image.at<Vec2w>(r,c)[channel] << " ";

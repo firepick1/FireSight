@@ -11,7 +11,8 @@ std::string matInfo(const cv::Mat &m);
 void matRing(const cv::Mat &image, cv::Mat &result, bool grow=1);
 
 void matWarpAffine(
-		cv::Mat &image, 
+		const cv::Mat &image, 
+		cv::Mat &result, 
 		cv::Point2f center, 
 		double angle, 
 		double scale, 

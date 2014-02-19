@@ -131,7 +131,7 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 		int th = tmplt.rows;
 
 		if (angle) {
-			matWarpAffine(tmplt, Point(tw/2.0,th/2.0), angle, 1, Point(0,0), Size(-1,-1), borderMode, Scalar(0,0,0), flags);
+			matWarpAffine(tmplt, tmplt, Point(tw/2.0,th/2.0), angle, 1, Point(0,0), Size(-1,-1), borderMode, Scalar(0,0,0), flags);
 		}
 
 		matchTemplate(imageSource, tmplt, result, method);
