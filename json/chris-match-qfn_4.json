@@ -1,0 +1,4 @@
+[
+  {"op":"matchTemplate", "name":"matchRing", "threshold":0.4, "corr":0.65, "template":"img/chris-qfn_4.png"},
+	{"op":"drawRects", "model":"matchRing", "color":[32,255,32]}
+]
