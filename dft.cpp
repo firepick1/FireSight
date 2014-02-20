@@ -46,10 +46,11 @@ static void dftShift(Mat &image, const char *&errMsg) {
 }
 
 bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
   const char * methodStr = jo_string(pStage, "method", "CV_TM_CCOEFF_NORMED");
   const char *tmpltPath = jo_string(pStage, "template", NULL);
-	float threshold = jo_double(pStage, "threshold", 0.8);
-	float corr = jo_double(pStage, "corr", 0.92);
+	float threshold = jo_double(pStage, "threshold", 0.7);
+	float corr = jo_double(pStage, "corr", 0.85);
 	const char* outputStr = jo_string(pStage, "output", "current");
 	const char* borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE");
 	float angle = jo_double(pStage, "angle", 0);
@@ -61,8 +62,6 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 	bool isOutputCurrent = strcmp(outputStr, "current") == 0;
 	bool isOutputInput = strcmp(outputStr, "input") == 0;
 	bool isOutputCorr = strcmp(outputStr, "corr") == 0;
-
-	assert(0<model.image.rows && 0<model.image.cols);
 
 	if (!tmpltPath) {
 		errMsg = "Expected template path for imread";
@@ -144,6 +143,7 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 		float minVal = *min_element(result.begin<float>(),result.end<float>());
 		float rejectedMax = -1;
 		float rejectedMin = maxVal+1;
+		int candidates = 0;
 		if (isMin && minVal <= threshold || !isMin && threshold <= maxVal) { // Filter matches
 			int rDelta = separation/2; // tmplt.rows/2;
 			int cDelta = separation/2; // tmplt.cols/2;
@@ -163,6 +163,7 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 							int cy = rects[irect].center.y;
 							if (cx-cDelta < c && c < cx+cDelta && cy-rDelta < r && r < cy+rDelta) {
 								isOverlap = true;
+								candidates++;
 								if (val > result.at<float>(cy, cx)) {
 									rects[irect].center.x = c;
 									rects[irect].center.y = r;
@@ -187,9 +188,13 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 		json_object_set(pStageModel, "maxVal", json_real(maxVal));
 		if (isMin) {
 			json_object_set(pStageModel, "rejectedMin", json_real(rejectedMin));
+			json_object_set(pStageModel, "rejectedCorr", json_real(rejectedMin/maxVal));
 		} else {
 			json_object_set(pStageModel, "rejectedMax", json_real(rejectedMax));
+			json_object_set(pStageModel, "rejectedCorr", json_real(rejectedMax/maxVal));
 		}
+		json_object_set(pStageModel, "candidates", json_integer(candidates));
+		json_object_set(pStageModel, "matches", json_integer(rects.size()));
 		json_object_set(pStageModel, "rects", pRects);
 		int xOffset = isOutputCorr ? 0 : tmplt.cols/2;
 		int yOffset = isOutputCorr ? 0 : tmplt.rows/2;
@@ -220,6 +225,7 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 }
 
 bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	int delta = jo_int(pStage, "delta", 1);
   bool isShift = jo_bool(pStage, "shift", true);	
   bool isLog = jo_bool(pStage, "log", true);	
@@ -230,8 +236,6 @@ bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &mod
 	bool isMirror = jo_bool(pStage, "mirror", true);
 	const char * showStr = jo_string(pStage, "show", "magnitude");
 	const char *errMsg = NULL;
-
-	assert(0<model.image.rows && 0<model.image.cols);
 
 	if (!errMsg) {
 		if (strcmp("magnitude", showStr) == 0) {
@@ -293,6 +297,7 @@ bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &mod
 }
 
 bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	const char *errMsg = NULL;
 	const char *depthStr = jo_string(pStage, "depth", "CV_8U");
 
@@ -325,8 +330,6 @@ bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, Model &model) {
 			}
 		}
 	}
-
-	assert(0<model.image.rows && 0<model.image.cols);
 
 	if (!errMsg) {
 		if (model.image.type() != CV_32F) {

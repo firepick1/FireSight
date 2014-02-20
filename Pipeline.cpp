@@ -36,10 +36,10 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
 }
 
 bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	const char *errMsg = NULL;
   double scale = jo_double(pStage, "scale", 1);
   double angle = jo_double(pStage, "angle", 0);
-	assert(model.image.cols>0 && model.image.rows>0);
   double dx = jo_double(pStage, "dx", (scale-1)*model.image.cols/2.0);
   double dy = jo_double(pStage, "dy", (scale-1)*model.image.rows/2.0);
 	const char* borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE");
@@ -117,10 +117,9 @@ bool Pipeline::apply_imread(json_t *pStage, json_t *pStageModel, Model &model) {
 }
 
 bool Pipeline::apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
   const char *path = jo_string(pStage, "path", NULL);
 	const char *errMsg = NULL;
-
-	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!path) {
 		errMsg = "expected path for imwrite";
@@ -133,12 +132,11 @@ bool Pipeline::apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model) 
 }
 
 bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
   const char *codeStr = jo_string(pStage, "code", "CV_BGR2GRAY");
 	int dstCn = jo_int(pStage, "dstCn", 0);
 	const char *errMsg = NULL;
 	int code = CV_BGR2GRAY;
-
-	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (strcmp("CV_RGB2GRAY",codeStr)==0) {
 	  code = CV_RGB2GRAY;
@@ -217,13 +215,12 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
 }
 
 bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	const char *errMsg = NULL;
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
 	int flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG|DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 	const char *modelName = jo_string(pStage, "model", NULL);
 	json_t *pKeypointStage = json_object_get(model.getJson(false), modelName);
-
-	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!pKeypointStage) {
 		const char *keypointStageName = jo_string(pStage, "keypointStage", NULL);
@@ -265,12 +262,11 @@ bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &m
 }
 
 bool Pipeline::apply_dilate(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	const char *errMsg = NULL;
 	int kwidth = jo_int(pStage, "ksize.width", 3);
 	int kheight = jo_int(pStage, "ksize.height", 3);
 	int shape = jo_shape(pStage, "shape", errMsg);
-
-	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!errMsg) {
 	  Mat structuringElement = getStructuringElement(shape, Size(kwidth, kheight));
@@ -281,12 +277,11 @@ bool Pipeline::apply_dilate(json_t *pStage, json_t *pStageModel, Model &model) {
 }
 
 bool Pipeline::apply_erode(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	const char *errMsg = NULL;
 	int kwidth = jo_int(pStage, "ksize.width", 3);
 	int kheight = jo_int(pStage, "ksize.height", 3);
 	int shape = jo_shape(pStage, "shape", errMsg);
-
-	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!errMsg) {
 	  Mat structuringElement = getStructuringElement(shape, Size(kwidth, kheight));
@@ -307,13 +302,12 @@ bool Pipeline::apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &mo
 }
 
 bool Pipeline::apply_blur(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	const char *errMsg = NULL;
 	int width = jo_int(pStage, "ksize.width", 3);
 	int height = jo_int(pStage, "ksize.height", 3);
 	int anchorx = jo_int(pStage, "anchor.x", -1);
 	int anchory = jo_int(pStage, "anchor.y", -1);
-
-	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (width <= 0 || height <= 0) {
 		errMsg = "expected 0<width and 0<height";
@@ -345,6 +339,7 @@ static const char * modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &k
 }
 
 bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	SimpleBlobDetector::Params params;
 	params.thresholdStep = jo_double(pStage, "thresholdStep", params.thresholdStep);
 	params.minThreshold = jo_double(pStage, "minThreshold", params.minThreshold);
@@ -366,8 +361,6 @@ bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Mod
 	params.minConvexity = jo_double(pStage, "minConvexity", params.minConvexity);
 	params.maxConvexity = jo_double(pStage, "maxConvexity", params.maxConvexity);
 	const char *errMsg = NULL;
-
-	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!errMsg) {
 		SimpleBlobDetector detector(params);
@@ -395,8 +388,6 @@ bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model
 	int shift = jo_int(pStage, "shift", 0);
 	const char *errMsg = NULL;
 
-	assert(0<model.image.cols && 0<model.image.rows);
-
   if ( x < 0 || y < 0) {
 		errMsg = "Expected 0<=x and 0<=y";
 	} else if (shift < 0) {
@@ -404,6 +395,9 @@ bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model
 	}
 
 	if (!errMsg) {
+		if (model.image.cols == 0 || model.image.rows == 0) {
+			model.image = Mat(height, width, CV_8UC3, Scalar(0,0,0));
+		}
 		if (thickness) {
 			rectangle(model.image, Rect(x,y,width,height), color, thickness, lineType, shift);
 		}
@@ -481,6 +475,7 @@ bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, Model &model) {
 }
 
 bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	float rangeMin = jo_double(pStage, "rangeMin", 0);
 	float rangeMax = jo_double(pStage, "rangeMax", 256);
 	int locations = jo_int(pStage, "locations", 0);
@@ -490,8 +485,6 @@ bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model)
 	bool accumulate = false;
 	const char *errMsg = NULL;
 	Mat mask;
-
-	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (rangeMin > rangeMax) {
 		errMsg = "Expected rangeMin <= rangeMax";
@@ -554,14 +547,13 @@ bool Pipeline::apply_split(json_t *pStage, json_t *pStageModel, Model &model) {
 }
 
 bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	double alpha = jo_double(pStage, "alpha", 1);
 	double delta = jo_double(pStage, "delta", 0);
 	const char *transform = jo_string(pStage, "transform", NULL);
 	const char *rTypeStr = jo_string(pStage, "rType", "CV_8U");
 	const char *errMsg = NULL;
 	int rType;
-
-	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!errMsg) {
 		rType = parseCvType(rTypeStr, errMsg);
@@ -704,13 +696,12 @@ bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model
 }
 
 bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	double threshold1 = jo_double(pStage, "threshold1", 0);
 	double threshold2 = jo_double(pStage, "threshold2", 50);
 	double apertureSize = jo_double(pStage, "apertureSize", 3);
 	bool L2gradient = jo_bool(pStage, "L2gradient", false);
 	const char *errMsg = NULL;
-
-	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (!errMsg) {
 		Canny(model.image, model.image, threshold1, threshold2, apertureSize, L2gradient);
@@ -720,12 +711,11 @@ bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, Model &model) {
 }
 
 bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	double diamMin = jo_double(pStage, "diamMin");
 	double diamMax = jo_double(pStage, "diamMax");
 	int showMatches = jo_int(pStage, "show", 0);
 	const char *errMsg = NULL;
-
-	assert(0<model.image.cols && 0<model.image.rows);
 
 	if (diamMin <= 0 || diamMax <= 0 || diamMin > diamMax) {
 		errMsg = "expected: 0 < diamMin < diamMax ";
@@ -784,6 +774,15 @@ static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStag
 	return true;
 }
 
+void Pipeline::validateImage(Mat &image) {
+	if (image.cols == 0 || image.rows == 0) {
+		image = Mat(100,100, CV_8UC3);
+		putText(image, "FireSight:", Point(10,20), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
+		putText(image, "No input", Point(10,40), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
+		putText(image, "image?", Point(10,60), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
+	}
+}
+
 json_t *Pipeline::process(Mat &workingImage) { 
 	Model model;
 	json_t *pModelJson = model.getJson(true);
@@ -795,14 +794,7 @@ json_t *Pipeline::process(Mat &workingImage) {
 	json_object_set(pFireSight, "url", json_string("https://github.com/firepick1/FireSight"));
 	json_object_set(pModelJson, "FireSight", pFireSight);
 
-	if (workingImage.cols == 0 || workingImage.rows == 0) {
-		model.image = Mat(100,100, CV_8UC3);
-		putText(model.image, "FireSight:", Point(10,20), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
-		putText(model.image, "No input", Point(10,40), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
-		putText(model.image, "image?", Point(10,60), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
-	} else {
-		model.image = workingImage;
-	}
+	model.image = workingImage;
 	model.imageMap["input"] = model.image.clone();
 	bool ok = processModel(model);
 	workingImage = model.image;

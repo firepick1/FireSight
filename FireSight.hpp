@@ -122,6 +122,7 @@ namespace FireSight {
 			void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
 			void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);
 			int parseCvType(const char *typeName, const char *&errMsg);
+			void validateImage(Mat &image);
 			json_t *pPipeline;
 
 	  public: 

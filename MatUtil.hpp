@@ -8,6 +8,8 @@
 
 std::string matInfo(const cv::Mat &m);
 
+cv::Mat matRotateSize(cv::Size sizeIn, cv::Point2f center, double angle, double &minx, double &maxx, double &miny, double &maxy);
+
 void matRing(const cv::Mat &image, cv::Mat &result, bool grow=1);
 
 void matWarpAffine(

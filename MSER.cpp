@@ -160,6 +160,7 @@ void Pipeline::detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regi
 }
 
 bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
 	int delta = jo_int(pStage, "delta", 5);
 	int minArea = jo_int(pStage, "minArea", 60);
 	int maxArea = jo_int(pStage, "maxArea", 14400);

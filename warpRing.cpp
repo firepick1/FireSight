@@ -25,7 +25,7 @@ namespace FireSight {
 }
 
 bool Pipeline::apply_warpRing(json_t *pStage, json_t *pStageModel, Model &model) {
-	assert(0<model.image.rows && 0<model.image.cols);
+	validateImage(model.image);
 	const char *errMsg = NULL;
   json_t * pAngles = json_object_get(pStage, "angles");
 	vector<float> angles;
@@ -53,18 +53,44 @@ bool Pipeline::apply_warpRing(json_t *pStage, json_t *pStageModel, Model &model)
 		if (angles.size() == 0) { // ring
 			matRing(model.image, model.image, true);
 		} else { // discrete angles
-			int diam = M_SQRT2 * max(model.image.cols, model.image.rows) + 0.5;
-			int type = CV_MAKETYPE(CV_32F, model.image.channels());
-			Mat result;
-			Mat resultSum(diam, diam, type, Scalar(0));
+			Size imageSize(model.image.cols, model.image.rows);
 			float cx = (model.image.cols-1)/2.0;
 			float cy = (model.image.rows-1)/2.0;
 			Point2f center(cx,cy);
-			float cd = (diam-1)/2.0;
-			Point2f translate(cd - cx, cd - cy);
+			double all_minx;
+			double all_maxx;
+			double all_miny;
+			double all_maxy;
+			for (int i=0; i<angles.size(); i++) {
+				double minx;
+				double maxx;
+				double miny;
+				double maxy;
+				matRotateSize(imageSize, center, angles[i], minx, maxx, miny, maxy);
+				if (i == 0) {
+					all_minx = minx;
+					all_miny = miny;
+					all_maxx = maxx;
+					all_maxy = maxy;
+				} else {
+					all_minx = min(all_minx, minx);
+					all_miny = min(all_miny, miny);
+					all_maxx = max(all_maxx, maxx);
+					all_maxy = max(all_maxy, maxy);
+				}
+				if (logLevel >= FIRELOG_TRACE) {
+					cout << "all_minx:" << all_minx << " all_maxx:" << all_maxx << " all_miny:" << all_miny << " all_maxy:" << all_maxy << endl;
+				}
+			}
+			Size resultSize(all_maxx - all_minx + 1.5, all_maxy - all_miny + 1.5);
+			LOGTRACE2("apply_warpRing() resultSize.width:%d resultSize.height:%d", resultSize.width, resultSize.height);
+			int type = CV_MAKETYPE(CV_32F, model.image.channels());
+			Mat result;
+			Mat resultSum(resultSize.height, resultSize.width, type, Scalar(0));
+			Point2f translate((resultSize.width-1.0)/2 - cx, (resultSize.height-1.0)/2 - cy);
 			for (int i=0; i<angles.size(); i++) {
 				float angle = angles[i];
-				matWarpAffine(model.image, result, center, angle, 1, translate, Size(diam, diam));
+				matWarpAffine(model.image, result, center, angle, 1, translate, resultSize);
 				if (result.type() != type ) {
 					result.convertTo(result, type);
 				}
