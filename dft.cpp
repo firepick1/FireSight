@@ -142,13 +142,19 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 		float rejectedMax = -1;
 		float rejectedMin = maxVal+1;
 		int candidates = 0;
+		int rrows = result.rows;
+		int rcols = result.cols;
 		if (isMin && minVal <= threshold || !isMin && threshold <= maxVal) { // Filter matches
 			int rDelta = separation/2; // tmplt.rows/2;
 			int cDelta = separation/2; // tmplt.cols/2;
 			float rangeMin = isMin ? 0 : corr * maxVal;
 			float rangeMax = isMin ? corr * maxVal : maxVal;
-			for (int r=0; r < result.rows; r++) {
-				for (int c=0; c < result.cols; c++) {
+
+			// Use a 2-level pyramid to save a bit of time by reducing number of candidates
+			// with minor loss of accuracy
+			for (int r=1; r < rrows; r += 2) {
+				float lastVal = result.at<float>(r,0);
+				for (int c=1; c < rcols; c += 2) {
 					float val = result.at<float>(r,c);
 					bool isOverlap = false;
 					if (val < rangeMin) {
@@ -156,14 +162,15 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 					} else if (val > rangeMax) {
 						rejectedMin = min(rejectedMin, val);
 					} else {
-						for (int irect=0; irect<rects.size(); irect++) {
+						int maxvalc = val < result.at<float>(r,max(1,c-2)) ? c-2 : c;
+						for (int irect=0; irect<rects.size(); irect++ ) {
 							int cx = rects[irect].center.x;
 							int cy = rects[irect].center.y;
-							if (cx-cDelta < c && c < cx+cDelta && cy-rDelta < r && r < cy+rDelta) {
+							if (cx-cDelta < maxvalc && maxvalc < cx+cDelta && cy-rDelta < r && r < cy+rDelta) {
 								isOverlap = true;
 								candidates++;
-								if (val > result.at<float>(cy, cx)) {
-									rects[irect].center.x = c;
+								if (maxvalc > result.at<float>(cy, cx)) {
+									rects[irect].center.x = maxvalc;
 									rects[irect].center.y = r;
 								}
 								break;
@@ -173,6 +180,7 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 							rects.push_back(RotatedRect(Point(c,r), Size(tw,th), -angle));
 						}
 					}
+					lastVal = val;
 				}
 			}
 		} else {
@@ -183,6 +191,34 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 
 		// Model matches
 		json_t *pRects = json_array();
+		int xOffset = isOutputCorr ? 0 : tmplt.cols/2;
+		int yOffset = isOutputCorr ? 0 : tmplt.rows/2;
+		for (int irect=0; irect<rects.size(); irect++) {
+			int cx = rects[irect].center.x;
+			int cy = rects[irect].center.y;
+			int maxvaly = cy;
+			int maxvalx = cx;
+			float val = result.at<float>(cy,cx);
+			for (int rlocal=std::max(0,cy-1); rlocal < std::min(rrows,cy+2); rlocal++) {
+				for (int clocal=std::max(0,cx-1); clocal < std::min(rcols,cx+2); clocal++) {
+					float val_local = result.at<float>(rlocal, clocal);
+					if (val < val_local) {
+						val = val_local;
+						maxvaly = rlocal;
+						maxvalx = clocal;
+					}
+				}
+			}
+			json_t *pRect = json_object();
+			json_object_set(pRect, "x", json_real(maxvalx+xOffset));
+			json_object_set(pRect, "y", json_real(maxvaly+yOffset));
+			json_object_set(pRect, "width", json_real(tw));
+			json_object_set(pRect, "height", json_real(th));
+			json_object_set(pRect, "angle", json_real(-angle));
+			json_object_set(pRect, "corr", json_real(val/maxVal));
+			json_array_append(pRects, pRect);
+		}
+		json_object_set(pStageModel, "rects", pRects);
 		json_object_set(pStageModel, "maxVal", json_real(maxVal));
 		if (isMin) {
 			json_object_set(pStageModel, "rejectedMin", json_real(rejectedMin));
@@ -193,22 +229,6 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 		}
 		json_object_set(pStageModel, "candidates", json_integer(candidates));
 		json_object_set(pStageModel, "matches", json_integer(rects.size()));
-		json_object_set(pStageModel, "rects", pRects);
-		int xOffset = isOutputCorr ? 0 : tmplt.cols/2;
-		int yOffset = isOutputCorr ? 0 : tmplt.rows/2;
-		for (int irect=0; irect<rects.size(); irect++) {
-			int cx = rects[irect].center.x;
-			int cy = rects[irect].center.y;
-			float val = result.at<float>(cy,cx);
-			json_t *pRect = json_object();
-			json_object_set(pRect, "x", json_real(cx+xOffset));
-			json_object_set(pRect, "y", json_real(cy+yOffset));
-			json_object_set(pRect, "width", json_real(tw));
-			json_object_set(pRect, "height", json_real(th));
-			json_object_set(pRect, "angle", json_real(-angle));
-			json_object_set(pRect, "corr", json_real(val/maxVal));
-			json_array_append(pRects, pRect);
-		}
 
 		if (isOutputCorr) {
 			normalize(result, result, 0, 255, NORM_MINMAX);
@@ -216,7 +236,6 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 		} else if (isOutputInput) {
 			model.image = model.imageMap["input"].clone();
 		}
-
 	}
 
 	return stageOK("apply_matchTemplate(%s) %s", errMsg, pStage, pStageModel);

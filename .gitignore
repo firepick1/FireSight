@@ -5,3 +5,4 @@ CMakeFiles/*
 *.cmake
 Makefile
 target/*
+ignore/*
