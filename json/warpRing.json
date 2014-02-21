@@ -1,3 +1,3 @@
 [
-	{"op":"warpRing"}
+	{"op":"warpRing", "comment":"Ring projection of input"}
 ]

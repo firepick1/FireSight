@@ -1,6 +1,7 @@
 #ifndef MATUTIL_HPP
 #define MATUTIL_HPP
 #include <string.h>
+#include <vector>
 #include <math.h>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -10,7 +11,9 @@ std::string matInfo(const cv::Mat &m);
 
 cv::Mat matRotateSize(cv::Size sizeIn, cv::Point2f center, double angle, double &minx, double &maxx, double &miny, double &maxy);
 
-void matRing(const cv::Mat &image, cv::Mat &result, bool grow=1);
+void matRing(const cv::Mat &image, cv::Mat &result);
+
+void matWarpRing(const cv::Mat &image, cv::Mat &result, std::vector<float> angles);
 
 void matWarpAffine(
 		const cv::Mat &image, 

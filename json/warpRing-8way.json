@@ -1,3 +1,3 @@
 [
-	{"op":"warpRing", "angles":[0,45,90,135,180,225,270,315]}
+	{"op":"warpRing", "angles":[0,45,90,135,180,225,270,315], "comment":"8-way template rotated every 45 degrees"}
 ]
