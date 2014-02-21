@@ -1,0 +1,4 @@
+[
+	{"op":"warpRing", "angles":[0,90,180,270]},
+  {"op":"cout", "row":0,   "col":0,   "rows":10, "cols":10}
+]
