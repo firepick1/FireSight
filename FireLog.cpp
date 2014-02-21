@@ -1,12 +1,11 @@
 #include "FireLog.h"
 #include "version.h"
+#include <iostream>
 
 #include <errno.h>
 #include <time.h>
 #include <string.h>
 #include <sys/syscall.h>
-
-#include <boost/format.hpp>
 
 #define LOGMAX 255
 

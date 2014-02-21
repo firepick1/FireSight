@@ -1,8 +1,5 @@
-
 #include <string.h>
 #include <math.h>
-#include <boost/math/constants/constants.hpp>
-#include <boost/format.hpp>
 #include "FireLog.h"
 #include "FireSight.hpp"
 #include "opencv2/features2d/features2d.hpp"
@@ -14,15 +11,13 @@ using namespace cv;
 using namespace std;
 using namespace FireSight;
 
-static float pi = boost::math::constants::pi<float>();
-
 HoleRecognizer::HoleRecognizer(float minDiameter, float maxDiameter) {
 	maxDiam = maxDiameter;
 	minDiam = minDiameter;
 	_showMatches = HOLE_SHOW_NONE;
   delta = 5;
-	minArea = (int)(minDiameter*minDiameter*pi/4); // 60;
-	maxArea = (int)(maxDiameter*maxDiameter*pi/4); // 14400;
+	minArea = (int)(minDiameter*minDiameter*M_PI/4); // 60;
+	maxArea = (int)(maxDiameter*maxDiameter*M_PI/4); // 14400;
 	maxVariation = 0.25;
 	minDiversity = (maxDiam - minDiam)/(float)minDiam; // 0.2;
 	max_evolution = 200;

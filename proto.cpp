@@ -1,7 +1,6 @@
 #include <string.h>
+#include <iostream>
 #include <math.h>
-#include <boost/math/constants/constants.hpp>
-#include <boost/format.hpp>
 #include "FireLog.h"
 #include "FireSight.hpp"
 #include "opencv2/features2d/features2d.hpp"

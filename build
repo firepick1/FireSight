@@ -18,11 +18,6 @@ then
 	make install
 	popd
 fi
-if [ ! -e /usr/include/boost ]
-then
-	echo "++++++++++++++++++ INSTALLING BOOST C++ LIBRARIES ++++++++++++"
-	apt-get -y install libboost-all
-fi
 if [ ! -e /usr/include/fuse.h ] 
 then
 	echo "++++++++++++++++++ INSTALLING FUSE C LIBRARIES ++++++++++++"

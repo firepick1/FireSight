@@ -1,9 +1,6 @@
 #include <string.h>
-#include <fstream>
-#include <sstream>
+#include <iostream>
 #include <math.h>
-#include <boost/math/constants/constants.hpp>
-#include <boost/format.hpp>
 #include "FireLog.h"
 #include "FireSight.hpp"
 #include "version.h"

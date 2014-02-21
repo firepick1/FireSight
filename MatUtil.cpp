@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include <boost/format.hpp>
 #include "MatUtil.hpp"
 #include "FireLog.h"
+#include <iostream>
 
 using namespace cv;
 using namespace std;
