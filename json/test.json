@@ -1,0 +1,8 @@
+[
+	{"op":"imread", "path":"img/tmplt-37x29.jpg"},
+	{"op":"warpAffine", "angle":0, "width":-1, "height":-1},
+	{"op":"imwrite", "path":"target/test-warpAffine.jpg"},
+	{"op":"imread", "path":"img/tmplt-37x29.jpg"},
+	{"op":"warpRing", "angles":[0]},
+	{"op":"imwrite", "path":"target/test-warpRing.jpg"}
+]
