@@ -73,7 +73,9 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 	Scalar borderValue = jo_Scalar(pStage, "borderValue", Scalar::all(0));
 
 	if (!errMsg) {
-		matWarpAffine(model.image, model.image, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), borderMode, borderValue);
+		Mat result;
+		matWarpAffine(model.image, result, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), borderMode, borderValue);
+		model.image = result;
 	}
 
 	return stageOK("apply_warpAffine(%s) %s", errMsg, pStage, pStageModel);
@@ -181,6 +183,7 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
 
 	if (!errMsg) {
 		if (model.image.channels() == 1) {
+			LOGTRACE("Converting grayscale image to color image");
 			cvtColor(model.image, model.image, CV_GRAY2BGR, 0);
 		}
 		int index;
@@ -812,24 +815,32 @@ bool Pipeline::processModel(Model &model) {
 	bool ok = 1;
 	size_t index;
 	json_t *pStage;
-	char nameBuf[16];
 	char debugBuf[100];
 	json_array_foreach(pPipeline, index, pStage) {
 		const char *pOp = jo_string(pStage, "op", "");
-		sprintf(nameBuf, "s%d", index+1);
-		const char *pName = jo_string(pStage, "name", nameBuf);
+		const char *pName = jo_string(pStage, "name", NULL);
+		bool isSaveImage = pName != NULL;
+		if (!pName || strlen(pName)==0) {
+			char defaultName[16];
+			sprintf(defaultName, "s%d", index+1);
+			pName = defaultName;
+		}
 		const char *pComment = jo_string(pStage, "comment", "");
 		json_t *pStageModel = json_object();
 		json_object_set(model.getJson(false), pName, pStageModel);
-		// json_object_set(pStageModel, "comment", json_string(pComment));
 		sprintf(debugBuf,"process() %s op:%s stage:%s %s", matInfo(model.image).c_str(), pOp, pName, pComment);
 		if (strncmp(pOp, "nop", 3)==0) {
 			LOGTRACE1("%s (NO ACTION TAKEN)", debugBuf);
+		} else if (strcmp(pName, "input")==0) {
+			ok = logErrorMessage("\"input\" is the reserved stage name for the input image", pName, pStage);
 		} else {
 			LOGDEBUG1("%s", debugBuf);
 			try {
 			  const char *errMsg = dispatch(pOp, pStage, pStageModel, model);
 				ok = logErrorMessage(errMsg, pName, pStage);
+				if (isSaveImage) {
+					model.imageMap[pName] = model.image.clone();
+				}
 			} catch (runtime_error &ex) {
 				ok = logErrorMessage(ex.what(), pName, pStage);
 			} catch (cv::Exception &ex) {

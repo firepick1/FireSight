@@ -353,7 +353,8 @@ static void test_warpAffine() {
 	cout << matInfo(image6x8) << endl << image6x8 << endl;
 
 	cout << "-------------------test_warpAffine 6x8 90 degrees --------" << endl;
-	matWarpAffine(image6x8, result, center6x8, 90, 1, Point(0,0), Size(0,0));
+	result = image6x8.clone();
+	matWarpAffine(result, result, center6x8, 90, 1, Point(0,0), Size(0,0));
 	cout << "90 " << matInfo(result) << endl << result << endl;
 	uchar expected6x8_90[8][6] = {
 		18, 28, 38, 48, 58, 68, 
