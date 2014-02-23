@@ -114,17 +114,17 @@ template<typename _Tp> _Tp _matMaxima(const cv::Mat &mat, std::vector<Point> &lo
 				if (state == BEFORE_INFLECTION) {
 					if (rangeMin <= curVal && curVal <= rangeMax) { // ROW MAXIMA
 						if (0<r && (mat.at<_Tp>(r-1,c-1) >= curVal || mat.at<_Tp>(r-1,c) >= curVal)) {
-							cout << "reject:r-1 " << r << "," << c-1 << endl;
+							// cout << "reject:r-1 " << r << "," << c-1 << endl;
 						  // - x x
 							// - - -
 							// - - -
 						} else if (r < rEnd && (mat.at<_Tp>(r+1,c-1) > curVal || mat.at<_Tp>(r+1,c) > curVal)) {
-							cout << "reject:r+1 " << r << "," << c-1 << endl;
+							// cout << "reject:r+1 " << r << "," << c-1 << endl;
 							// - - -
 							// - - -
 						  // - x x
-						} else if (1 < c && (1<r && mat.at<_Tp>(r-1,c-2) >= curVal || mat.at<_Tp>(r,c-2) > curVal || r < rEnd && mat.at<_Tp>(r+1,c-2) > curVal)) {
-							cout << "reject:c-2 " << r << "," << c-1 << endl;
+						} else if (1 < c && (0<r && mat.at<_Tp>(r-1,c-2) >= curVal || mat.at<_Tp>(r,c-2) > curVal || r < rEnd && mat.at<_Tp>(r+1,c-2) > curVal)) {
+							// cout << "reject:c-2 " << r << "," << c-1 << endl;
 							// x - -
 							// x - -
 						  // x - -
@@ -145,17 +145,17 @@ template<typename _Tp> _Tp _matMaxima(const cv::Mat &mat, std::vector<Point> &lo
 		if (state == BEFORE_INFLECTION) {
 			if (rangeMin <= curVal && curVal <= rangeMax) { // ROW MAXIMA
 				if (0<r && (mat.at<_Tp>(r-1,cEnd-1)>=curVal || mat.at<_Tp>(r-1,cEnd)>=curVal)) {
-				  cout << "rejectEnd:r-1 " << r << "," << cEnd-1 << endl;
+				  // cout << "rejectEnd:r-1 " << r << "," << cEnd-1 << endl;
 					// - x x
 					// - - -
 					// - - -
 				} else if (r<rEnd && (mat.at<_Tp>(r+1,cEnd-1)>curVal || mat.at<_Tp>(r+1,cEnd)>curVal)) {
-				  cout << "rejectEnd:r+1 " << r << "," << cEnd-1 << endl;
+				  // cout << "rejectEnd:r+1 " << r << "," << cEnd-1 << endl;
 					// - - -
 					// - - -
 					// - x x
 				} else if (1 < r && mat.at<_Tp>(r-1,cEnd-2) >= curVal || mat.at<_Tp>(r,cEnd-2) > curVal || r < rEnd && mat.at<_Tp>(r+1,cEnd-2) > curVal) {
-				  cout << "rejectEnd:cEnd-2 " << r << "," << cEnd-1 << endl;
+				  // cout << "rejectEnd:cEnd-2 " << r << "," << cEnd-1 << endl;
 					// x - -
 					// x - -
 					// x - -
