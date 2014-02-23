@@ -18,7 +18,7 @@ using namespace FireSight;
 typedef enum{UI_STILL, UI_VIDEO} UIMode;
 
 static void help() {
-	cout << "FireSight image processing pipeline" << endl;
+	cout << "FireSight image processing pipeline v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << endl;
 	cout << "https://github.com/firepick1/FireSight/wiki" << endl;
 	cout << endl;
 	cout << "Example:" << endl;

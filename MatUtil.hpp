@@ -15,8 +15,8 @@ void matRing(const cv::Mat &image, cv::Mat &result);
 
 void matWarpRing(const cv::Mat &image, cv::Mat &result, std::vector<float> angles);
 
-void matMaxima(const cv::Mat &mat, std::vector<cv::Point> &locations);
-void matMinima(const cv::Mat &mat, std::vector<cv::Point> &locations);
+void matMaxima(const cv::Mat &mat, std::vector<cv::Point> &locations, float rangeMin=0, float rangeMax=FLT_MAX) ;
+void matMinima(const cv::Mat &mat, std::vector<cv::Point> &locations, float rangeMin=0, float rangeMax=FLT_MAX) ;
 
 void matWarpAffine(
 		const cv::Mat &image, 
