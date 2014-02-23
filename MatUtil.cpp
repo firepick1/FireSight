@@ -18,7 +18,7 @@ static const char *cv_depth_names[] = {
 
 string matInfo(const Mat &m) {
 	char buf[100];
-	sprintf(buf, "%sC%d(%dx%d)", cv_depth_names[m.depth()], m.channels(), m.rows, m.cols);
+	snprintf(buf, sizeof(buf), "%sC%d(%dx%d)", cv_depth_names[m.depth()], m.channels(), m.rows, m.cols);
 	return string(buf);
 }
 
@@ -59,25 +59,29 @@ void matWarpAffine(const Mat &image, Mat &result, Point2f center, double angle, 
 	transform.at<double>(0,2) += offset.x;
 	transform.at<double>(1,2) += offset.y;
 
-	char buf[100];
-	if (size.width <= 0) {
-		size.width = maxx - minx + 1.5;
-		transform.at<double>(0,2) += (size.width-1)/2.0 - center.x;
+	Size resultSize(size);
+	if (resultSize.width <= 0) {
+		resultSize.width = maxx - minx + 1.5;
+		transform.at<double>(0,2) += (resultSize.width-1)/2.0 - center.x;
 	}
-	if (size.height <= 0) {
-		size.height = maxy - miny + 1.5;
-    transform.at<double>(1,2) += (size.height-1)/2.0 - center.y;
+	if (resultSize.height <= 0) {
+		resultSize.height = maxy - miny + 1.5;
+    transform.at<double>(1,2) += (resultSize.height-1)/2.0 - center.y;
 	}
 	if (logLevel >= FIRELOG_TRACE) {
-		sprintf(buf, "matWarpAffine() minx:%f, maxx:%f, %s-width:%d", 
-			minx, maxx, (size.width <= 0 ? "auto" : "fixed"), size.width);
+		char buf[200];
+		LOGTRACE4("matWarpAffine() minx:%f, maxx:%f, %s-width:%d", 
+			minx, maxx, (size.width <= 0 ? "auto" : "fixed"), resultSize.width);
+		LOGTRACE4("matWarpAffine() miny:%f, maxy:%f, %s-height:%d", 
+			miny, maxy, (size.height <= 0 ? "auto" : "fixed"), resultSize.height);
+		snprintf(buf, sizeof(buf),"matWarpAffine() transform:[%f,%f,%f; %f,%f,%f]",
+			transform.at<double>(0,0), transform.at<double>(0,1), transform.at<double>(0,2),
+			transform.at<double>(1,0), transform.at<double>(1,1), transform.at<double>(1,2));
 		LOGTRACE(buf);
-		sprintf(buf, "matWarpAffine() miny:%f, maxy:%f, %s-height:%d", 
-			miny, maxy, (size.height <= 0 ? "auto" : "fixed"), size.height);
-		LOGTRACE(buf);
-		cout << matInfo(transform) << endl << transform << endl;
 	}
 
-	warpAffine( image, result, transform, size, flags, borderMode, borderValue );
+	Mat resultLocal;
+	warpAffine( image, resultLocal, transform, resultSize, flags, borderMode, borderValue );
+	result = resultLocal;
 }
 

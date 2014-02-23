@@ -38,11 +38,7 @@ namespace FireSight {
 	const double jo_double(const json_t *pObj, const char *key, double defaultValue) {
 		json_t *pValue = json_object_get(pObj, key);
 		double result = json_is_number(pValue) ? json_number_value(pValue) : defaultValue;
-		if (logLevel >= FIRELOG_TRACE) {
-			char buf[128];
-			sprintf(buf, "jo_double(key:%s default:%f) -> %f", key, defaultValue, result);
-			LOGTRACE1("%s", buf);
-		}
+		LOGTRACE3("jo_double(key:%s default:%f) -> %f", key, defaultValue, result);
 		return result;
 	}
 
@@ -86,8 +82,8 @@ namespace FireSight {
 			}
 		}
 		if (pValue && logLevel >= FIRELOG_TRACE) {
-			char buf[150];
-			sprintf(buf, "jo_scalar(key:%s default:[%f %f %f %f]) -> [%f %f %f %f]", 
+			char buf[250];
+			snprintf(buf, sizeof(buf), "jo_scalar(key:%s default:[%f %f %f %f]) -> [%f %f %f %f]", 
 				key,
 				defaultValue[0], defaultValue[1], defaultValue[2], defaultValue[3],
 				result[0], result[1], result[2], result[3]);

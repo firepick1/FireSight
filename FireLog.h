@@ -12,30 +12,45 @@ extern "C" {
 #define FIRELOG_DEBUG 3
 #define FIRELOG_TRACE 4
 
-#define LOGERROR4(fmt,v1,v2,v3,v4) if (logLevel >= FIRELOG_ERROR) {firelog(fmt, FIRELOG_ERROR, (void *)v1, (void *)v2, (void *)v3,(void*)v4);}
-#define LOGERROR3(fmt,v1,v2,v3) if (logLevel >= FIRELOG_ERROR) {firelog(fmt, FIRELOG_ERROR, (void *)v1, (void *)v2, (void *)v3);}
-#define LOGERROR2(fmt,v1,v2) if (logLevel >= FIRELOG_ERROR) {firelog(fmt, FIRELOG_ERROR, (void *)v1, (void *)v2, fmt);}
-#define LOGERROR1(fmt,v1) if (logLevel >= FIRELOG_ERROR) {firelog(fmt, FIRELOG_ERROR, (void *)v1, fmt, fmt);}
-#define LOGERROR(fmt) if (logLevel >= FIRELOG_ERROR) {firelog(fmt, FIRELOG_ERROR, fmt, fmt, fmt);}
-#define LOGWARN4(fmt,v1,v2,v3,v4) if (logLevel >= FIRELOG_WARN) {firelog(fmt, FIRELOG_WARN, (void *)v1, (void *)v2, (void *)v3,(void*)v4);}
-#define LOGWARN3(fmt,v1,v2,v3) if (logLevel >= FIRELOG_WARN) {firelog(fmt, FIRELOG_WARN, (void *)v1, (void *)v2, (void *)v3);}
-#define LOGWARN2(fmt,v1,v2) if (logLevel >= FIRELOG_WARN) {firelog(fmt, FIRELOG_WARN, (void *)v1, (void *)v2, fmt);}
-#define LOGWARN1(fmt,v1) if (logLevel >= FIRELOG_WARN) {firelog(fmt, FIRELOG_WARN, (void *)v1, fmt, fmt);}
-#define LOGWARN(fmt,v1,v2,v3) if (logLevel >= FIRELOG_WARN) {firelog(fmt, FIRELOG_WARN, fmt, fmt, fmt);}
-#define LOGINFO4(fmt,v1,v2,v3,v4) if (logLevel >= FIRELOG_INFO) {firelog(fmt, FIRELOG_INFO, (void *)v1, (void *)v2, (void *)v3, (void*)v4);}
-#define LOGINFO3(fmt,v1,v2,v3) if (logLevel >= FIRELOG_INFO) {firelog(fmt, FIRELOG_INFO, (void *)v1, (void *)v2, (void *)v3);}
-#define LOGINFO2(fmt,v1,v2) if (logLevel >= FIRELOG_INFO) {firelog(fmt, FIRELOG_INFO, (void *)v1, (void *)v2, fmt);}
-#define LOGINFO1(fmt,v1) if (logLevel >= FIRELOG_INFO) {firelog(fmt, FIRELOG_INFO, (void *)v1, fmt, fmt);}
-#define LOGINFO(fmt) if (logLevel >= FIRELOG_INFO) {firelog(fmt, FIRELOG_INFO, fmt, fmt, fmt);}
-#define LOGDEBUG4(fmt,v1,v2,v3,v4) if (logLevel >= FIRELOG_DEBUG) {firelog(fmt, FIRELOG_DEBUG, (void *)v1, (void *)v2, (void *)v3, (void*)v4);}
-#define LOGDEBUG2(fmt,v1,v2) if (logLevel >= FIRELOG_DEBUG) {firelog(fmt, FIRELOG_DEBUG, (void *)v1, (void *)v2, fmt);}
-#define LOGDEBUG1(fmt,v1) if (logLevel >= FIRELOG_DEBUG) {firelog(fmt, FIRELOG_DEBUG, (void *)v1, fmt, fmt);}
-#define LOGDEBUG(fmt) if (logLevel >= FIRELOG_DEBUG) {firelog(fmt, FIRELOG_DEBUG, fmt, fmt, fmt);}
-#define LOGTRACE4(fmt,v1,v2,v3,v4) if (logLevel >= FIRELOG_TRACE) {firelog(fmt, FIRELOG_TRACE, (void *)v1, (void *)v2, (void *)v3, (void*)v4);}
-#define LOGTRACE3(fmt,v1,v2,v3) if (logLevel >= FIRELOG_TRACE) {firelog(fmt, FIRELOG_TRACE, (void *)v1, (void *)v2, (void *)v3);}
-#define LOGTRACE2(fmt,v1,v2) if (logLevel >= FIRELOG_TRACE) {firelog(fmt, FIRELOG_TRACE, (void *)v1, (void *)v2, fmt);}
-#define LOGTRACE1(fmt,v1) if (logLevel >= FIRELOG_TRACE) {firelog(fmt, FIRELOG_TRACE, (void *)v1, fmt, fmt);}
-#define LOGTRACE(fmt) if (logLevel >= FIRELOG_TRACE) {firelog(fmt, FIRELOG_TRACE, fmt, fmt, fmt);}
+#define FIRELOG_LINESIZE 200
+#define FIRELOG4(lvl,fmt,v1,v2,v3,v4) if (logLevel>=lvl){\
+	char log_buf[FIRELOG_LINESIZE]; \
+	snprintf(log_buf,sizeof(log_buf),fmt,v1,v2,v3,v4); \
+	firelog(log_buf,lvl);\
+	}
+#define FIRELOG3(lvl,fmt,v1,v2,v3) FIRELOG4(lvl,fmt,v1,v2,v3,"")
+#define FIRELOG2(lvl,fmt,v1,v2,v3) FIRELOG4(lvl,fmt,v1,v2,"","")
+#define FIRELOG1(lvl,fmt,v1,v2,v3) FIRELOG4(lvl,fmt,v1,"","","")
+
+#define LOGERROR4(fmt,v1,v2,v3,v4) FIRELOG4(FIRELOG_ERROR,fmt,v1,v2,v3,v4)
+#define LOGERROR3(fmt,v1,v2,v3) FIRELOG4(FIRELOG_ERROR,fmt,v1,v2,v3,"")
+#define LOGERROR2(fmt,v1,v2) FIRELOG4(FIRELOG_ERROR,fmt,v1,v2,"","")
+#define LOGERROR1(fmt,v1) FIRELOG4(FIRELOG_ERROR,fmt,v1,"","","")
+#define LOGERROR(fmt) FIRELOG4(FIRELOG_ERROR,fmt,"","","","")
+
+#define LOGWARN4(fmt,v1,v2,v3,v4) FIRELOG4(FIRELOG_WARN,fmt,v1,v2,v3,v4)
+#define LOGWARN3(fmt,v1,v2,v3) FIRELOG4(FIRELOG_WARN,fmt,v1,v2,v3,"")
+#define LOGWARN2(fmt,v1,v2) FIRELOG4(FIRELOG_WARN,fmt,v1,v2,"","")
+#define LOGWARN1(fmt,v1) FIRELOG4(FIRELOG_WARN,fmt,v1,"","","")
+#define LOGWARN(fmt) FIRELOG4(FIRELOG_WARN,fmt,"","","","")
+
+#define LOGDEBUG4(fmt,v1,v2,v3,v4) FIRELOG4(FIRELOG_DEBUG,fmt,v1,v2,v3,v4)
+#define LOGDEBUG3(fmt,v1,v2,v3) FIRELOG4(FIRELOG_DEBUG,fmt,v1,v2,v3,"")
+#define LOGDEBUG2(fmt,v1,v2) FIRELOG4(FIRELOG_DEBUG,fmt,v1,v2,"","")
+#define LOGDEBUG1(fmt,v1) FIRELOG4(FIRELOG_DEBUG,fmt,v1,"","","")
+#define LOGDEBUG(fmt) FIRELOG4(FIRELOG_DEBUG,fmt,"","","","")
+
+#define LOGINFO4(fmt,v1,v2,v3,v4) FIRELOG4(FIRELOG_INFO,fmt,v1,v2,v3,v4)
+#define LOGINFO3(fmt,v1,v2,v3) FIRELOG4(FIRELOG_INFO,fmt,v1,v2,v3,"")
+#define LOGINFO2(fmt,v1,v2) FIRELOG4(FIRELOG_INFO,fmt,v1,v2,"","")
+#define LOGINFO1(fmt,v1) FIRELOG4(FIRELOG_INFO,fmt,v1,"","","")
+#define LOGINFO(fmt) FIRELOG4(FIRELOG_INFO,fmt,"","","","")
+
+#define LOGTRACE4(fmt,v1,v2,v3,v4) FIRELOG4(FIRELOG_TRACE,fmt,v1,v2,v3,v4)
+#define LOGTRACE3(fmt,v1,v2,v3) FIRELOG4(FIRELOG_TRACE,fmt,v1,v2,v3,"")
+#define LOGTRACE2(fmt,v1,v2) FIRELOG4(FIRELOG_TRACE,fmt,v1,v2,"","")
+#define LOGTRACE1(fmt,v1) FIRELOG4(FIRELOG_TRACE,fmt,v1,"","","")
+#define LOGTRACE(fmt) FIRELOG4(FIRELOG_TRACE,fmt,"","","","")
 
 #define LOGRC(rc, msg,stmt) \
   if (rc == 0){\
@@ -96,7 +111,7 @@ void firelog_lastMessageClear();
  * Do not call main logging function directly.
  * Use logging defines instead.
  */
-void firelog(const char *fmt, int level, const void * value1, const void * value2, const void * value3, const void * value4=NULL);
+void firelog(const char *msg, int level);
 
 #ifdef __cplusplus
 }

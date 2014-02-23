@@ -1,4 +1,4 @@
 [
-  {"op":"matchTemplate", "name":"match4way", "threshold":0.6, "corr":0.65, "angle":0, "template":"img/chris-search-4way.jpg"},
+  {"op":"matchTemplate", "dbg":15, "name":"match4way", "threshold":0.6, "corr":0.65, "angle":0, "template":"img/chris-search-4way.jpg"},
 	{"op":"drawRects", "model":"match4way", "color":[255,32,255]}
 ]

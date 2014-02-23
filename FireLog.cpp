@@ -24,7 +24,7 @@ int firelog_init(const char *path, int level) {
     return errno;
   }
 	char version[32];
-	sprintf(version, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+	snprintf(version, sizeof(version), "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
   LOGINFO2("FireLog %s versio %s", path, version);
 	firelog_lastMessageClear();
   return 0;
@@ -83,7 +83,7 @@ int firelog_level(int newLevel) {
   return oldLevel;
 }
 
-void firelog(const char *fmt, int level, const void * value1, const void * value2, const void * value3, const void * value4) {
+void firelog(const char *msg, int level) {
 	time_t now = time(NULL);
 	struct tm *pLocalNow = localtime(&now);
 	int tid = syscall(SYS_gettid);
@@ -102,8 +102,9 @@ void firelog(const char *fmt, int level, const void * value1, const void * value
 		if (logTID) {
 		  fprintf(logFile, "%d ", tid);
 		}
-		sprintf(lastMessage[level], fmt, value1, value2, value3, value4);
-    fprintf(logFile, fmt, value1, value2, value3, value4);
+
+		snprintf(lastMessage[level], LOGMAX, "%s", msg);
+    fprintf(logFile, "%s", msg);
     fprintf(logFile, "\n");
     fflush(logFile);
   }
@@ -121,7 +122,7 @@ void firelog(const char *fmt, int level, const void * value1, const void * value
 		if (logTID) {
 		  cout << tid << " ";
 		}
-		sprintf(lastMessage[level], fmt, value1, value2, value3, value4);
+		snprintf(lastMessage[level], LOGMAX, "%s", msg);
 		cout << lastMessage[level] << endl;
 	}
 #endif

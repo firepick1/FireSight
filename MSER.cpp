@@ -25,7 +25,7 @@ void Pipeline::covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut)
 
 	if (logLevel >= FIRELOG_TRACE) {
 		char buf[200];
-		sprintf(buf, "covarianceXY() -> covariance:[%f,%f;%f,%f] mean:[%f,%f]",
+		snprintf(buf, sizeof(buf), "covarianceXY() -> covariance:[%f,%f;%f,%f] mean:[%f,%f]",
 			covOut.at<double>(0,0), covOut.at<double>(0,1), 
 			covOut.at<double>(1,0), covOut.at<double>(1,1),
 			meanOut.at<double>(0), meanOut.at<double>(1));
@@ -39,13 +39,9 @@ void Pipeline::eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &mean
 	Mat eigenvalues;
 	eigen(covOut, eigenvalues, eigenvectorsOut);
 
-	if (logLevel >= FIRELOG_TRACE) {
-		char buf[200];
-		sprintf(buf, "eigenXY() -> [%f,%f;%f,%f]",
-			eigenvectorsOut.at<double>(0,0), eigenvectorsOut.at<double>(0,1),
-			eigenvectorsOut.at<double>(1,0), eigenvectorsOut.at<double>(1,1));
-		LOGTRACE1("%s", buf);
-	}
+	LOGTRACE4("eigenXY() -> [%f,%f;%f,%f]",
+		eigenvectorsOut.at<double>(0,0), eigenvectorsOut.at<double>(0,1),
+		eigenvectorsOut.at<double>(1,0), eigenvectorsOut.at<double>(1,1));
 }
 
 KeyPoint Pipeline::regionKeypoint(const vector<Point> &region) {
@@ -91,12 +87,7 @@ KeyPoint Pipeline::regionKeypoint(const vector<Point> &region) {
 	}
 
 	double diam = 2*sqrt(region.size()/CV_PI);
-	if (logLevel >= FIRELOG_TRACE) {
-		char buf[150];
-		sprintf(buf, "regionKeypoint() -> x:%f y:%f diam:%f angle:%f",
-			x, y, diam, degrees);
-		LOGTRACE1("%s", buf);
-	}
+	LOGTRACE4("regionKeypoint() -> x:%f y:%f diam:%f angle:%f", x, y, diam, degrees);
 
 	return KeyPoint(x, y, diam, degrees);
 }
@@ -172,7 +163,7 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, Model &model) {
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
 	json_t * pMask = json_object_get(pStage, "mask");
 	const char *errMsg = NULL;
-	char errBuf[100];
+	char errBuf[150];
 	int maskX;
 	int maskY;
 	int maskW;
@@ -203,16 +194,16 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, Model &model) {
 				LOGTRACE("}");
 			}
 			if (maskX < 0 || model.image.cols <= maskX) {
-				sprintf(errBuf, "expected 0 <= mask.x < %d", model.image.cols);
+				snprintf(errBuf, sizeof(errBuf), "expected 0 <= mask.x < %d", model.image.cols);
 				errMsg = errBuf;
 			} else if (maskY < 0 || model.image.rows <= maskY) {
-				sprintf(errBuf, "expected 0 <= mask.y < %d", model.image.cols);
+				snprintf(errBuf, sizeof(errBuf), "expected 0 <= mask.y < %d", model.image.cols);
 				errMsg = errBuf;
 			} else if (maskW <= 0 || model.image.cols < maskW) {
-				sprintf(errBuf, "expected 0 < mask.width <= %d", model.image.cols);
+				snprintf(errBuf, sizeof(errBuf), "expected 0 < mask.width <= %d", model.image.cols);
 				errMsg = errBuf;
 			} else if (maskH <= 0 || model.image.rows < maskH) {
-				sprintf(errBuf, "expected 0 < mask.height <= %d", model.image.rows);
+				snprintf(errBuf, sizeof(errBuf), "expected 0 < mask.height <= %d", model.image.rows);
 				errMsg = errBuf;
 			}
 		}

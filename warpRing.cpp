@@ -50,31 +50,27 @@ void matWarpRing(const Mat &image, Mat &result, vector<float> angles) {
 				all_maxx = max(all_maxx, maxx);
 				all_maxy = max(all_maxy, maxy);
 			}
-			if (logLevel >= FIRELOG_TRACE) {
-				cout << "all_minx:" << all_minx << " all_maxx:" << all_maxx << " all_miny:" << all_miny << " all_maxy:" << all_maxy << endl;
-			}
+			LOGTRACE4("matWarpRing() all_minx:%f all_maxx:%f all_miny:%f all_maxy:%f", all_minx, all_maxx,  all_miny, all_maxy);
 		}
 		Size resultSize(all_maxx - all_minx + 1.5, all_maxy - all_miny + 1.5);
-		LOGTRACE2("apply_warpRing() resultSize.width:%d resultSize.height:%d", resultSize.width, resultSize.height);
-		int type = CV_MAKETYPE(CV_32F, image.channels());
-		Mat resultSum(resultSize.height, resultSize.width, type, Scalar(0));
+		LOGTRACE2("matWarpRing() resultSize.width:%d resultSize.height:%d", resultSize.width, resultSize.height);
+		int sumType = CV_MAKETYPE(CV_32F, image.channels());
+		Mat resultSum(resultSize.height, resultSize.width, sumType, Scalar(0));
 		Point2f translate((resultSize.width-1.0)/2 - cx, (resultSize.height-1.0)/2 - cy);
 		for (int i=0; i<angles.size(); i++) {
 			float angle = angles[i];
-			matWarpAffine(image, result, center, angle, 1, translate, resultSize);
-			if (result.type() != type ) {
-				result.convertTo(result, type);
+			Mat localResult;
+			matWarpAffine(image, localResult, center, angle, 1, translate, resultSize);
+			if (localResult.type() != sumType ) {
+				localResult.convertTo(localResult, sumType);
 			}
-			if (logLevel >= FIRELOG_TRACE) {
-				cout << "result: " << matInfo(result) << endl;
-				cout << "resultSum: " << matInfo(resultSum) << endl;
-			}
-			resultSum += result;
+			resultSum += localResult;
 		}
 		float scale = 1.0/angles.size();
 		resultSum = resultSum * scale;
-		resultSum.convertTo(result, image.type());
+		resultSum.convertTo(result, CV_MAKETYPE(image.type(), image.channels()));
 	}
+	LOGTRACE1("matWarpRing() => %s", matInfo(result).c_str()); 
 }
 
 bool Pipeline::apply_warpRing(json_t *pStage, json_t *pStageModel, Model &model) {
@@ -152,10 +148,7 @@ void matRing(const Mat &image, Mat &result) {
 	}
 	short avg1D[MAX_RADIUS];
 	memset(avg1D,0,sizeof(avg1D));
-	if (logLevel >= FIRELOG_TRACE) {
-		string info = matInfo(image);
-	  LOGTRACE3("matRing() image %s cx:%d cy:%d", info.c_str(), cx, cy);
-	}
+	LOGTRACE3("matRing() image %s cx:%d cy:%d", matInfo(image).c_str(), cx, cy);
 	for (int i=0; i < radius; i++) {
 		avg1D[i] = count1D[i] ? ((short)(sum1D[i] / (float) count1D[i] + 0.5)) : 0;
 		LOGTRACE4("matRing()  avg1D[%d] = %d/%d = %d", i, (int)sum1D[i], (int)count1D[i], (int)avg1D[i]);
@@ -174,10 +167,7 @@ void matRing(const Mat &image, Mat &result) {
 	LOGTRACE4("matRing() dx:%d dy:%d cx:%d cy:%d", dx, dy, cx, cy);
 
 	result = Mat(rRows, rCols, image.depth(), Scalar(0,0,0));
-	if (logLevel >= FIRELOG_TRACE) {
-		string info = matInfo(result);
-	  LOGTRACE3("matRing() result %s cx:%d cy:%d", info.c_str(), cx, cy);
-	}
+	LOGTRACE3("matRing() result %s cx:%d cy:%d", matInfo(result).c_str(), cx, cy);
 	short rcAvgExtend = avg1D[MAX_RADIUS-1];
 	for (int r=0; r<=cy; r++) {
 		for (int c=0; c<=cx; c++) {
@@ -191,5 +181,6 @@ void matRing(const Mat &image, Mat &result) {
 			}
 		}
 	}
+	LOGTRACE1("matRing() => %s", matInfo(result).c_str()); 
 }
 

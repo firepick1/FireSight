@@ -41,7 +41,7 @@ fi
 
 
 echo creating makefiles
-sudo -u $SUDO_USER cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .
+sudo -u $SUDO_USER cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr "$@" .
 echo building and installing FireSight...
 make install
 

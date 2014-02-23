@@ -791,8 +791,8 @@ json_t *Pipeline::process(Mat &workingImage) {
 	json_t *pModelJson = model.getJson(true);
 
 	json_t *pFireSight = json_object();
-	char version[30];
-	sprintf(version, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+	char version[100];
+	snprintf(version, sizeof(version), "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 	json_object_set(pFireSight, "version", json_string(version));
 	json_object_set(pFireSight, "url", json_string("https://github.com/firepick1/FireSight"));
 	json_object_set(pModelJson, "FireSight", pFireSight);
@@ -815,20 +815,20 @@ bool Pipeline::processModel(Model &model) {
 	bool ok = 1;
 	size_t index;
 	json_t *pStage;
-	char debugBuf[100];
+	char debugBuf[255];
 	json_array_foreach(pPipeline, index, pStage) {
 		const char *pOp = jo_string(pStage, "op", "");
 		const char *pName = jo_string(pStage, "name", NULL);
 		bool isSaveImage = pName != NULL;
 		if (!pName || strlen(pName)==0) {
-			char defaultName[16];
-			sprintf(defaultName, "s%d", index+1);
+			char defaultName[100];
+			snprintf(defaultName, sizeof(defaultName), "s%d", index+1);
 			pName = defaultName;
 		}
 		const char *pComment = jo_string(pStage, "comment", "");
 		json_t *pStageModel = json_object();
 		json_object_set(model.getJson(false), pName, pStageModel);
-		sprintf(debugBuf,"process() %s op:%s stage:%s %s", matInfo(model.image).c_str(), pOp, pName, pComment);
+		snprintf(debugBuf,sizeof(debugBuf), "process() %s op:%s stage:%s %s", matInfo(model.image).c_str(), pOp, pName, pComment);
 		if (strncmp(pOp, "nop", 3)==0) {
 			LOGTRACE1("%s (NO ACTION TAKEN)", debugBuf);
 		} else if (strcmp(pName, "input")==0) {

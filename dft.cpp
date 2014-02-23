@@ -43,8 +43,109 @@ static void dftShift(Mat &image, const char *&errMsg) {
 	tmp.copyTo(q3);
 }
 
+static void findMatches(const Mat &result, bool isMin, float threshold, float corr, int separation, 
+	vector<Point> &matches, float &rejectedMin, float &rejectedMax, int &candidates, float &maxVal) 
+{
+	assert(result.isContinuous());
+	assert(result.channels() == 1);
+	maxVal = *max_element(result.begin<float>(),result.end<float>());
+	float minVal = *min_element(result.begin<float>(),result.end<float>());
+	rejectedMax = -1;
+	rejectedMin = maxVal+1;
+	candidates = 0;
+	int rrows = result.rows;
+	int rcols = result.cols;
+	if (isMin && minVal <= threshold || !isMin && threshold <= maxVal) { // Filter matches
+		int rDelta = separation/2; 
+		int cDelta = separation/2; 
+		float rangeMin = isMin ? 0 : corr * maxVal;
+		float rangeMax = isMin ? corr * maxVal : maxVal;
+		for (int r=0; r<rrows; r++) {
+			for (int c=0; c<rcols; c++) {
+				float val = result.at<float>(r,c);
+				bool isOverlap = false;
+				if (val < rangeMin) {
+					if (val > rejectedMax) {
+						rejectedMax = val;
+					}
+				} else if (val > rangeMax) {
+					if (val < rejectedMin) {
+						rejectedMin = val;
+					}
+				} else {
+					for (int iMatch=0; iMatch<matches.size(); iMatch++ ) {
+						int cx = matches[iMatch].x;
+						int cy = matches[iMatch].y;
+						if (cx-cDelta < c && c < cx+cDelta && cy-rDelta < r && r < cy+rDelta) {
+							isOverlap = true;
+							candidates++;
+							if (c > result.at<float>(cy, cx)) {
+								//LOGTRACE3("findMatches() matches[%d] updated (%d,%d)", iMatch, c, r);
+								matches[iMatch].x = c;
+								matches[iMatch].y = r;
+							}
+							break;
+						}
+					}
+					if (!isOverlap) {
+						LOGTRACE3("findMatches() matches[%d] = (%d,%d)", matches.size(), c, r);
+						matches.push_back(Point(c,r));
+						candidates++;
+					}
+				}
+			}
+		}
+	} else {
+		rejectedMax = maxVal;
+		rejectedMin = minVal;
+		LOGTRACE("findMatches() No match (maxVal is below threshold)");
+	}
+}
+
+static void modelMatches(Point offset, const Mat &tmplt, const Mat &result, const vector<float> &angles, 
+	const vector<Point> &matches, json_t *pStageModel, int candidates, float maxVal, float rejectedMin, float rejectedMax, bool isMin, int dbg) 
+{
+	LOGTRACE1("modelMatches(%d)", matches.size());
+	json_t *pRects = json_array();
+	assert(pRects);
+	if (dbg&4) {
+		for (int iMatch=0; iMatch<matches.size(); iMatch++) {
+			int cx = matches[iMatch].x;
+			int cy = matches[iMatch].y;
+			LOGTRACE2("modelMatches() matches(%d,%d)", cx, cy);
+			float val = result.at<float>(cy,cx);
+			json_t *pRect = json_object();
+			assert(pRect);
+			json_object_set(pRect, "x", json_real(cx+offset.x));
+			json_object_set(pRect, "y", json_real(cy+offset.y));
+			json_object_set(pRect, "width", json_real(tmplt.cols));
+			json_object_set(pRect, "height", json_real(tmplt.rows));
+			if (angles.size() == 1) {
+				json_object_set(pRect, "angle", json_real(-angles[0]));
+			}
+			json_object_set(pRect, "corr", json_real(val/maxVal));
+			json_array_append(pRects, pRect);
+		}
+	}
+	if (dbg&8) {
+		json_object_set(pStageModel, "rects", pRects);
+		json_object_set(pStageModel, "maxVal", json_real(maxVal));
+		if (isMin) {
+			json_object_set(pStageModel, "rejectedMin", json_real(rejectedMin));
+			json_object_set(pStageModel, "rejectedCorr", json_real(rejectedMin/maxVal));
+		} else {
+			json_object_set(pStageModel, "rejectedMax", json_real(rejectedMax));
+			json_object_set(pStageModel, "rejectedCorr", json_real(rejectedMax/maxVal));
+		}
+		json_object_set(pStageModel, "candidates", json_integer(candidates));
+		json_object_set(pStageModel, "matches", json_integer(matches.size()));
+	}
+	LOGTRACE("modelMatches() end");
+}
+
 bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
+	int dbg = jo_int(pStage, "dbg", 3);
   const char * methodStr = jo_string(pStage, "method", "CV_TM_CCOEFF_NORMED");
   const char *tmpltPath = jo_string(pStage, "template", NULL);
 	float threshold = jo_double(pStage, "threshold", 0.7);
@@ -144,6 +245,12 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 			errMsg = "Expected method name";
 		}
 	} 
+	if (!errMsg) {
+		if (pAngles) {
+			matWarpRing(tmplt, tmplt, angles);
+		}
+	}
+
 
 	if (!errMsg) {
 		Mat result;
@@ -151,111 +258,32 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 		int tw = tmplt.cols;
 		int th = tmplt.rows;
 
-		if (pAngles) {
-			matWarpRing(tmplt, tmplt, angles);
-		}
-
 		matchTemplate(imageSource, tmplt, result, method);
-		assert(result.isContinuous());
-		assert(result.channels() == 1);
+		LOGTRACE4("apply_matchTemplate() matchTemplate(%s,%s,%s,%d)", 
+			matInfo(imageSource).c_str(), matInfo(tmplt).c_str(), matInfo(result).c_str(), method);
 		vector<Point> matches;
-
+		float rejectedMin;
+		float rejectedMax;
+		int candidates;
+		float maxVal = 0;
 		bool isMin = method == CV_TM_SQDIFF || method == CV_TM_SQDIFF_NORMED;
-		float maxVal = *max_element(result.begin<float>(),result.end<float>());
-		float minVal = *min_element(result.begin<float>(),result.end<float>());
-		float rejectedMax = -1;
-		float rejectedMin = maxVal+1;
-		int candidates = 0;
-		int rrows = result.rows;
-		int rcols = result.cols;
-		if (isMin && minVal <= threshold || !isMin && threshold <= maxVal) { // Filter matches
-			int rDelta = separation/2; // tmplt.rows/2;
-			int cDelta = separation/2; // tmplt.cols/2;
-			float rangeMin = isMin ? 0 : corr * maxVal;
-			float rangeMax = isMin ? corr * maxVal : maxVal;
-
-			for (int r=0; r < rrows; r++) {
-				for (int c=0; c < rcols; c++) {
-					float val = result.at<float>(r,c);
-					bool isOverlap = false;
-					if (val < rangeMin) {
-						rejectedMax = max(rejectedMax, val);
-					} else if (val > rangeMax) {
-						rejectedMin = min(rejectedMin, val);
-					} else {
-						for (int irect=0; irect<matches.size(); irect++ ) {
-							int cx = matches[irect].x;
-							int cy = matches[irect].y;
-							if (cx-cDelta < c && c < cx+cDelta && cy-rDelta < r && r < cy+rDelta) {
-								isOverlap = true;
-								candidates++;
-								if (c > result.at<float>(cy, cx)) {
-									matches[irect].x = c;
-									matches[irect].y = r;
-								}
-								break;
-							}
-						}
-						if (!isOverlap) {
-							matches.push_back(Point(c,r));
-							candidates++;
-						}
-					}
-				}
-			}
-		} else {
-			rejectedMax = maxVal;
-			rejectedMin = minVal;
-			LOGTRACE("No match (maxVal is below threshold)");
+		if (dbg & 1) {
+			findMatches(result, isMin, threshold, corr, separation, matches, rejectedMin, rejectedMax, candidates, maxVal);
 		}
 
-		// Model matches
-		json_t *pRects = json_array();
 		int xOffset = isOutputCorr ? 0 : tmplt.cols/2;
 		int yOffset = isOutputCorr ? 0 : tmplt.rows/2;
-		for (int irect=0; irect<matches.size(); irect++) {
-			int cx = matches[irect].x;
-			int cy = matches[irect].y;
-			int maxvaly = cy;
-			int maxvalx = cx;
-			float val = result.at<float>(cy,cx);
-			for (int rlocal=std::max(0,cy-1); rlocal < std::min(rrows,cy+2); rlocal++) {
-				for (int clocal=std::max(0,cx-1); clocal < std::min(rcols,cx+2); clocal++) {
-					float val_local = result.at<float>(rlocal, clocal);
-					if (val < val_local) {
-						val = val_local;
-						maxvaly = rlocal;
-						maxvalx = clocal;
-					}
-				}
-			}
-			json_t *pRect = json_object();
-			json_object_set(pRect, "x", json_real(maxvalx+xOffset));
-			json_object_set(pRect, "y", json_real(maxvaly+yOffset));
-			json_object_set(pRect, "width", json_real(tw));
-			json_object_set(pRect, "height", json_real(th));
-			if (angles.size() == 1) {
-				json_object_set(pRect, "angle", json_real(-angles[0]));
-			}
-			json_object_set(pRect, "corr", json_real(val/maxVal));
-			json_array_append(pRects, pRect);
+		if (dbg&2) {
+			modelMatches(Point(xOffset, yOffset), tmplt, result, angles, matches, pStageModel,
+				candidates, maxVal, rejectedMin, rejectedMax, isMin, dbg);
 		}
-		json_object_set(pStageModel, "rects", pRects);
-		json_object_set(pStageModel, "maxVal", json_real(maxVal));
-		if (isMin) {
-			json_object_set(pStageModel, "rejectedMin", json_real(rejectedMin));
-			json_object_set(pStageModel, "rejectedCorr", json_real(rejectedMin/maxVal));
-		} else {
-			json_object_set(pStageModel, "rejectedMax", json_real(rejectedMax));
-			json_object_set(pStageModel, "rejectedCorr", json_real(rejectedMax/maxVal));
-		}
-		json_object_set(pStageModel, "candidates", json_integer(candidates));
-		json_object_set(pStageModel, "matches", json_integer(matches.size()));
 
 		if (isOutputCorr) {
+			LOGTRACE("apply_matchTemplate() normalize()");
 			normalize(result, result, 0, 255, NORM_MINMAX);
 			result.convertTo(model.image, CV_8U); 
 		} else if (isOutputInput) {
+			LOGTRACE("apply_matchTemplate() clone input");
 			model.image = model.imageMap["input"].clone();
 		}
 	}
@@ -340,7 +368,7 @@ bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, Model &model) {
 	const char *errMsg = NULL;
 	const char *depthStr = jo_string(pStage, "depth", "CV_8U");
 
-	char errBuf[150];
+	char errBuf[200];
 	json_t *pFlags = json_object_get(pStage, "flags");
 	int flags = 0;
 
@@ -364,7 +392,7 @@ bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, Model &model) {
 			} else if (strcmp(flag, "DFT_ROWS") == 0) {
 				flags |= DFT_ROWS;
 			} else {
-				sprintf(errBuf, "Unknown flag %s", flag);
+				snprintf(errBuf, sizeof(errBuf), "Unknown flag %s", flag);
 				errMsg = errBuf;
 			}
 		}

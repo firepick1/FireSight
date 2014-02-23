@@ -292,11 +292,12 @@ static void test_warpAffine() {
 		71,72,73,74,75,76,77,78,79
 	};
 	Mat image7x9(7,9,CV_8U,data7x9);
+	cout << matInfo(image7x9) << endl << image7x9 << endl;
 
 	cout << "-------------------test_warpAffine 7x9 90 degrees --------" << endl;
-	cout << matInfo(image7x9) << endl << image7x9 << endl;
 	matWarpAffine(image7x9, result, center7x9, 90, 1, Point(0,0), Size(0,0));
 	cout << "90 " << matInfo(result) << endl << result << endl;
+	assert(result.rows == 9 && result.cols == 7);
 	uchar expected7x9_90[9][7] = {
 		19, 29, 39, 49, 59, 69, 79,
 		18, 28, 38, 48, 58, 68, 78,
@@ -312,6 +313,7 @@ static void test_warpAffine() {
 	cout << "-------------------test_warpAffine 7x9 180 degrees --------" << endl;
 	matWarpAffine(image7x9, result, center7x9, 180, 1, Point(0,0), Size(0,0));
 	cout << "180 " << matInfo(result) << endl << result << endl;
+	assert(result.rows == 7 && result.cols == 9);
 	uchar expected7x9_180[7][9] = {
 		79,78,77,76,75,74,73,72,71,
 		69,68,67,66,65,64,63,62,61,
@@ -325,6 +327,7 @@ static void test_warpAffine() {
 
 	cout << "-------------------test_warpAffine 7x9 270 degrees --------" << endl;
 	matWarpAffine(image7x9, result, center7x9, 270, 1, Point(0,0), Size(0,0));
+	assert(result.rows == 9 && result.cols == 7);
 	cout << "270 " << matInfo(result) << endl << result << endl;
 	uchar expected7x9_270[9][7] = {
 		71, 61, 51, 41, 31, 21, 11,
@@ -356,6 +359,7 @@ static void test_warpAffine() {
 	result = image6x8.clone();
 	matWarpAffine(result, result, center6x8, 90, 1, Point(0,0), Size(0,0));
 	cout << "90 " << matInfo(result) << endl << result << endl;
+	assert(result.rows == 8 && result.cols == 6);
 	uchar expected6x8_90[8][6] = {
 		18, 28, 38, 48, 58, 68, 
 		17, 27, 37, 47, 57, 67,
@@ -370,6 +374,7 @@ static void test_warpAffine() {
 	cout << "-------------------test_warpAffine 6x8 180 degrees --------" << endl;
 	matWarpAffine(image6x8, result, center6x8, 180, 1, Point(0,0), Size(0,0));
 	cout << "180 " << matInfo(result) << endl << result << endl;
+	assert(result.rows == 6 && result.cols == 8);
 	uchar expected6x8_180[6][8] = {
 		68,67,66,65,64,63,62,61,
 		58,57,56,55,54,53,52,51,
@@ -383,6 +388,7 @@ static void test_warpAffine() {
 	cout << "-------------------test_warpAffine 6x8 270 degrees --------" << endl;
 	matWarpAffine(image6x8, result, center6x8, 270, 1, Point(0,0), Size(0,0));
 	cout << "270 " << matInfo(result) << endl << result << endl;
+	assert(result.rows == 8 && result.cols == 6);
 	uchar expected6x8_270[8][6] = {
 		61, 51, 41, 31, 21, 11,
 		62, 52, 42, 32, 22, 12,
@@ -412,6 +418,7 @@ static void test_warpAffine() {
 	cout << "-------------------test_warpAffine 7x8 45 degrees --------" << endl;
 	matWarpAffine(image7x8, result, center7x8, 45, 1, Point(0,0), Size(0,0), BORDER_CONSTANT, Scalar(9));
 	cout << "45 " << matInfo(result) << endl << result << endl;
+	assert(result.rows == 10 && result.cols == 10);
 	uchar expected7x8_45[10][10] = {
 	  	9,  9,  9,  9,124,247, 71,  9,  9,  9,
 	  	9,  9,  9,124,215,109,247, 71,  9,  9,
