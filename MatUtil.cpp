@@ -85,3 +85,56 @@ void matWarpAffine(const Mat &image, Mat &result, Point2f center, double angle, 
 	result = resultLocal;
 }
 
+
+typedef enum {
+	BEFORE_INFLECTION,
+	AFTER_INFLECTION
+} MinMaxState;
+
+template<typename _Tp> _Tp _matMaxima(const cv::Mat &mat, std::vector<Point> &locations) {
+	for (int r=0; r < mat.rows; r++) {
+	  MinMaxState state = BEFORE_INFLECTION;
+		_Tp valLeft = mat.at<_Tp>(r,0);
+		for (int c=1; c < mat.cols; c++) {
+			_Tp val = mat.at<_Tp>(r,c);
+
+			if (val == valLeft) {
+				continue;
+			} else if (valLeft < val) {
+				if (state == BEFORE_INFLECTION) {
+					// n/a
+				} else {
+					state = BEFORE_INFLECTION;
+				}
+			} else { // valLeft > val
+				if (state == BEFORE_INFLECTION) {
+				  locations.push_back(Point(c-1,r));
+					state = AFTER_INFLECTION;
+				} else {
+					// n/a
+				}
+			}
+
+			valLeft = val;
+		}
+		if (state == BEFORE_INFLECTION) {
+			locations.push_back(Point(mat.cols-1,r));
+		}
+	}
+}
+
+void matMaxima(const cv::Mat &mat, std::vector<Point> &locations) {
+	assert(mat.isContinuous());
+	assert(mat.rows > 0 && mat.cols > 1);
+	assert(mat.type() == CV_8U || mat.type() == CV_32F);
+
+	if (mat.type() == CV_8U) {
+		_matMaxima<uchar>(mat, locations);
+	} else if (mat.type() == CV_32F) {
+		_matMaxima<float>(mat, locations);
+	}
+}
+
+
+void matMinima(const cv::Mat &mat, std::vector<Point> &locations) {
+}

@@ -5,7 +5,7 @@ project( firesight )
 SET(COMPILE_DEFINITIONS -Werror)
 SET(PROJECT_VERSION_MAJOR 0)
 SET(PROJECT_VERSION_MINOR 4)
-set(PROJECT_VERSION_PATCH 7)
+set(PROJECT_VERSION_PATCH 8)
 set(PROJECT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64")
@@ -56,7 +56,12 @@ add_executable(gencode gencode.cpp)
 add_executable(firesight FireSight.cpp)
 target_link_libraries(firesight libjansson.so lib_firesight.so ${OpenCV_LIBS} )
 
-add_executable(test test/test.cpp)
+add_executable(test 
+	test/test_warpAffine.cpp 
+	test/test_warpRing.cpp 
+	test/test_regionKeypoint.cpp 
+	test/test_matMaxima.cpp 
+	test/test.cpp)
 target_link_libraries(test libjansson.so lib_firesight.so ${OpenCV_LIBS} )
 
 INSTALL(TARGETS _firesight DESTINATION lib)

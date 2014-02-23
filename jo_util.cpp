@@ -108,7 +108,7 @@ namespace FireSight {
 		if (errMsg) {
 			LOGTRACE2("jo_shape(key:%s default:MORPH_ELLIPSE) -> %s", key, errMsg);
 		} else {
-			LOGTRACE2("jo_shape(key:%s default:MORPH_ELLIPSE) -> %s", key, result);
+			LOGTRACE2("jo_shape(key:%s default:MORPH_ELLIPSE) -> %d", key, result);
 		}
 		return result;
 	}
