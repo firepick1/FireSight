@@ -167,9 +167,88 @@ template<typename _Tp> _Tp _matMaxima(const cv::Mat &mat, std::vector<Point> &lo
 	}
 }
 
+template<typename _Tp> _Tp _matMinima(const cv::Mat &mat, std::vector<Point> &locations, _Tp rangeMin, _Tp rangeMax) {
+	int rEnd = mat.rows-1;
+	int cEnd = mat.cols-1;
+
+	// CHECK EACH ROW MAXIMA FOR LOCAL 2D MAXIMA
+	for (int r=0; r <= rEnd; r++) {
+	  MinMaxState state = BEFORE_INFLECTION;
+		_Tp curVal = mat.at<_Tp>(r,0);
+		for (int c=1; c <= cEnd; c++) {
+			_Tp val = mat.at<_Tp>(r,c);
+
+			if (val == curVal) {
+				continue;
+			} else if (curVal > val) {
+				if (state == BEFORE_INFLECTION) {
+					// n/a
+				} else {
+					state = BEFORE_INFLECTION;
+				}
+			} else { // curVal < val
+				if (state == BEFORE_INFLECTION) {
+					if (rangeMin <= curVal && curVal <= rangeMax) { // ROW MAXIMA
+						if (0<r && (mat.at<_Tp>(r-1,c-1) <= curVal || mat.at<_Tp>(r-1,c) <= curVal)) {
+							// cout << "reject:r-1 " << r << "," << c-1 << endl;
+						  // - x x
+							// - - -
+							// - - -
+						} else if (r < rEnd && (mat.at<_Tp>(r+1,c-1) < curVal || mat.at<_Tp>(r+1,c) < curVal)) {
+							// cout << "reject:r+1 " << r << "," << c-1 << endl;
+							// - - -
+							// - - -
+						  // - x x
+						} else if (1 < c && (0<r && mat.at<_Tp>(r-1,c-2) <= curVal || mat.at<_Tp>(r,c-2) < curVal || r < rEnd && mat.at<_Tp>(r+1,c-2) < curVal)) {
+							// cout << "reject:c-2 " << r << "," << c-1 << endl;
+							// x - -
+							// x - -
+						  // x - -
+						} else {
+							locations.push_back(Point(c-1,r));
+						}
+					}
+					state = AFTER_INFLECTION;
+				} else {
+					// n/a
+				}
+			}
+
+			curVal = val;
+		}
+
+		// PROCESS END OF ROW 
+		if (state == BEFORE_INFLECTION) {
+			if (rangeMin <= curVal && curVal <= rangeMax) { // ROW MAXIMA
+				if (0<r && (mat.at<_Tp>(r-1,cEnd-1)<=curVal || mat.at<_Tp>(r-1,cEnd)<=curVal)) {
+				  // cout << "rejectEnd:r-1 " << r << "," << cEnd-1 << endl;
+					// - x x
+					// - - -
+					// - - -
+				} else if (r<rEnd && (mat.at<_Tp>(r+1,cEnd-1)<curVal || mat.at<_Tp>(r+1,cEnd)<curVal)) {
+				  // cout << "rejectEnd:r+1 " << r << "," << cEnd-1 << endl;
+					// - - -
+					// - - -
+					// - x x
+				} else if (1 < r && mat.at<_Tp>(r-1,cEnd-2) <= curVal || mat.at<_Tp>(r,cEnd-2) < curVal || r < rEnd && mat.at<_Tp>(r+1,cEnd-2) < curVal) {
+				  // cout << "rejectEnd:cEnd-2 " << r << "," << cEnd-1 << endl;
+					// x - -
+					// x - -
+					// x - -
+				} else {
+					locations.push_back(Point(cEnd,r));
+				}
+			}
+		}
+	}
+}
+
 /**
  * Return vector of Points indicating the locations of local maxima.
- * Multi-point maxima are represented with an upper-right-most point.
+ * Multi-point maxima with convex shapes are represented with an upper-right-most point.
+ * Concave maxima sets don't fare as well and multiple points along the top of the point set will be reported.
+ * For CV_32F matrices, this is infrequent, however, the situation may arise for CV_8U matrices and
+ * the caller may need to process the returned locations further for centroids, etc.
  */
 void matMaxima(const cv::Mat &mat, std::vector<Point> &locations, float rangeMin, float rangeMax) {
 	assert(mat.isContinuous());
@@ -187,4 +266,15 @@ void matMaxima(const cv::Mat &mat, std::vector<Point> &locations, float rangeMin
 
 
 void matMinima(const cv::Mat &mat, std::vector<Point> &locations, float rangeMin, float rangeMax) {
+	assert(mat.isContinuous());
+	assert(mat.channels()==1);
+	assert(mat.rows > 0 && mat.cols > 1);
+	assert(mat.type() == CV_8U || mat.type() == CV_32F);
+
+	LOGTRACE3("matMinima(%s,,%f,%f)", matInfo(mat).c_str(), rangeMin, rangeMax);
+	if (mat.type() == CV_8U) {
+		_matMinima<uchar>(mat, locations, (uchar)std::max(0.0f, rangeMin), (uchar)std::min(255.0f, rangeMax));
+	} else if (mat.type() == CV_32F) {
+		_matMinima<float>(mat, locations, rangeMin, rangeMax);
+	}
 }

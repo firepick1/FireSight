@@ -105,4 +105,93 @@ void test_matMaxima() {
 }
 
 void test_matMinima() {
+	vector<Point> locations;
+	vector<Point> locationsExpected;
+
+	uchar dataRows[][6] = {
+		33,99,99,99,99, 33, // 0
+		99,99,99,99,99, 99, // 1
+		33,33,99,99,33, 33, // 2
+		99,99,99,99,99, 99, // 3
+		33,33,99,99,33, 33, // 4
+		99,99,99,99,99, 99, // 5
+		99, 33,99,99,33,99, // 6
+		99,99,99,99,99, 99, // 7
+		99, 33,22,22,33,99, // 8
+		99,99,99,99,99, 99, // 9
+		99, 33,22,33,22,99, // 10
+		99,99,99,99,99, 99, // 33
+		99, 22,33,22,33,99, // 12
+		99,99,99,99,99, 99, // 13
+		99, 33,33,33,22,22, // 14
+		99,99,99,99,99, 99, // 15
+		99, 22,22,33,33,33 // 16
+	};
+	Mat matRows(17,6,CV_8U, dataRows);
+	cout << "-----test_matMinima dataRows " << matInfo(matRows) << endl << matRows << endl;
+	locations.clear();
+	matMinima(matRows, locations, 1, 255);
+	Point expectedDataRows[] = {
+		Point(0, 0), Point(5, 0), 
+		Point(1, 2), Point(5, 2), 
+		Point(1, 4), Point(5, 4), 
+		Point(1, 6), Point(4, 6), 
+		Point(3, 8), 
+		Point(2,10), Point(4,10), 
+		Point(1,12), Point(3,12), 
+		Point(5,14), 
+		Point(2,16)
+	};
+	for (int i = 0; i < sizeof(expectedDataRows)/sizeof(Point); i++) {
+		cout << "expected[" << i << "]:" << expectedDataRows[i] << " actual[" << i << "]:" << locations[i] << endl;
+		assert(locations[i] == expectedDataRows[i]);
+	}
+	assert(locations.size() == sizeof(expectedDataRows)/sizeof(Point));
+
+	uchar data2DEquals[][5] = {
+		11,99,11,99,11, // 0
+		99,11,99,11,99, // 1
+		11,99,11,99,11, // 2
+		99,11,99,11,99, // 3
+		11,99,11,99,11  // 4
+	};
+	Mat mat2DEquals(5,5,CV_8U, data2DEquals);
+	cout << "-----test_matMinima data2DEquals " << matInfo(mat2DEquals) << endl << mat2DEquals << endl;
+	locations.clear();
+	matMinima(mat2DEquals, locations, 1, 255);
+	Point expected2DEquals[] = {
+		Point(0, 0), Point(2, 0), Point(4, 0)
+	};
+	for (int i = 0; i < sizeof(expected2DEquals)/sizeof(Point); i++) {
+		cout << "expected[" << i << "]:" << expected2DEquals[i] << " actual[" << i << "]:" << locations[i] << endl;
+		assert(locations[i] == expected2DEquals[i]);
+	}
+	assert(locations.size() == sizeof(expected2DEquals)/sizeof(Point));
+
+	uchar data2DBorder[][8] = {
+	// 0  1  2  3  4  5  6  7
+		22,99,99,33,22,99,99,22, // 0
+		99,22,99,22,33,99,22,99, // 1
+		99,99,33,33,33,33,99,99, // 2
+		33,22,33,22,22,33,22,33, // 3
+		22,33,33,22,22,33,33,22, // 4
+		99,99,33,33,33,33,99,99, // 5
+		99,22,99,22,33,99,22,99, // 6
+		22,99,99,33,22,99,99,22  // 7
+	};
+	Mat mat2DBorder(8,8,CV_8U, data2DBorder);
+	cout << "-----test_matMinima data2DBorder " << matInfo(mat2DBorder) << endl << mat2DBorder << endl;
+	locations.clear();
+	matMinima(mat2DBorder, locations, 1, 255);
+	Point expected2DBorder[] = {
+		Point(0, 0), Point(4, 0), Point(7, 0),
+		Point(1, 3), Point(4, 3), Point(6, 3),
+		Point(1, 6), Point(3, 6), Point(6, 6)
+	};
+	for (int i = 0; i < sizeof(expected2DBorder)/sizeof(Point); i++) {
+		cout << "expected[" << i << "]:" << expected2DBorder[i] << " actual[" << i << "]:" << locations[i] << endl;
+		assert(locations[i] == expected2DBorder[i]);
+	}
+	assert(locations.size() == sizeof(expected2DBorder)/sizeof(Point));
 }
+

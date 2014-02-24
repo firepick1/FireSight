@@ -43,109 +43,37 @@ static void dftShift(Mat &image, const char *&errMsg) {
 	tmp.copyTo(q3);
 }
 
-static void findMatches(const Mat &result, bool isMin, float threshold, float corr, int separation, 
-	vector<Point> &matches, float &rejectedMin, float &rejectedMax, int &candidates, float &maxVal) 
-{
-	assert(result.isContinuous());
-	assert(result.channels() == 1);
-	maxVal = *max_element(result.begin<float>(),result.end<float>());
-	float minVal = *min_element(result.begin<float>(),result.end<float>());
-	rejectedMax = -1;
-	rejectedMin = maxVal+1;
-	candidates = 0;
-	int rrows = result.rows;
-	int rcols = result.cols;
-	if (isMin && minVal <= threshold || !isMin && threshold <= maxVal) { // Filter matches
-		int rDelta = separation/2; 
-		int cDelta = separation/2; 
-		float rangeMin = isMin ? 0 : corr * maxVal;
-		float rangeMax = isMin ? corr * maxVal : maxVal;
-		for (int r=0; r<rrows; r++) {
-			for (int c=0; c<rcols; c++) {
-				float val = result.at<float>(r,c);
-				bool isOverlap = false;
-				if (val < rangeMin) {
-					if (val > rejectedMax) {
-						rejectedMax = val;
-					}
-				} else if (val > rangeMax) {
-					if (val < rejectedMin) {
-						rejectedMin = val;
-					}
-				} else {
-					for (int iMatch=0; iMatch<matches.size(); iMatch++ ) {
-						int cx = matches[iMatch].x;
-						int cy = matches[iMatch].y;
-						if (cx-cDelta < c && c < cx+cDelta && cy-rDelta < r && r < cy+rDelta) {
-							isOverlap = true;
-							candidates++;
-							if (c > result.at<float>(cy, cx)) {
-								//LOGTRACE3("findMatches() matches[%d] updated (%d,%d)", iMatch, c, r);
-								matches[iMatch].x = c;
-								matches[iMatch].y = r;
-							}
-							break;
-						}
-					}
-					if (!isOverlap) {
-						LOGTRACE3("findMatches() matches[%d] = (%d,%d)", matches.size(), c, r);
-						matches.push_back(Point(c,r));
-						candidates++;
-					}
-				}
-			}
-		}
-	} else {
-		rejectedMax = maxVal;
-		rejectedMin = minVal;
-		LOGTRACE("findMatches() No match (maxVal is below threshold)");
-	}
-}
-
 static void modelMatches(Point offset, const Mat &tmplt, const Mat &result, const vector<float> &angles, 
-	const vector<Point> &matches, json_t *pStageModel, int candidates, float maxVal, float rejectedMin, float rejectedMax, bool isMin, int dbg) 
+	const vector<Point> &matches, json_t *pStageModel, float maxVal, bool isMin) 
 {
 	LOGTRACE1("modelMatches(%d)", matches.size());
 	json_t *pRects = json_array();
 	assert(pRects);
-	if (dbg&4) {
-		for (int iMatch=0; iMatch<matches.size(); iMatch++) {
-			int cx = matches[iMatch].x;
-			int cy = matches[iMatch].y;
-			LOGTRACE2("modelMatches() matches(%d,%d)", cx, cy);
-			float val = result.at<float>(cy,cx);
-			json_t *pRect = json_object();
-			assert(pRect);
-			json_object_set(pRect, "x", json_real(cx+offset.x));
-			json_object_set(pRect, "y", json_real(cy+offset.y));
-			json_object_set(pRect, "width", json_real(tmplt.cols));
-			json_object_set(pRect, "height", json_real(tmplt.rows));
-			if (angles.size() == 1) {
-				json_object_set(pRect, "angle", json_real(-angles[0]));
-			}
-			json_object_set(pRect, "corr", json_real(val/maxVal));
-			json_array_append(pRects, pRect);
+	for (int iMatch=0; iMatch<matches.size(); iMatch++) {
+		int cx = matches[iMatch].x;
+		int cy = matches[iMatch].y;
+		LOGTRACE2("modelMatches() matches(%d,%d)", cx, cy);
+		float val = result.at<float>(cy,cx);
+		json_t *pRect = json_object();
+		assert(pRect);
+		json_object_set(pRect, "x", json_real(cx+offset.x));
+		json_object_set(pRect, "y", json_real(cy+offset.y));
+		json_object_set(pRect, "width", json_real(tmplt.cols));
+		json_object_set(pRect, "height", json_real(tmplt.rows));
+		if (angles.size() == 1) {
+			json_object_set(pRect, "angle", json_real(-angles[0]));
 		}
+		json_object_set(pRect, "corr", json_real(val/maxVal));
+		json_array_append(pRects, pRect);
 	}
-	if (dbg&8) {
-		json_object_set(pStageModel, "rects", pRects);
-		json_object_set(pStageModel, "maxVal", json_real(maxVal));
-		if (isMin) {
-			json_object_set(pStageModel, "rejectedMin", json_real(rejectedMin));
-			json_object_set(pStageModel, "rejectedCorr", json_real(rejectedMin/maxVal));
-		} else {
-			json_object_set(pStageModel, "rejectedMax", json_real(rejectedMax));
-			json_object_set(pStageModel, "rejectedCorr", json_real(rejectedMax/maxVal));
-		}
-		json_object_set(pStageModel, "candidates", json_integer(candidates));
-		json_object_set(pStageModel, "matches", json_integer(matches.size()));
-	}
+	json_object_set(pStageModel, "rects", pRects);
+	json_object_set(pStageModel, "maxVal", json_real(maxVal));
+	json_object_set(pStageModel, "matches", json_integer(matches.size()));
 	LOGTRACE("modelMatches() end");
 }
 
 bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-	int dbg = jo_int(pStage, "dbg", 3);
   const char * methodStr = jo_string(pStage, "method", "CV_TM_CCOEFF_NORMED");
   const char *tmpltPath = jo_string(pStage, "template", NULL);
 	float threshold = jo_double(pStage, "threshold", 0.7);
@@ -261,22 +189,23 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 		matchTemplate(imageSource, tmplt, result, method);
 		LOGTRACE4("apply_matchTemplate() matchTemplate(%s,%s,%s,%d)", 
 			matInfo(imageSource).c_str(), matInfo(tmplt).c_str(), matInfo(result).c_str(), method);
+
 		vector<Point> matches;
-		float rejectedMin;
-		float rejectedMax;
-		int candidates;
-		float maxVal = 0;
+		float maxVal = *max_element(result.begin<float>(),result.end<float>());
 		bool isMin = method == CV_TM_SQDIFF || method == CV_TM_SQDIFF_NORMED;
-		if (dbg & 1) {
-			findMatches(result, isMin, threshold, corr, separation, matches, rejectedMin, rejectedMax, candidates, maxVal);
+		if (isMin) {
+			float rangeMin = 0;
+			float rangeMax = corr * maxVal;
+			matMinima(result, matches, rangeMin, rangeMax);
+		} else {
+			float rangeMin = corr * maxVal;
+			float rangeMax = maxVal;
+			matMaxima(result, matches, rangeMin, rangeMax);
 		}
 
 		int xOffset = isOutputCorr ? 0 : tmplt.cols/2;
 		int yOffset = isOutputCorr ? 0 : tmplt.rows/2;
-		if (dbg&2) {
-			modelMatches(Point(xOffset, yOffset), tmplt, result, angles, matches, pStageModel,
-				candidates, maxVal, rejectedMin, rejectedMax, isMin, dbg);
-		}
+		modelMatches(Point(xOffset, yOffset), tmplt, result, angles, matches, pStageModel, maxVal, isMin);
 
 		if (isOutputCorr) {
 			LOGTRACE("apply_matchTemplate() normalize()");
