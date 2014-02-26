@@ -13,11 +13,11 @@
 
 using namespace cv;
 using namespace std;
-using namespace FireSight;
+using namespace firesight;
 
 #define MAX_RADIUS 128
 
-namespace FireSight {
+namespace firesight {
 	extern short ringMap[MAX_RADIUS][MAX_RADIUS];
 }
 

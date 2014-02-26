@@ -1,0 +1,45 @@
+#! /bin/bash
+
+echo ========== TEST lib_firesight.so =============
+echo target/test 
+target/test
+if [ $? -ne 0 ] 
+then 
+	echo FAILED: target/test
+	exit 1
+fi
+
+echo
+echo =========== TEST firesight =============
+echo target/firesight -i img/pcb.jpg -p json/matchCCOEFF_NORMED.json -o target/matchCCOEFF_NORMED.jpg
+target/firesight -i img/pcb.jpg -p json/matchCCOEFF_NORMED.json -o target/matchCCOEFF_NORMED.jpg > target/matchCCOEFF_NORMED-model.json
+cmp target/matchCCOEFF_NORMED.jpg img/matchCCOEFF_NORMED.jpg
+if [ $? -ne 0 ] 
+then 
+	echo FAILED: cmp target/matchCCOEFF_NORMED.jpg img/matchCCOEFF_NORMED.jpg
+	exit 1
+fi
+diff target/matchCCOEFF_NORMED-model.json test
+if [ $? != 0 ] 
+then 
+	echo FAILED: diff target/matchCCOEFF_NORMED-model.json test
+	exit 1
+fi
+echo OK
+
+echo target/firesight -i img/pcb.jpg -p json/match45.json -o target/match45.jpg
+target/firesight -i img/pcb.jpg -p json/match45.json -o target/match45.jpg > target/match45-model.json
+cmp target/match45.jpg img/match45.jpg
+if [ $? -ne 0 ] 
+then 
+	echo FAILED: cmp target/match45.jpg img/match45.jpg
+	exit 1
+fi
+diff target/match45-model.json test
+if [ $? != 0 ] 
+then 
+	echo FAILED: diff target/match45-model.json test
+	exit 1
+fi
+echo OK
+

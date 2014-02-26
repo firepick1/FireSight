@@ -9,11 +9,17 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
 #include "MatUtil.hpp"
-#include "test.hpp"
 
 using namespace cv;
 using namespace std;
-using namespace FireSight;
+using namespace firesight;
+
+extern void test_matRing();
+extern void test_regionKeypoint(); 
+extern void test_warpAffine(); 
+extern void test_matMaxima(); 
+extern void test_matMinima(); 
+extern void test_jo_util();
 
 int main(int argc, char *argv[])
 {
@@ -25,4 +31,5 @@ int main(int argc, char *argv[])
 	test_warpAffine();
 	test_matMaxima();
 	test_matMinima();
+	test_jo_util();
 }

@@ -13,7 +13,7 @@
 
 using namespace cv;
 using namespace std;
-using namespace FireSight;
+using namespace firesight;
 
 typedef enum{UI_STILL, UI_VIDEO} UIMode;
 

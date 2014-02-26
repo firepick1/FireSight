@@ -9,7 +9,7 @@
 
 using namespace cv;
 using namespace std;
-using namespace FireSight;
+using namespace firesight;
 
 
 MatchedRegion::MatchedRegion(Range xRange, Range yRange, Point2f average, int pointCount, float covar) {

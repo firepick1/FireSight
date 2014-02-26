@@ -1,0 +1,30 @@
+{
+  "FireSight":{
+    "version":"0.5.1",
+    "url":"https://github.com/firepick1/FireSight"
+  },
+  "s1":{},
+  "find-rects":{
+    "rects":[
+      {
+        "x":547.0,
+        "y":137.0,
+        "width":29.0,
+        "height":37.0,
+        "angle":-45.0,
+        "corr":0.92325830459594727
+      },
+      {
+        "x":511.0,
+        "y":173.0,
+        "width":29.0,
+        "height":37.0,
+        "angle":-45.0,
+        "corr":1.0
+      }
+    ],
+    "maxVal":0.89197766780853271,
+    "matches":2
+  },
+  "s3":{}
+}

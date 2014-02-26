@@ -9,7 +9,9 @@
 using namespace cv;
 using namespace std;
 
-namespace FireSight {
+namespace firesight {
+
+	typedef map<string,const char *> ArgMap;
 
 	typedef struct MatchedRegion {
 		Range xRange;
@@ -82,6 +84,7 @@ namespace FireSight {
 		public: // fields
 			Mat image;
 			map<string, Mat> imageMap;
+			ArgMap variables;
 	} Model;
 
 	typedef class Pipeline {
@@ -172,6 +175,6 @@ namespace FireSight {
 
 	} Pipeline;
 
-} // namespace FireSight
+} // namespace firesight
 
 #endif

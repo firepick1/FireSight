@@ -12,7 +12,7 @@
 
 using namespace cv;
 using namespace std;
-using namespace FireSight;
+using namespace firesight;
 
 
 bool Pipeline::apply_proto(json_t *pStage, json_t *pStageModel, Model &model) {

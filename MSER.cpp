@@ -10,7 +10,7 @@
 
 using namespace cv;
 using namespace std;
-using namespace FireSight;
+using namespace firesight;
 
 typedef enum {DETECT_NONE, DETECT_KEYPOINTS, DETECT_RECTS} Detect;
 

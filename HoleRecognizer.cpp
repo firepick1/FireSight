@@ -9,7 +9,7 @@
 
 using namespace cv;
 using namespace std;
-using namespace FireSight;
+using namespace firesight;
 
 HoleRecognizer::HoleRecognizer(float minDiameter, float maxDiameter) {
 	maxDiam = maxDiameter;

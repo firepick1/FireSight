@@ -9,7 +9,7 @@
 
 using namespace cv;
 using namespace std;
-using namespace FireSight;
+using namespace firesight;
 
 Model::Model() {
   pJson = json_object();

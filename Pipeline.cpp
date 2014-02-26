@@ -14,7 +14,7 @@
 
 using namespace cv;
 using namespace std;
-using namespace FireSight;
+using namespace firesight;
 
 bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
 	if (errMsg) {
@@ -42,21 +42,21 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
   double angle = jo_double(pStage, "angle", 0);
   double dx = jo_double(pStage, "dx", (scale-1)*model.image.cols/2.0);
   double dy = jo_double(pStage, "dy", (scale-1)*model.image.rows/2.0);
-	const char* borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE");
+	string  borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE");
 	int borderMode;
 
 	if (!errMsg) {
-		if (strcmp("BORDER_CONSTANT", borderModeStr) == 0) {
+		if (borderModeStr.compare("BORDER_CONSTANT") == 0) {
 			borderMode = BORDER_CONSTANT;
-		} else if (strcmp("BORDER_REPLICATE", borderModeStr) == 0) {
+		} else if (borderModeStr.compare("BORDER_REPLICATE") == 0) {
 			borderMode = BORDER_REPLICATE;
-		} else if (strcmp("BORDER_REFLECT", borderModeStr) == 0) {
+		} else if (borderModeStr.compare("BORDER_REFLECT") == 0) {
 			borderMode = BORDER_REFLECT;
-		} else if (strcmp("BORDER_REFLECT_101", borderModeStr) == 0) {
+		} else if (borderModeStr.compare("BORDER_REFLECT_101") == 0) {
 			borderMode = BORDER_REFLECT_101;
-		} else if (strcmp("BORDER_REFLECT101", borderModeStr) == 0) {
+		} else if (borderModeStr.compare("BORDER_REFLECT101") == 0) {
 			borderMode = BORDER_REFLECT101;
-		} else if (strcmp("BORDER_WRAP", borderModeStr) == 0) {
+		} else if (borderModeStr.compare("BORDER_WRAP") == 0) {
 			borderMode = BORDER_WRAP;
 		} else {
 			errMsg = "Expected borderMode: BORDER_CONSTANT, BORDER_REPLICATE, BORDER_REFLECT, BORDER_REFLECT_101, BORDER_WRAP";
@@ -82,16 +82,16 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 }
 
 bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model) {
-  const char *stageStr = jo_string(pStage, "stage", NULL);
+  string stageStr = jo_string(pStage, "stage");
 	const char *errMsg = NULL;
 
-	if (!stageStr) {
+	if (stageStr.empty()) {
 		errMsg = "Expected name of stage for image";
 	} else {
-		model.image = model.imageMap[stageStr];
+		model.image = model.imageMap[stageStr.c_str()];
 		if (!model.image.rows || !model.image.cols) {
 			model.image = model.imageMap["input"].clone();
-			LOGTRACE1("Could not locate stage image '%s', using input image", stageStr);
+			LOGTRACE1("Could not locate stage image '%s', using input image", stageStr.c_str());
 		}
 	}
 
@@ -99,13 +99,13 @@ bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &mode
 }
 
 bool Pipeline::apply_imread(json_t *pStage, json_t *pStageModel, Model &model) {
-  const char *path = jo_string(pStage, "path", NULL);
+  string path = jo_string(pStage, "path");
 	const char *errMsg = NULL;
 
-	if (!path) {
+	if (path.empty()) {
 		errMsg = "expected path for imread";
 	} else {
-		model.image = imread(path, CV_LOAD_IMAGE_COLOR);
+		model.image = imread(path.c_str(), CV_LOAD_IMAGE_COLOR);
 		if (model.image.data) {
 			json_object_set(pStageModel, "rows", json_integer(model.image.rows));
 			json_object_set(pStageModel, "cols", json_integer(model.image.cols));
@@ -120,13 +120,13 @@ bool Pipeline::apply_imread(json_t *pStage, json_t *pStageModel, Model &model) {
 
 bool Pipeline::apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-  const char *path = jo_string(pStage, "path", NULL);
+  string path = jo_string(pStage, "path");
 	const char *errMsg = NULL;
 
-	if (!path) {
-		errMsg = "expected path for imwrite";
+	if (path.empty()) {
+		errMsg = "Expected path for imwrite";
 	} else {
-		bool result = imwrite(path, model.image);
+		bool result = imwrite(path.c_str(), model.image);
 		json_object_set(pStageModel, "result", json_boolean(result));
 	}
 
@@ -135,18 +135,18 @@ bool Pipeline::apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model) 
 
 bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-  const char *codeStr = jo_string(pStage, "code", "CV_BGR2GRAY");
+  string codeStr = jo_string(pStage, "code", "CV_BGR2GRAY");
 	int dstCn = jo_int(pStage, "dstCn", 0);
 	const char *errMsg = NULL;
 	int code = CV_BGR2GRAY;
 
-	if (strcmp("CV_RGB2GRAY",codeStr)==0) {
+	if (codeStr.compare("CV_RGB2GRAY")==0) {
 	  code = CV_RGB2GRAY;
-	} else if (strcmp("CV_BGR2GRAY",codeStr)==0) {
+	} else if (codeStr.compare("CV_BGR2GRAY")==0) {
 	  code = CV_BGR2GRAY;
-	} else if (strcmp("CV_GRAY2BGR",codeStr)==0) {
+	} else if (codeStr.compare("CV_GRAY2BGR")==0) {
 	  code = CV_GRAY2BGR;
-	} else if (strcmp("CV_GRAY2RGB",codeStr)==0) {
+	} else if (codeStr.compare("CV_GRAY2RGB")==0) {
 	  code = CV_GRAY2RGB;
 	} else {
 	  errMsg = "code unsupported";
@@ -166,8 +166,8 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
 	const char *errMsg = NULL;
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
 	int thickness = jo_int(pStage, "thickness", 2);
-	const char* rectsModelName = jo_string(pStage, "model", "");
-	json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName);
+	string rectsModelName = jo_string(pStage, "model");
+	json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName.c_str());
 
 	if (!json_is_object(pRectsModel)) {
 		errMsg = "Expected name of stage model with rects";
@@ -222,12 +222,12 @@ bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &m
 	const char *errMsg = NULL;
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
 	int flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG|DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-	const char *modelName = jo_string(pStage, "model", NULL);
-	json_t *pKeypointStage = json_object_get(model.getJson(false), modelName);
+	string modelName = jo_string(pStage, "model");
+	json_t *pKeypointStage = json_object_get(model.getJson(false), modelName.c_str());
 
 	if (!pKeypointStage) {
-		const char *keypointStageName = jo_string(pStage, "keypointStage", NULL);
-		pKeypointStage = json_object_get(model.getJson(false), keypointStageName);
+		string keypointStageName = jo_string(pStage, "keypointStage");
+		pKeypointStage = json_object_get(model.getJson(false), keypointStageName.c_str());
 	}
 
 	if (!errMsg && flags < 0 || 7 < flags) {
@@ -455,7 +455,7 @@ int Pipeline::parseCvType(const char *typeStr, const char *&errMsg) {
 bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, Model &model) {
 	double width = jo_double(pStage, "width", model.image.cols);
 	double height = jo_double(pStage, "height", model.image.rows);
-	const char *typeStr = jo_string(pStage, "type", "CV_8UC3");
+	string typeStr = jo_string(pStage, "type", "CV_8UC3");
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(0));
 	const char *errMsg = NULL;
 	int type = CV_8UC3;
@@ -467,7 +467,7 @@ bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, Model &model) {
 	} 
 	
 	if (!errMsg) {
-		type = parseCvType(typeStr, errMsg);
+		type = parseCvType(typeStr.c_str(), errMsg);
 	}
 
 	if (!errMsg) {
@@ -553,17 +553,17 @@ bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model
 	validateImage(model.image);
 	double alpha = jo_double(pStage, "alpha", 1);
 	double delta = jo_double(pStage, "delta", 0);
-	const char *transform = jo_string(pStage, "transform", NULL);
-	const char *rTypeStr = jo_string(pStage, "rType", "CV_8U");
+	string transform = jo_string(pStage, "transform");
+	string rTypeStr = jo_string(pStage, "rType", "CV_8U");
 	const char *errMsg = NULL;
 	int rType;
 
 	if (!errMsg) {
-		rType = parseCvType(rTypeStr, errMsg);
+		rType = parseCvType(rTypeStr.c_str(), errMsg);
 	}
 
-	if (transform) {
-		if (strcmp("log", transform) == 0) {
+	if (!transform.empty()) {
+		if (transform.compare("log") == 0) {
 			LOGTRACE("log()");
 			log(model.image, model.image);
 		}
@@ -584,7 +584,7 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
 	int precision = jo_int(pStage, "precision", 1);
 	int width = jo_int(pStage, "width", 5);
 	int channel = jo_int(pStage, "channel", 0);
-	const char *comment = jo_string(pStage, "comment", NULL);
+	string comment = jo_string(pStage, "comment");
 	const char *errMsg = NULL;
 
 	if (row<0 || col<0 || rows<=0 || cols<=0) {
@@ -601,7 +601,7 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
 		int depth = model.image.depth();
 		cout << matInfo(model.image);
 		cout << " show:[" << row << "-" << row+rows-1 << "," << col << "-" << col+cols-1 << "]";
-		if (comment) {
+		if (comment.size()) {
 			cout << " " << comment;
 		}
 		cout << endl;
@@ -675,17 +675,17 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
 bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model) {
 	double alpha = jo_double(pStage, "alpha", 1);
 	double beta = jo_double(pStage, "beta", 0);
-	const char * normTypeStr = jo_string(pStage, "normType", "NORM_L2");
+	string normTypeStr = jo_string(pStage, "normType", "NORM_L2");
 	int normType  = NORM_L2;
 	const char *errMsg = NULL;
 
-	if (strcmp("NORM_L2",normTypeStr) == 0) {
+	if (normTypeStr.compare("NORM_L2") == 0) {
 		normType = NORM_L2;
-	} else if (strcmp("NORM_L1",normTypeStr) == 0) {
+	} else if (normTypeStr.compare("NORM_L1") == 0) {
 		normType = NORM_L1;
-	} else if (strcmp("NORM_MINMAX",normTypeStr) == 0) {
+	} else if (normTypeStr.compare("NORM_MINMAX") == 0) {
 		normType = NORM_MINMAX;
-	} else if (strcmp("NORM_INF",normTypeStr) == 0) {
+	} else if (normTypeStr.compare("NORM_INF") == 0) {
 		normType = NORM_INF;
 	} else {
 		errMsg = "Unknown normType";
@@ -817,34 +817,36 @@ bool Pipeline::processModel(Model &model) {
 	json_t *pStage;
 	char debugBuf[255];
 	json_array_foreach(pPipeline, index, pStage) {
-		const char *pOp = jo_string(pStage, "op", "");
-		const char *pName = jo_string(pStage, "name", NULL);
-		bool isSaveImage = pName != NULL;
-		if (!pName || strlen(pName)==0) {
+		string pOp = jo_string(pStage, "op");
+		string pName = jo_string(pStage, "name");
+		bool isSaveImage = true;
+		if (pName.empty()) {
 			char defaultName[100];
 			snprintf(defaultName, sizeof(defaultName), "s%d", index+1);
 			pName = defaultName;
+		  isSaveImage = false;
 		}
-		const char *pComment = jo_string(pStage, "comment", "");
+		string comment = jo_string(pStage, "comment", "");
 		json_t *pStageModel = json_object();
-		json_object_set(model.getJson(false), pName, pStageModel);
-		snprintf(debugBuf,sizeof(debugBuf), "process() %s op:%s stage:%s %s", matInfo(model.image).c_str(), pOp, pName, pComment);
-		if (strncmp(pOp, "nop", 3)==0) {
+		json_object_set(model.getJson(false), pName.c_str(), pStageModel);
+		snprintf(debugBuf,sizeof(debugBuf), "process() %s op:%s stage:%s %s", 
+			matInfo(model.image).c_str(), pOp.c_str(), pName.c_str(), comment.c_str());
+		if (strncmp(pOp.c_str(), "nop", 3)==0) {
 			LOGTRACE1("%s (NO ACTION TAKEN)", debugBuf);
-		} else if (strcmp(pName, "input")==0) {
-			ok = logErrorMessage("\"input\" is the reserved stage name for the input image", pName, pStage);
+		} else if (pName.compare("input")==0) {
+			ok = logErrorMessage("\"input\" is the reserved stage name for the input image", pName.c_str(), pStage);
 		} else {
 			LOGDEBUG1("%s", debugBuf);
 			try {
-			  const char *errMsg = dispatch(pOp, pStage, pStageModel, model);
-				ok = logErrorMessage(errMsg, pName, pStage);
+			  const char *errMsg = dispatch(pOp.c_str(), pStage, pStageModel, model);
+				ok = logErrorMessage(errMsg, pName.c_str(), pStage);
 				if (isSaveImage) {
-					model.imageMap[pName] = model.image.clone();
+					model.imageMap[pName.c_str()] = model.image.clone();
 				}
 			} catch (runtime_error &ex) {
-				ok = logErrorMessage(ex.what(), pName, pStage);
+				ok = logErrorMessage(ex.what(), pName.c_str(), pStage);
 			} catch (cv::Exception &ex) {
-				ok = logErrorMessage(ex.what(), pName, pStage);
+				ok = logErrorMessage(ex.what(), pName.c_str(), pStage);
 			}
 		} //if-else (pOp)
 		if (!ok) { 

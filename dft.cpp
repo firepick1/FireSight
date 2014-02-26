@@ -11,7 +11,7 @@
 
 using namespace cv;
 using namespace std;
-using namespace FireSight;
+using namespace firesight;
 
 static void dftMirror(Mat &image) {
 	int cx = image.cols/2;
@@ -74,12 +74,12 @@ static void modelMatches(Point offset, const Mat &tmplt, const Mat &result, cons
 
 bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-  const char * methodStr = jo_string(pStage, "method", "CV_TM_CCOEFF_NORMED");
-  const char *tmpltPath = jo_string(pStage, "template", NULL);
+  string methodStr = jo_string(pStage, "method", "CV_TM_CCOEFF_NORMED");
+  string tmpltPath = jo_string(pStage, "template");
 	float threshold = jo_double(pStage, "threshold", 0.7);
 	float corr = jo_double(pStage, "corr", 0.85);
-	const char* outputStr = jo_string(pStage, "output", "current");
-	const char* borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE");
+	string outputStr = jo_string(pStage, "output", "current");
+	string borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE");
 	json_t *pAngles = json_object_get(pStage, "angles");
 	if (!pAngles) {
 		pAngles = json_object_get(pStage, "angle");
@@ -89,21 +89,21 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 	int method;
 	Mat tmplt;
 	int borderMode;
-	bool isOutputCurrent = strcmp(outputStr, "current") == 0;
-	bool isOutputInput = strcmp(outputStr, "input") == 0;
-	bool isOutputCorr = strcmp(outputStr, "corr") == 0;
+	bool isOutputCurrent = outputStr.compare("current") == 0;
+	bool isOutputInput = outputStr.compare("input") == 0;
+	bool isOutputCorr = outputStr.compare("corr") == 0;
 	vector<float> angles;
 
-	if (!tmpltPath) {
+	if (tmpltPath.empty()) {
 		errMsg = "Expected template path for imread";
 	} else {
 		if (model.image.channels() == 1) {
-			tmplt = imread(tmpltPath, CV_LOAD_IMAGE_GRAYSCALE);
+			tmplt = imread(tmpltPath.c_str(), CV_LOAD_IMAGE_GRAYSCALE);
 		} else {
-			tmplt = imread(tmpltPath, CV_LOAD_IMAGE_COLOR);
+			tmplt = imread(tmpltPath.c_str(), CV_LOAD_IMAGE_COLOR);
 		}
 		if (tmplt.data) {
-			LOGTRACE2("apply_matchTemplate(%s) %s", tmpltPath, matInfo(tmplt).c_str());
+			LOGTRACE2("apply_matchTemplate(%s) %s", tmpltPath.c_str(), matInfo(tmplt).c_str());
 			if (model.image.rows<tmplt.rows || model.image.cols<tmplt.cols) {
 				errMsg = "Expected template smaller than image to match";
 			}
@@ -135,17 +135,17 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 	int separation = jo_int(pStage, "separation", min(tmplt.cols,tmplt.rows));
 
 	if (!errMsg) {
-		if (strcmp("BORDER_CONSTANT", borderModeStr) == 0) {
+		if (borderModeStr.compare("BORDER_CONSTANT") == 0) {
 			borderMode = BORDER_CONSTANT;
-		} else if (strcmp("BORDER_REPLICATE", borderModeStr) == 0) {
+		} else if (borderModeStr.compare("BORDER_REPLICATE") == 0) {
 			borderMode = BORDER_REPLICATE;
-		} else if (strcmp("BORDER_REFLECT", borderModeStr) == 0) {
+		} else if (borderModeStr.compare("BORDER_REFLECT") == 0) {
 			borderMode = BORDER_REFLECT;
-		} else if (strcmp("BORDER_REFLECT_101", borderModeStr) == 0) {
+		} else if (borderModeStr.compare("BORDER_REFLECT_101") == 0) {
 			borderMode = BORDER_REFLECT_101;
-		} else if (strcmp("BORDER_REFLECT101", borderModeStr) == 0) {
+		} else if (borderModeStr.compare("BORDER_REFLECT101") == 0) {
 			borderMode = BORDER_REFLECT101;
-		} else if (strcmp("BORDER_WRAP", borderModeStr) == 0) {
+		} else if (borderModeStr.compare("BORDER_WRAP") == 0) {
 			borderMode = BORDER_WRAP;
 		} else {
 			errMsg = "Expected borderMode: BORDER_CONSTANT, BORDER_REPLICATE, BORDER_REFLECT, BORDER_REFLECT_101, BORDER_WRAP";
@@ -157,38 +157,39 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 	}
 
 	if (!errMsg) {
-		if (strcmp(methodStr, "CV_TM_SQDIFF")==0) {
+		if (methodStr.compare("CV_TM_SQDIFF")==0) {
 			method = CV_TM_SQDIFF;
-		} else if (strcmp(methodStr, "CV_TM_SQDIFF_NORMED")==0) {
+		} else if (methodStr.compare( "CV_TM_SQDIFF_NORMED")==0) {
 			method = CV_TM_SQDIFF_NORMED;
-		} else if (strcmp(methodStr, "CV_TM_CCORR")==0) {
+		} else if (methodStr.compare( "CV_TM_CCORR")==0) {
 			method = CV_TM_CCORR;
-		} else if (strcmp(methodStr, "CV_TM_CCORR_NORMED")==0) {
+		} else if (methodStr.compare( "CV_TM_CCORR_NORMED")==0) {
 			method = CV_TM_CCORR_NORMED;
-		} else if (strcmp(methodStr, "CV_TM_CCOEFF")==0) {
+		} else if (methodStr.compare( "CV_TM_CCOEFF")==0) {
 			method = CV_TM_CCOEFF;
-		} else if (strcmp(methodStr, "CV_TM_CCOEFF_NORMED")==0) {
+		} else if (methodStr.compare( "CV_TM_CCOEFF_NORMED")==0) {
 			method = CV_TM_CCOEFF_NORMED;
 		} else {
 			errMsg = "Expected method name";
 		}
 	} 
+
+	Mat warpedTmplt;
 	if (!errMsg) {
 		if (pAngles) {
-			matWarpRing(tmplt, tmplt, angles);
+			matWarpRing(tmplt, warpedTmplt, angles);
+		} else {
+			warpedTmplt = tmplt;
 		}
 	}
-
 
 	if (!errMsg) {
 		Mat result;
 		Mat imageSource = isOutputCurrent ? model.image.clone() : model.image;
-		int tw = tmplt.cols;
-		int th = tmplt.rows;
 
-		matchTemplate(imageSource, tmplt, result, method);
+		matchTemplate(imageSource, warpedTmplt, result, method);
 		LOGTRACE4("apply_matchTemplate() matchTemplate(%s,%s,%s,%d)", 
-			matInfo(imageSource).c_str(), matInfo(tmplt).c_str(), matInfo(result).c_str(), method);
+			matInfo(imageSource).c_str(), matInfo(warpedTmplt).c_str(), matInfo(result).c_str(), method);
 
 		vector<Point> matches;
 		float maxVal = *max_element(result.begin<float>(),result.end<float>());
@@ -203,8 +204,8 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 			matMaxima(result, matches, rangeMin, rangeMax);
 		}
 
-		int xOffset = isOutputCorr ? 0 : tmplt.cols/2;
-		int yOffset = isOutputCorr ? 0 : tmplt.rows/2;
+		int xOffset = isOutputCorr ? 0 : warpedTmplt.cols/2;
+		int yOffset = isOutputCorr ? 0 : warpedTmplt.rows/2;
 		modelMatches(Point(xOffset, yOffset), tmplt, result, angles, matches, pStageModel, maxVal, isMin);
 
 		if (isOutputCorr) {
@@ -230,17 +231,17 @@ bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &mod
 	bool isReal = false;
 	bool isImaginary = false;
 	bool isMirror = jo_bool(pStage, "mirror", true);
-	const char * showStr = jo_string(pStage, "show", "magnitude");
+	string showStr = jo_string(pStage, "show", "magnitude");
 	const char *errMsg = NULL;
 
 	if (!errMsg) {
-		if (strcmp("magnitude", showStr) == 0) {
+		if (showStr.compare("magnitude") == 0) {
 			isMagnitude = true;
-		} else if (strcmp("phase", showStr) == 0) {
+		} else if (showStr.compare("phase") == 0) {
 			isPhase = true;
-		} else if (strcmp("real", showStr) == 0) {
+		} else if (showStr.compare("real") == 0) {
 			isReal = true;
-		} else if (strcmp("imaginary", showStr) == 0) {
+		} else if (showStr.compare("imaginary") == 0) {
 			isImaginary = true;
 		} else {
 			errMsg = "Expected 'magnitude' or 'phase' for show";
@@ -295,7 +296,7 @@ bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &mod
 bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
 	const char *errMsg = NULL;
-	const char *depthStr = jo_string(pStage, "depth", "CV_8U");
+	string depthStr = jo_string(pStage, "depth", "CV_8U");
 
 	char errBuf[200];
 	json_t *pFlags = json_object_get(pStage, "flags");
@@ -338,7 +339,7 @@ bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, Model &model) {
 		LOGTRACE1("apply_dft() flags:%d", flags);
 		dft(model.image, dftImage, flags);
 		model.image = dftImage;
-		if (flags & DFT_INVERSE && strcmp("CV_8U",depthStr)==0) {
+		if (flags & DFT_INVERSE && depthStr.compare("CV_8U")==0) {
 			Mat invImage;
 			LOGTRACE("apply_dft(): Convert image to CV_8U");
 			model.image.convertTo(invImage, CV_8U);

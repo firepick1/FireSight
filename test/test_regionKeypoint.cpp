@@ -8,11 +8,10 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
 #include "MatUtil.hpp"
-#include "test.hpp"
 
 using namespace cv;
 using namespace std;
-using namespace FireSight;
+using namespace firesight;
 
 static void assertKeypoint(const KeyPoint &keypoint, double x, double y, double size, double angle, double tolerance) {
 	cout << "assertKeyPoint() x:" << keypoint.pt.x << " y:" << keypoint.pt.y ;

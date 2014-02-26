@@ -42,8 +42,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	cout << "///////// BEGIN GENERATED CODE" << endl;
-	cout << "namespace FireSight {" << endl;
+	cout << "namespace firesight {" << endl;
 	generate_ringMat(ringMat_radius);
-	cout << "} //namespace FireSight" << endl;
+	cout << "} //namespace firesight" << endl;
 	cout << "///////// END GENERATED CODE" << endl;
 }

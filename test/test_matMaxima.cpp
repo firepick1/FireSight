@@ -7,11 +7,10 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
 #include "MatUtil.hpp"
-#include "test.hpp"
 
 using namespace cv;
 using namespace std;
-using namespace FireSight;
+using namespace firesight;
 
 void test_matMaxima() {
 	vector<Point> locations;
