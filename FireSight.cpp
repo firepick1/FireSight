@@ -27,7 +27,7 @@ static void help() {
 	cout << "   firesight -p json/pipeline2.json " << endl;
 }
 
-void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath, char * &outputPath, UIMode &uimode) {
+void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap) {
 	char *pipelinePath = NULL;
 	uimode = UI_STILL;
 	firelog_level(FIRELOG_INFO);
@@ -47,6 +47,18 @@ void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath,
 			}
 			outputPath = argv[++i];
 			LOGTRACE1("-o %s is output image path", outputPath);
+		} else if (strncmp("-D",argv[i],2) == 0) {
+			char * pEq = strchr(argv[i],'=');
+			if (!pEq || (pEq-argv[i])<=2) {
+				LOGERROR("expected argName=argValue pair after -D");
+				exit(-1);
+			}
+			*pEq = 0;
+			char *pName = argv[i] + 2;
+			char *pVal = pEq + 1;
+			argMap[pName] = pVal;
+			LOGTRACE2("-D argMap[%s]=%s", pName, pVal );
+			*pEq = '=';
 		} else if (strcmp("-i",argv[i]) == 0) {
 			if (i+1>=argc) {
 				LOGERROR("expected image path after -i");
@@ -87,10 +99,10 @@ void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath,
 /**
  * Single image example of FireSight lib_firesight library use
  */
-static int uiStill(const char * pJsonPipeline, Mat &image) {
+static int uiStill(const char * pJsonPipeline, Mat &image, ArgMap &argMap) {
 	Pipeline pipeline(pJsonPipeline);
 
-	json_t *pModel = pipeline.process(image);
+	json_t *pModel = pipeline.process(image, argMap);
 
 	// Print out returned model 
 	char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
@@ -106,7 +118,7 @@ static int uiStill(const char * pJsonPipeline, Mat &image) {
 /**
  * Video capture example of FireSight lib_firesight library use
  */
-static int uiVideo(const char * pJsonPipeline) {
+static int uiVideo(const char * pJsonPipeline, ArgMap &argMap) {
 	VideoCapture cap(0); // open the default camera
 	if(!cap.isOpened()) {  // check if we succeeded
 		LOGERROR("Could not open camera");
@@ -121,7 +133,7 @@ static int uiVideo(const char * pJsonPipeline) {
 		Mat frame;
 		cap >> frame; // get a new frame from camera
 
-		json_t *pModel = pipeline.process(frame);
+		json_t *pModel = pipeline.process(frame, argMap);
 
 		// Display pipeline output
 		imshow("image", frame);
@@ -140,7 +152,8 @@ int main(int argc, char *argv[])
 	string pipelineString;
 	char * imagePath = NULL;
 	char * outputPath = NULL;
-	parseArgs(argc, argv, pipelineString, imagePath, outputPath, uimode); 
+	ArgMap argMap;
+	parseArgs(argc, argv, pipelineString, imagePath, outputPath, uimode, argMap); 
 
 	Mat image;
 	if (imagePath) {
@@ -158,10 +171,10 @@ int main(int argc, char *argv[])
 
 	switch (uimode) {
 		case UI_STILL: 
-			uiStill(pJsonPipeline, image); 
+			uiStill(pJsonPipeline, image, argMap); 
 			break;
 		case UI_VIDEO: 
-			uiVideo(pJsonPipeline); 
+			uiVideo(pJsonPipeline, argMap); 
 			break;
 		default: 
 			LOGERROR("Unknown UI mode");

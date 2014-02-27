@@ -38,11 +38,11 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
 bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
 	const char *errMsg = NULL;
-  double scale = jo_double(pStage, "scale", 1);
-  double angle = jo_double(pStage, "angle", 0);
-  double dx = jo_double(pStage, "dx", (scale-1)*model.image.cols/2.0);
-  double dy = jo_double(pStage, "dy", (scale-1)*model.image.rows/2.0);
-	string  borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE");
+  double scale = jo_double(pStage, "scale", 1, model.argMap);
+  double angle = jo_double(pStage, "angle", 0, model.argMap);
+  double dx = jo_double(pStage, "dx", (scale-1)*model.image.cols/2.0, model.argMap);
+  double dy = jo_double(pStage, "dy", (scale-1)*model.image.rows/2.0, model.argMap);
+	string  borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
 	int borderMode;
 
 	if (!errMsg) {
@@ -66,11 +66,11 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 	if (scale <= 0) {
 		errMsg = "Expected 0<scale";
 	}
-	int width = jo_int(pStage, "width", model.image.cols);
-	int height = jo_int(pStage, "height", model.image.rows);
-	double cx = jo_double(pStage, "cx", model.image.cols/2.0);
-	double cy = jo_double(pStage, "cy", model.image.rows/2.0);
-	Scalar borderValue = jo_Scalar(pStage, "borderValue", Scalar::all(0));
+	int width = jo_int(pStage, "width", model.image.cols, model.argMap);
+	int height = jo_int(pStage, "height", model.image.rows, model.argMap);
+	double cx = jo_double(pStage, "cx", model.image.cols/2.0, model.argMap);
+	double cy = jo_double(pStage, "cy", model.image.rows/2.0, model.argMap);
+	Scalar borderValue = jo_Scalar(pStage, "borderValue", Scalar::all(0), model.argMap);
 
 	if (!errMsg) {
 		Mat result;
@@ -82,7 +82,7 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 }
 
 bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model) {
-  string stageStr = jo_string(pStage, "stage");
+  string stageStr = jo_string(pStage, "stage", "", model.argMap);
 	const char *errMsg = NULL;
 
 	if (stageStr.empty()) {
@@ -99,7 +99,7 @@ bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &mode
 }
 
 bool Pipeline::apply_imread(json_t *pStage, json_t *pStageModel, Model &model) {
-  string path = jo_string(pStage, "path");
+  string path = jo_string(pStage, "path", "", model.argMap);
 	const char *errMsg = NULL;
 
 	if (path.empty()) {
@@ -135,7 +135,7 @@ bool Pipeline::apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model) 
 
 bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-  string codeStr = jo_string(pStage, "code", "CV_BGR2GRAY");
+  string codeStr = jo_string(pStage, "code", "CV_BGR2GRAY", model.argMap);
 	int dstCn = jo_int(pStage, "dstCn", 0);
 	const char *errMsg = NULL;
 	int code = CV_BGR2GRAY;
@@ -164,10 +164,10 @@ bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model)
 
 bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model) {
 	const char *errMsg = NULL;
-	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
-	int thickness = jo_int(pStage, "thickness", 2);
-	string rectsModelName = jo_string(pStage, "model");
-	json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName.c_str());
+	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
+	int thickness = jo_int(pStage, "thickness", 2, model.argMap);
+	string rectsModelName = jo_string(pStage, "model", "", model.argMap);
+	json_t *pRectsModel = jo_object(model.getJson(false), rectsModelName.c_str(), model.argMap);
 
 	if (!json_is_object(pRectsModel)) {
 		errMsg = "Expected name of stage model with rects";
@@ -175,7 +175,7 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
 
 	json_t *pRects = NULL;
 	if (!errMsg) {
-		pRects = json_object_get(pRectsModel, "rects");
+		pRects = jo_object(pRectsModel, "rects", model.argMap);
 		if (!json_is_array(pRects)) {
 			errMsg = "Expected array of rects";
 		}
@@ -195,11 +195,11 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
 		bool changeColor = red == -1 && green == -1 && blue == -1;
 
 		json_array_foreach(pRects, index, pRect) {
-			double x = jo_double(pRect, "x", -1);
-			double y = jo_double(pRect, "y", -1);
-			double width = jo_double(pRect, "width", -1);
-			double height = jo_double(pRect, "height", -1);
-			double angle = jo_double(pRect, "angle", -1);
+			double x = jo_double(pRect, "x", -1, model.argMap);
+			double y = jo_double(pRect, "y", -1, model.argMap);
+			double width = jo_double(pRect, "width", -1, model.argMap);
+			double height = jo_double(pRect, "height", -1, model.argMap);
+			double angle = jo_double(pRect, "angle", -1, model.argMap);
 			if (changeColor) {
 				red = (index & 1) ? 0 : 255;
 				green = (index & 2) ? 128 : 192;
@@ -220,14 +220,14 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
 bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
 	const char *errMsg = NULL;
-	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
-	int flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG|DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-	string modelName = jo_string(pStage, "model");
-	json_t *pKeypointStage = json_object_get(model.getJson(false), modelName.c_str());
+	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
+	int flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG|DrawMatchesFlags::DRAW_RICH_KEYPOINTS, model.argMap);
+	string modelName = jo_string(pStage, "model", "", model.argMap);
+	json_t *pKeypointStage = jo_object(model.getJson(false), modelName.c_str(), model.argMap);
 
 	if (!pKeypointStage) {
-		string keypointStageName = jo_string(pStage, "keypointStage");
-		pKeypointStage = json_object_get(model.getJson(false), keypointStageName.c_str());
+		string keypointStageName = jo_string(pStage, "keypointStage", "", model.argMap);
+		pKeypointStage = jo_object(model.getJson(false), keypointStageName.c_str(), model.argMap);
 	}
 
 	if (!errMsg && flags < 0 || 7 < flags) {
@@ -240,17 +240,17 @@ bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &m
 
 	vector<KeyPoint> keypoints;
 	if (!errMsg) {
-		json_t *pKeypoints = json_object_get(pKeypointStage, "keypoints");
+		json_t *pKeypoints = jo_object(pKeypointStage, "keypoints", model.argMap);
 		if (!json_is_array(pKeypoints)) {
 		  errMsg = "keypointStage has no keypoints JSON array";
 		} else {
 			int index;
 			json_t *pKeypoint;
 			json_array_foreach(pKeypoints, index, pKeypoint) {
-				double x = jo_double(pKeypoint, "pt.x", -1);
-				double y = jo_double(pKeypoint, "pt.y", -1);
-				double size = jo_double(pKeypoint, "size", 10);
-				double angle = jo_double(pKeypoint, "angle", -1);
+				double x = jo_double(pKeypoint, "pt.x", -1, model.argMap);
+				double y = jo_double(pKeypoint, "pt.y", -1, model.argMap);
+				double size = jo_double(pKeypoint, "size", 10, model.argMap);
+				double angle = jo_double(pKeypoint, "angle", -1, model.argMap);
 				KeyPoint keypoint(x, y, size, angle);
 				keypoints.push_back(keypoint);
 			}
@@ -267,8 +267,8 @@ bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &m
 bool Pipeline::apply_dilate(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
 	const char *errMsg = NULL;
-	int kwidth = jo_int(pStage, "ksize.width", 3);
-	int kheight = jo_int(pStage, "ksize.height", 3);
+	int kwidth = jo_int(pStage, "ksize.width", 3, model.argMap);
+	int kheight = jo_int(pStage, "ksize.height", 3, model.argMap);
 	int shape = jo_shape(pStage, "shape", errMsg);
 
 	if (!errMsg) {
@@ -282,8 +282,8 @@ bool Pipeline::apply_dilate(json_t *pStage, json_t *pStageModel, Model &model) {
 bool Pipeline::apply_erode(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
 	const char *errMsg = NULL;
-	int kwidth = jo_int(pStage, "ksize.width", 3);
-	int kheight = jo_int(pStage, "ksize.height", 3);
+	int kwidth = jo_int(pStage, "ksize.width", 3, model.argMap);
+	int kheight = jo_int(pStage, "ksize.height", 3, model.argMap);
 	int shape = jo_shape(pStage, "shape", errMsg);
 
 	if (!errMsg) {
@@ -307,10 +307,10 @@ bool Pipeline::apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &mo
 bool Pipeline::apply_blur(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
 	const char *errMsg = NULL;
-	int width = jo_int(pStage, "ksize.width", 3);
-	int height = jo_int(pStage, "ksize.height", 3);
-	int anchorx = jo_int(pStage, "anchor.x", -1);
-	int anchory = jo_int(pStage, "anchor.y", -1);
+	int width = jo_int(pStage, "ksize.width", 3, model.argMap);
+	int height = jo_int(pStage, "ksize.height", 3, model.argMap);
+	int anchorx = jo_int(pStage, "anchor.x", -1, model.argMap);
+	int anchory = jo_int(pStage, "anchor.y", -1, model.argMap);
 
 	if (width <= 0 || height <= 0) {
 		errMsg = "expected 0<width and 0<height";
@@ -344,25 +344,25 @@ static const char * modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &k
 bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
 	SimpleBlobDetector::Params params;
-	params.thresholdStep = jo_double(pStage, "thresholdStep", params.thresholdStep);
-	params.minThreshold = jo_double(pStage, "minThreshold", params.minThreshold);
-	params.maxThreshold = jo_double(pStage, "maxThreshold", params.maxThreshold);
-	params.minRepeatability = jo_int(pStage, "minRepeatability", params.minRepeatability);
-	params.minDistBetweenBlobs = jo_double(pStage, "minDistBetweenBlobs", params.minDistBetweenBlobs);
+	params.thresholdStep = jo_double(pStage, "thresholdStep", params.thresholdStep, model.argMap);
+	params.minThreshold = jo_double(pStage, "minThreshold", params.minThreshold, model.argMap);
+	params.maxThreshold = jo_double(pStage, "maxThreshold", params.maxThreshold, model.argMap);
+	params.minRepeatability = jo_int(pStage, "minRepeatability", params.minRepeatability, model.argMap);
+	params.minDistBetweenBlobs = jo_double(pStage, "minDistBetweenBlobs", params.minDistBetweenBlobs, model.argMap);
 	params.filterByColor = jo_bool(pStage, "filterByColor", params.filterByColor);
-	params.blobColor = jo_int(pStage, "blobColor", params.blobColor);
+	params.blobColor = jo_int(pStage, "blobColor", params.blobColor, model.argMap);
 	params.filterByArea = jo_bool(pStage, "filterByArea", params.filterByArea);
-	params.minArea = jo_double(pStage, "minArea", params.minArea);
-	params.maxArea = jo_double(pStage, "maxArea", params.maxArea);
+	params.minArea = jo_double(pStage, "minArea", params.minArea, model.argMap);
+	params.maxArea = jo_double(pStage, "maxArea", params.maxArea, model.argMap);
 	params.filterByCircularity = jo_bool(pStage, "filterByCircularity", params.filterByCircularity);
-	params.minCircularity = jo_double(pStage, "minCircularity", params.minCircularity);
-	params.maxCircularity = jo_double(pStage, "maxCircularity", params.maxCircularity);
-	params.filterByInertia = jo_bool(pStage, "filterByInertia", params.filterByInertia);
-	params.minInertiaRatio = jo_double(pStage, "minInertiaRatio", params.minInertiaRatio);
-	params.maxInertiaRatio = jo_double(pStage, "maxInertiaRatio", params.maxInertiaRatio);
+	params.minCircularity = jo_double(pStage, "minCircularity", params.minCircularity, model.argMap);
+	params.maxCircularity = jo_double(pStage, "maxCircularity", params.maxCircularity, model.argMap);
+	params.filterByInertia = jo_bool(pStage, "filterByInertia", params.filterByInertia, model.argMap);
+	params.minInertiaRatio = jo_double(pStage, "minInertiaRatio", params.minInertiaRatio, model.argMap);
+	params.maxInertiaRatio = jo_double(pStage, "maxInertiaRatio", params.maxInertiaRatio, model.argMap);
 	params.filterByConvexity = jo_bool(pStage, "filterByConvexity", params.filterByConvexity);
-	params.minConvexity = jo_double(pStage, "minConvexity", params.minConvexity);
-	params.maxConvexity = jo_double(pStage, "maxConvexity", params.maxConvexity);
+	params.minConvexity = jo_double(pStage, "minConvexity", params.minConvexity, model.argMap);
+	params.maxConvexity = jo_double(pStage, "maxConvexity", params.maxConvexity, model.argMap);
 	const char *errMsg = NULL;
 
 	if (!errMsg) {
@@ -379,16 +379,16 @@ bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Mod
 }
 
 bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model) {
-	double x = jo_double(pStage, "x", 0);
-	double y = jo_double(pStage, "y", 0);
-	double width = jo_double(pStage, "width", model.image.cols);
-	double height = jo_double(pStage, "height", model.image.rows);
-	int thickness = jo_int(pStage, "thickness", 1);
-	int lineType = jo_int(pStage, "lineType", 8);
-	Scalar color = jo_Scalar(pStage, "color", Scalar::all(0));
-	Scalar flood = jo_Scalar(pStage, "flood", Scalar::all(-1));
-	Scalar fill = jo_Scalar(pStage, "fill", Scalar::all(-1));
-	int shift = jo_int(pStage, "shift", 0);
+	double x = jo_double(pStage, "x", 0, model.argMap);
+	double y = jo_double(pStage, "y", 0, model.argMap);
+	double width = jo_double(pStage, "width", model.image.cols, model.argMap);
+	double height = jo_double(pStage, "height", model.image.rows, model.argMap);
+	int thickness = jo_int(pStage, "thickness", 1, model.argMap);
+	int lineType = jo_int(pStage, "lineType", 8, model.argMap);
+	Scalar color = jo_Scalar(pStage, "color", Scalar::all(0), model.argMap);
+	Scalar flood = jo_Scalar(pStage, "flood", Scalar::all(-1), model.argMap);
+	Scalar fill = jo_Scalar(pStage, "fill", Scalar::all(-1), model.argMap);
+	int shift = jo_int(pStage, "shift", 0, model.argMap);
 	const char *errMsg = NULL;
 
   if ( x < 0 || y < 0) {
@@ -453,10 +453,10 @@ int Pipeline::parseCvType(const char *typeStr, const char *&errMsg) {
 }
 
 bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, Model &model) {
-	double width = jo_double(pStage, "width", model.image.cols);
-	double height = jo_double(pStage, "height", model.image.rows);
-	string typeStr = jo_string(pStage, "type", "CV_8UC3");
-	Scalar color = jo_Scalar(pStage, "color", Scalar::all(0));
+	double width = jo_double(pStage, "width", model.image.cols, model.argMap);
+	double height = jo_double(pStage, "height", model.image.rows, model.argMap);
+	string typeStr = jo_string(pStage, "type", "CV_8UC3", model.argMap);
+	Scalar color = jo_Scalar(pStage, "color", Scalar::all(0), model.argMap);
 	const char *errMsg = NULL;
 	int type = CV_8UC3;
 
@@ -479,10 +479,10 @@ bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, Model &model) {
 
 bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-	float rangeMin = jo_double(pStage, "rangeMin", 0);
-	float rangeMax = jo_double(pStage, "rangeMax", 256);
-	int locations = jo_int(pStage, "locations", 0);
-	int bins = jo_int(pStage, "bins", rangeMax-rangeMin);
+	float rangeMin = jo_double(pStage, "rangeMin", 0, model.argMap);
+	float rangeMax = jo_double(pStage, "rangeMax", 256, model.argMap);
+	int locations = jo_int(pStage, "locations", 0, model.argMap);
+	int bins = jo_int(pStage, "bins", rangeMax-rangeMin, model.argMap);
 	int histSize = bins;
 	bool uniform = true;
 	bool accumulate = false;
@@ -513,7 +513,7 @@ bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model)
 }
 
 bool Pipeline::apply_split(json_t *pStage, json_t *pStageModel, Model &model) {
-	json_t *pFromTo = json_object_get(pStage, "fromTo");
+	json_t *pFromTo = jo_object(pStage, "fromTo", model.argMap);
 	const char *errMsg = NULL;
 #define MAX_FROMTO 32
 	int fromTo[MAX_FROMTO];
@@ -551,10 +551,10 @@ bool Pipeline::apply_split(json_t *pStage, json_t *pStageModel, Model &model) {
 
 bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-	double alpha = jo_double(pStage, "alpha", 1);
-	double delta = jo_double(pStage, "delta", 0);
-	string transform = jo_string(pStage, "transform");
-	string rTypeStr = jo_string(pStage, "rType", "CV_8U");
+	double alpha = jo_double(pStage, "alpha", 1, model.argMap);
+	double delta = jo_double(pStage, "delta", 0, model.argMap);
+	string transform = jo_string(pStage, "transform", "", model.argMap);
+	string rTypeStr = jo_string(pStage, "rType", "CV_8U", model.argMap);
 	const char *errMsg = NULL;
 	int rType;
 
@@ -577,14 +577,14 @@ bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model
 }
 
 bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
-	int col = jo_int(pStage, "col", 0);
-	int row = jo_int(pStage, "row", 0);
-	int cols = jo_int(pStage, "cols", model.image.cols);
-	int rows = jo_int(pStage, "rows", model.image.rows);
-	int precision = jo_int(pStage, "precision", 1);
-	int width = jo_int(pStage, "width", 5);
-	int channel = jo_int(pStage, "channel", 0);
-	string comment = jo_string(pStage, "comment");
+	int col = jo_int(pStage, "col", 0, model.argMap);
+	int row = jo_int(pStage, "row", 0, model.argMap);
+	int cols = jo_int(pStage, "cols", model.image.cols, model.argMap);
+	int rows = jo_int(pStage, "rows", model.image.rows, model.argMap);
+	int precision = jo_int(pStage, "precision", 1, model.argMap);
+	int width = jo_int(pStage, "width", 5, model.argMap);
+	int channel = jo_int(pStage, "channel", 0, model.argMap);
+	string comment = jo_string(pStage, "comment", "", model.argMap);
 	const char *errMsg = NULL;
 
 	if (row<0 || col<0 || rows<=0 || cols<=0) {
@@ -673,9 +673,9 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
 }
 
 bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model) {
-	double alpha = jo_double(pStage, "alpha", 1);
-	double beta = jo_double(pStage, "beta", 0);
-	string normTypeStr = jo_string(pStage, "normType", "NORM_L2");
+	double alpha = jo_double(pStage, "alpha", 1, model.argMap);
+	double beta = jo_double(pStage, "beta", 0, model.argMap);
+	string normTypeStr = jo_string(pStage, "normType", "NORM_L2", model.argMap);
 	int normType  = NORM_L2;
 	const char *errMsg = NULL;
 
@@ -700,9 +700,9 @@ bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model
 
 bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-	double threshold1 = jo_double(pStage, "threshold1", 0);
-	double threshold2 = jo_double(pStage, "threshold2", 50);
-	double apertureSize = jo_double(pStage, "apertureSize", 3);
+	double threshold1 = jo_double(pStage, "threshold1", 0, model.argMap);
+	double threshold2 = jo_double(pStage, "threshold2", 50, model.argMap);
+	double apertureSize = jo_double(pStage, "apertureSize", 3, model.argMap);
 	bool L2gradient = jo_bool(pStage, "L2gradient", false);
 	const char *errMsg = NULL;
 
@@ -715,9 +715,9 @@ bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, Model &model) {
 
 bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-	double diamMin = jo_double(pStage, "diamMin");
-	double diamMax = jo_double(pStage, "diamMax");
-	int showMatches = jo_int(pStage, "show", 0);
+	double diamMin = jo_double(pStage, "diamMin", 0, model.argMap);
+	double diamMax = jo_double(pStage, "diamMax", 0, model.argMap);
+	int showMatches = jo_int(pStage, "show", 0, model.argMap);
 	const char *errMsg = NULL;
 
 	if (diamMin <= 0 || diamMax <= 0 || diamMin > diamMax) {
@@ -786,8 +786,8 @@ void Pipeline::validateImage(Mat &image) {
 	}
 }
 
-json_t *Pipeline::process(Mat &workingImage) { 
-	Model model;
+json_t *Pipeline::process(Mat &workingImage, ArgMap &argMap) { 
+	Model model(argMap);
 	json_t *pModelJson = model.getJson(true);
 
 	json_t *pFireSight = json_object();
@@ -817,7 +817,7 @@ bool Pipeline::processModel(Model &model) {
 	json_t *pStage;
 	char debugBuf[255];
 	json_array_foreach(pPipeline, index, pStage) {
-		string pOp = jo_string(pStage, "op");
+		string pOp = jo_string(pStage, "op", "", model.argMap);
 		string pName = jo_string(pStage, "name");
 		bool isSaveImage = true;
 		if (pName.empty()) {
@@ -826,7 +826,7 @@ bool Pipeline::processModel(Model &model) {
 			pName = defaultName;
 		  isSaveImage = false;
 		}
-		string comment = jo_string(pStage, "comment", "");
+		string comment = jo_string(pStage, "comment", "", model.argMap);
 		json_t *pStageModel = json_object();
 		json_object_set(model.getJson(false), pName.c_str(), pStageModel);
 		snprintf(debugBuf,sizeof(debugBuf), "process() %s op:%s stage:%s %s", 

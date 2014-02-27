@@ -76,7 +76,7 @@ void matWarpRing(const Mat &image, Mat &result, vector<float> angles) {
 bool Pipeline::apply_warpRing(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
 	const char *errMsg = NULL;
-  json_t * pAngles = json_object_get(pStage, "angles");
+  json_t *pAngles = jo_object(pStage, "angles", model.argMap);
 	vector<float> angles;
 	if (json_is_array(pAngles)) {
 		int index;

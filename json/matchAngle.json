@@ -1,0 +1,5 @@
+[
+  {"op":"cvtColor", "code":"CV_BGR2GRAY"},
+	{"op":"matchTemplate", "name":"find-rects", "angle":"{{angle}}", "output":"input", "template":"{{template}}"},
+	{"op":"drawRects", "model":"find-rects", "color":[32,255,32]}
+]

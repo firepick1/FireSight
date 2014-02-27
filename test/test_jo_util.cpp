@@ -16,9 +16,9 @@ void test_jo_parse() {
 	args["blue"] = "sky";
 	string result;
 
-	result = jo_parse("the {{red}} sauce", args);
+	result = jo_parse("the {{red}} {{red}} sauce", args);
 	cout << result << endl;
-	assert(strcmp("the tomato sauce", result.c_str()) == 0);
+	assert(strcmp("the tomato tomato sauce", result.c_str()) == 0);
 	result = jo_parse("Look at the {{blue}}.", args);
 	cout << result << endl;
 	assert(strcmp("Look at the sky.", result.c_str()) == 0);

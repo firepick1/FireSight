@@ -11,8 +11,9 @@ using namespace cv;
 using namespace std;
 using namespace firesight;
 
-Model::Model() {
+Model::Model(ArgMap &argMap) {
   pJson = json_object();
+	this->argMap = argMap;
 }
 
 Model::~Model() {

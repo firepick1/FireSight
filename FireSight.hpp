@@ -12,6 +12,7 @@ using namespace std;
 namespace firesight {
 
 	typedef map<string,const char *> ArgMap;
+	extern ArgMap emptyMap;
 
 	typedef struct MatchedRegion {
 		Range xRange;
@@ -66,7 +67,7 @@ namespace firesight {
 			json_t *pJson;
 
 		public: // methods
-			Model();
+			Model(ArgMap &argMap=emptyMap);
 			~Model();
 
 			/**
@@ -84,13 +85,16 @@ namespace firesight {
 		public: // fields
 			Mat image;
 			map<string, Mat> imageMap;
-			ArgMap variables;
+			ArgMap argMap;
 	} Model;
 
 	typedef class Pipeline {
 	  private:
 			bool processModel(Model &model);
 			bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
+			KeyPoint _regionKeypoint(const vector<Point> &region);
+			void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
+			void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
 
 			bool apply_blur(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model);
@@ -151,27 +155,11 @@ namespace firesight {
 			 * @param mat initial and transformed working image
 			 * @return pointer to jansson root node of JSON object that has a field for each recognized stage model. E.g., {s1:{...}, s2:{...}, ... , sN:{...}}
 			 */
-		  json_t *process(Mat &mat);
+		  json_t *process(Mat &mat, ArgMap &argMap);
 
-			/**
-			 * Using eigenvectors and covariance matrix of given region, return a
-			 * keypoint representing that region. The eigenvectors detemine the angle of the 
-			 * region on the interval (-PI/2,PI/2]. Caller may provide a fourth quadrant (negative angle)
-			 * offset of CV_PI for a vertical direction bias ("portrait regions"), 
-			 * or use the default of 2*CV_PI for a horizontal bias ("landscape regions").
-			 * @param region of points to analyze
-			 */
-			KeyPoint regionKeypoint(const vector<Point> &region);
-
-			/** 
-			 * Compute eigenvectors, eigenvalues, mean, and covariance of region
-			 */
-			void eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
-
-			/**
-			 * Compute covariance and mean of region
-			 */
-			void covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
+			/** (DEPRECATED: should be private) */ KeyPoint regionKeypoint(const vector<Point> &region);
+			/** (DEPRECATED: should be private) */ void eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
+			/** (DEPRECATED: should be private) */ void covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
 
 	} Pipeline;
 

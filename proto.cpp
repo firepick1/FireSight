@@ -16,8 +16,8 @@ using namespace firesight;
 
 
 bool Pipeline::apply_proto(json_t *pStage, json_t *pStageModel, Model &model) {
-	int width = jo_int(pStage, "width", 14);
-	int height = jo_int(pStage, "height", 21);
+	int width = jo_int(pStage, "width", 14, model.argMap);
+	int height = jo_int(pStage, "height", 21, model.argMap);
 	const char *errMsg = NULL;
 	int tmpltWH = 2+max(width, height);
 	int cx = tmpltWH/2;

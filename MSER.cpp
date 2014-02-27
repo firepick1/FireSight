@@ -14,7 +14,16 @@ using namespace firesight;
 
 typedef enum {DETECT_NONE, DETECT_KEYPOINTS, DETECT_RECTS} Detect;
 
+/** (DEPRECATED: should be private) */
 void Pipeline::covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut) {
+	LOGERROR("covarianceXY() is deprecated as a public function");
+	_covarianceXY(pts, covOut, meanOut);
+}
+
+/**
+ * Compute covariance and mean of region
+ */
+void Pipeline::_covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut) {
 	Mat_<double> data(pts.size(),2);
 	for (int i = 0; i < pts.size(); i++) {
 		data(i,0) = pts[i].x;
@@ -33,7 +42,16 @@ void Pipeline::covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut)
 	}
 }
 
+/** (DEPRECATED: should be private) */
 void Pipeline::eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut) {
+	LOGERROR("eigenXY() is deprecated as a public function");
+	_eigenXY(pts, eigenvectorsOut, meanOut, covOut);
+}
+
+/** 
+ * Compute eigenvectors, eigenvalues, mean, and covariance of region
+ */
+void Pipeline::_eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut) {
 	covarianceXY(pts, covOut, meanOut);
 
 	Mat eigenvalues;
@@ -45,6 +63,19 @@ void Pipeline::eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &mean
 }
 
 KeyPoint Pipeline::regionKeypoint(const vector<Point> &region) {
+	LOGERROR("regionKeypoint() is deprecated as a public function");
+	return _regionKeypoint(region);
+}
+
+/**
+ * Using eigenvectors and covariance matrix of given region, return a
+ * keypoint representing that region. The eigenvectors detemine the angle of the 
+ * region on the interval (-PI/2,PI/2]. Caller may provide a fourth quadrant (negative angle)
+ * offset of CV_PI for a vertical direction bias ("portrait regions"), 
+ * or use the default of 2*CV_PI for a horizontal bias ("landscape regions").
+ * @param region of points to analyze
+ */
+KeyPoint Pipeline::_regionKeypoint(const vector<Point> &region) {
 	Mat covOut;
 	Mat mean;
 	Mat eigenvectors;
@@ -150,18 +181,18 @@ void Pipeline::detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regi
 
 bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-	int delta = jo_int(pStage, "delta", 5);
-	int minArea = jo_int(pStage, "minArea", 60);
-	int maxArea = jo_int(pStage, "maxArea", 14400);
-	float maxVariation = jo_double(pStage, "maxVariation", 0.25);
-	float minDiversity = jo_double(pStage, "minDiversity", 0.2);
-	int maxEvolution = jo_int(pStage, "maxEvolution", 200);
-	double areaThreshold = jo_double(pStage, "areaThreshold", 1.01);
-	double minMargin = jo_double(pStage, "minMargin", .003);
-	int edgeBlurSize = jo_int(pStage, "edgeBlurSize", 5);
-	json_t *pDetect = json_object_get(pStage, "detect");
-	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1));
-	json_t * pMask = json_object_get(pStage, "mask");
+	int delta = jo_int(pStage, "delta", 5, model.argMap);
+	int minArea = jo_int(pStage, "minArea", 60, model.argMap);
+	int maxArea = jo_int(pStage, "maxArea", 14400, model.argMap);
+	float maxVariation = jo_double(pStage, "maxVariation", 0.25, model.argMap);
+	float minDiversity = jo_double(pStage, "minDiversity", 0.2, model.argMap);
+	int maxEvolution = jo_int(pStage, "maxEvolution", 200, model.argMap);
+	double areaThreshold = jo_double(pStage, "areaThreshold", 1.01, model.argMap);
+	double minMargin = jo_double(pStage, "minMargin", .003, model.argMap);
+	int edgeBlurSize = jo_int(pStage, "edgeBlurSize", 5, model.argMap);
+	json_t *pDetect = jo_object(pStage, "detect", model.argMap);
+	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
+	json_t * pMask = jo_object(pStage, "mask", model.argMap);
 	const char *errMsg = NULL;
 	char errBuf[150];
 	int maskX;
@@ -186,10 +217,10 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, Model &model) {
 			if (pMask) {
 				LOGTRACE("mask:{");
 			}
-			maskX = jo_int(pMask, "x", 0);
-			maskY = jo_int(pMask, "y", 0);
-			maskW = jo_int(pMask, "width", model.image.cols);
-			maskH = jo_int(pMask, "height", model.image.rows);
+			maskX = jo_int(pMask, "x", 0, model.argMap);
+			maskY = jo_int(pMask, "y", 0, model.argMap);
+			maskW = jo_int(pMask, "width", model.image.cols, model.argMap);
+			maskH = jo_int(pMask, "height", model.image.rows, model.argMap);
 			if (pMask) {
 				LOGTRACE("}");
 			}
@@ -248,7 +279,7 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, Model &model) {
 				detectKeypoints(pStageModel, regions);
 				break;
 		}
-		if (json_object_get(pStage, "color")) {
+		if (jo_object(pStage, "color", model.argMap)) {
 			if (model.image.channels() == 1) {
 				cvtColor(model.image, model.image, CV_GRAY2BGR);
 				LOGTRACE("cvtColor(CV_GRAY2BGR)");

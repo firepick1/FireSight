@@ -1,0 +1,19 @@
+#! /bin/bash
+
+# echo test-one $1 $2 "$3"
+cmd="target/firesight -i img/$1  -p json/$2.json -o target/$2.jpg $3"
+echo $cmd
+$cmd > target/$2-model.json
+cmp target/$2.jpg img/$2.jpg
+if [ $? -ne 0 ] 
+then 
+	echo FAILED: cmp target/$2.jpg img/$2.jpg
+	exit 1
+fi
+diff target/$2-model.json test/$2-model.json
+if [ $? != 0 ] 
+then 
+	echo FAILED: diff target/$2-model.json test/$2-model.json
+	exit 1
+fi
+echo OK

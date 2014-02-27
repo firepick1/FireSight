@@ -74,15 +74,17 @@ static void modelMatches(Point offset, const Mat &tmplt, const Mat &result, cons
 
 bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-  string methodStr = jo_string(pStage, "method", "CV_TM_CCOEFF_NORMED");
-  string tmpltPath = jo_string(pStage, "template");
+  string methodStr = jo_string(pStage, "method", "CV_TM_CCOEFF_NORMED", model.argMap);
+  string tmpltPath = jo_string(pStage, "template", "", model.argMap);
 	float threshold = jo_double(pStage, "threshold", 0.7);
 	float corr = jo_double(pStage, "corr", 0.85);
-	string outputStr = jo_string(pStage, "output", "current");
-	string borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE");
-	json_t *pAngles = json_object_get(pStage, "angles");
+	string outputStr = jo_string(pStage, "output", "current", model.argMap);
+	string borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
+	const char *angleKey = "angles";
+	json_t *pAngles = jo_object(pStage, angleKey, model.argMap);
 	if (!pAngles) {
-		pAngles = json_object_get(pStage, "angle");
+		angleKey = "angle";
+		pAngles = jo_object(pStage, angleKey, model.argMap);
 	}
   const char *errMsg = NULL;
 	int flags = INTER_LINEAR;
@@ -115,6 +117,9 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 	if (!errMsg) {
 		if (!pAngles) {
 			angles.push_back(0);
+		} else if (json_is_string(pAngles)) {
+			float angle = atof(json_string_value(pAngles));
+			angles.push_back(angle);
 		} else if (json_is_number(pAngles)) {
 			angles.push_back(json_number_value(pAngles));
 		} else if (json_is_array(pAngles)) {
@@ -132,7 +137,7 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 		}
 	}
 
-	int separation = jo_int(pStage, "separation", min(tmplt.cols,tmplt.rows));
+	int separation = jo_int(pStage, "separation", min(tmplt.cols,tmplt.rows), model.argMap);
 
 	if (!errMsg) {
 		if (borderModeStr.compare("BORDER_CONSTANT") == 0) {
@@ -223,7 +228,7 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 
 bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-	int delta = jo_int(pStage, "delta", 1);
+	int delta = jo_int(pStage, "delta", 1, model.argMap);
   bool isShift = jo_bool(pStage, "shift", true);	
   bool isLog = jo_bool(pStage, "log", true);	
 	bool isMagnitude = false;
@@ -231,7 +236,7 @@ bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &mod
 	bool isReal = false;
 	bool isImaginary = false;
 	bool isMirror = jo_bool(pStage, "mirror", true);
-	string showStr = jo_string(pStage, "show", "magnitude");
+	string showStr = jo_string(pStage, "show", "magnitude", model.argMap);
 	const char *errMsg = NULL;
 
 	if (!errMsg) {
@@ -296,10 +301,10 @@ bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &mod
 bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
 	const char *errMsg = NULL;
-	string depthStr = jo_string(pStage, "depth", "CV_8U");
+	string depthStr = jo_string(pStage, "depth", "CV_8U", model.argMap);
 
 	char errBuf[200];
-	json_t *pFlags = json_object_get(pStage, "flags");
+	json_t *pFlags = jo_object(pStage, "flags", model.argMap);
 	int flags = 0;
 
 	if (json_is_array(pFlags)) {

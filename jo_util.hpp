@@ -26,6 +26,8 @@ namespace firesight {
 
   string jo_parse(const char * pSource, ArgMap &argMap=emptyMap);
 
+	json_t *jo_object(const json_t *pStage, const char *key, ArgMap &argMap=emptyMap) ;
+
 } // namespace firesight
 
 #endif
