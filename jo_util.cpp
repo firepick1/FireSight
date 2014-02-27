@@ -1,5 +1,6 @@
 #include <string.h>
 #include <math.h>
+#include <iostream>
 #include "FireLog.h"
 #include "jansson.h"
 #include "jo_util.hpp"
@@ -10,7 +11,7 @@ using namespace cv;
 
 #define START_DELIM "{{"
 #define END_DELIM "}}"
-#define DELIM_SIZE 2
+#define DEFAULT_SEP "||"
 
 
 namespace firesight {
@@ -19,25 +20,33 @@ ArgMap emptyMap;
 
 string jo_parse(const char * pSource, ArgMap &argMap) {
 	string result(pSource);
-	size_t varStart = 0;
+	size_t startDelim = 0;
 	int substitutions = 0; 
-	while ((varStart=result.find(START_DELIM,varStart)) != string::npos) {
-		size_t nameEnd = result.find(END_DELIM,varStart);
-		if (nameEnd < 0) {
+	while ((startDelim=result.find(START_DELIM,startDelim)) != string::npos) {
+		size_t endDelim = result.find(END_DELIM,startDelim);
+		if (endDelim == string::npos) {
 			LOGERROR1("jo_parse(): Invalid variable specification: '%s'", pSource);
 			break;
 		} 
-		int nameStart = varStart + DELIM_SIZE;
+		size_t varEnd = endDelim + sizeof(END_DELIM)-1;
+		size_t defaultSep = result.find(DEFAULT_SEP,startDelim);
+		substitutions++;
+		size_t nameStart = startDelim + sizeof(START_DELIM)-1;
+		size_t nameEnd = defaultSep == string::npos ? endDelim : defaultSep;
 		string name = result.substr(nameStart,nameEnd-nameStart);
 		const char * pRep = argMap[name.c_str()];
-		if (!pRep) {
-			LOGERROR1("jo_parse(): Undefined variable: %s", name.c_str());
-			break;
+		if (pRep) { 
+			result.replace(startDelim, varEnd-startDelim, pRep);
+		} else { // scan for template default
+			if (defaultSep == string::npos) {
+				LOGERROR1("jo_parse(): variable has no provided or default value: %s", name.c_str());
+				break;
+			}
+			size_t defaultStart = defaultSep + sizeof(DEFAULT_SEP)-1;
+			string rep = result.substr(defaultStart, endDelim-defaultStart);
+			result.replace(startDelim, varEnd-startDelim, rep);
 		}
-		substitutions++;
-		int varEnd = nameEnd + DELIM_SIZE;
-		result.replace(varStart, varEnd-varStart, pRep);
-		varStart = varEnd;
+		startDelim = varEnd;
 	}
 
 	if (substitutions) {

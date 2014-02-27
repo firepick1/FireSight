@@ -1,0 +1,3 @@
+[
+	{"op":"resize", "fx":"{{fx||0.5}}", "fy":"{{fy||0.5}}", "comment":"resize image with a default factor of (50%,50%)"}
+]

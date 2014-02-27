@@ -81,6 +81,24 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 	return stageOK("apply_warpAffine(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_resize(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
+  double fx = jo_double(pStage, "fx", 1, model.argMap);
+  double fy = jo_double(pStage, "fy", 1, model.argMap);
+	const char *errMsg = NULL;
+
+	if (fx <= 0 || fy <= 0) {
+		errMsg = "Expected 0<fx and 0<fy";
+	}
+	if (!errMsg) { 
+		Mat result;
+		resize(model.image, result, Size(), fx, fy, INTER_AREA);
+		model.image = result;
+	}
+
+	return stageOK("apply_resize(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model) {
   string stageStr = jo_string(pStage, "stage", "", model.argMap);
 	const char *errMsg = NULL;
@@ -195,21 +213,29 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
 		bool changeColor = red == -1 && green == -1 && blue == -1;
 
 		json_array_foreach(pRects, index, pRect) {
-			double x = jo_double(pRect, "x", -1, model.argMap);
-			double y = jo_double(pRect, "y", -1, model.argMap);
+			double x = jo_double(pRect, "x", FLT_MAX, model.argMap);
+			double y = jo_double(pRect, "y", FLT_MAX, model.argMap);
 			double width = jo_double(pRect, "width", -1, model.argMap);
 			double height = jo_double(pRect, "height", -1, model.argMap);
-			double angle = jo_double(pRect, "angle", -1, model.argMap);
+			double angle = jo_double(pRect, "angle", FLT_MAX, model.argMap);
 			if (changeColor) {
 				red = (index & 1) ? 0 : 255;
 				green = (index & 2) ? 128 : 192;
 				blue = (index & 1) ? 255 : 0;
 				color = Scalar(blue, green, red);
 			}
-			RotatedRect rect(Point(x,y), Size(width, height), angle);
-			rect.points(vertices);
-			for (int i = 0; i < 4; i++) {
-		    line(model.image, vertices[i], vertices[(i+1)%4], color, thickness);
+			if (x == FLT_MAX || y == FLT_MAX || width == FLT_MAX || height == FLT_MAX) {
+				LOGERROR("apply_drawRects() x, y, width, height are required values");
+				break;
+			}
+			if (angle == FLT_MAX) {
+				circle(model.image, Point(x,y), min(width,height)/2.0, color, thickness);
+			} else {
+				RotatedRect rect(Point(x,y), Size(width, height), angle);
+				rect.points(vertices);
+				for (int i = 0; i < 4; i++) {
+					line(model.image, vertices[i], vertices[(i+1)%4], color, thickness);
+				}
 			}
 		}
 	}
@@ -914,6 +940,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
 		ok = apply_proto(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "rectangle")==0) {
 		ok = apply_rectangle(pStage, pStageModel, model);
+	} else if (strcmp(pOp, "resize")==0) {
+		ok = apply_resize(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "SimpleBlobDetector")==0) {
 		ok = apply_SimpleBlobDetector(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "split")==0) {
