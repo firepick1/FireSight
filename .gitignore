@@ -11,3 +11,7 @@ Makefile
 target/*
 ignore/*
 msvc/*
+jansson/win32/build/*
+jansson/win32/output/*
+jansson/win32/jansson.sdf
+jansson/win32/jansson.suo
