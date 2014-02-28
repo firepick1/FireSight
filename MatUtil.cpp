@@ -68,11 +68,11 @@ void matWarpAffine(const Mat &image, Mat &result, Point2f center, float angle, f
 	Size resultSize(size);
 	if (resultSize.width <= 0) {
 		resultSize.width = (int)(maxx - minx + 1.5);
-		transform.at<float>(0,2) += (resultSize.width-1)/2.0 - center.x;
+		transform.at<float>(0,2) += (resultSize.width-1)/2.0f - center.x;
 	}
 	if (resultSize.height <= 0) {
 		resultSize.height = (int)(maxy - miny + 1.5);
-    transform.at<float>(1,2) += (resultSize.height-1)/2.0 - center.y;
+    transform.at<float>(1,2) += (resultSize.height-1)/2.0f - center.y;
 	}
 	if (logLevel >= FIRELOG_TRACE) {
 		char buf[200];
