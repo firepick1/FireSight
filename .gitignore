@@ -11,7 +11,7 @@ Makefile
 target/*
 ignore/*
 msvc/*
-jansson/win32/build/*
-jansson/win32/output/*
-jansson/win32/jansson.sdf
-jansson/win32/jansson.suo
+jansson/win32/vs2010/Build/*
+jansson/win32/vs2010/Output/*
+jansson/win32/vs2010/jansson.sdf
+jansson/win32/vs2010/jansson.suo

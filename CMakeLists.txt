@@ -8,11 +8,11 @@ IF(WIN32)
 	IF(NOT DEFINED CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_WARNINGS)
 		SET(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_WARNINGS ON)
 	ENDIF()
-	SET(JANSSON_DIR "/github/jansson.2.5")
+	SET(JANSSON_DIR "${CMAKE_SOURCE_DIR}/jansson" CACHE STRING "Jansson directory")
 	SET(JANSSON_INCLUDE_DIRS "${JANSSON_DIR}/src ${JANSSON_DIR}/win32")
 	SET(JANSSON_LIB "${JANSSON_DIR}/win32/vs2010/Output/Debug/jansson.lib")
+	SET(JANSSON_DLL "${JANSSON_DIR}/win32/vs2010/Output/Debug/jansson.dll")
 	SET(FIRESIGHT_LIB "_firesight.lib")
-	# etc for the other available configuration types (MinSizeRel, RelWithDebInfo)
 ENDIF(WIN32)
 IF(CMAKE_COMPILER_IS_GNUCXXX)
 	SET(JANSSON_LIB "libjansson.so")
@@ -82,6 +82,9 @@ add_custom_command(TARGET _firesight POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  
         "${PROJECT_SOURCE_DIR}/target/Debug/_firesight.dll"      
         "${PROJECT_SOURCE_DIR}/target/_firesight.dll" 
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different  
+        "${JANSSON_DLL}"      
+        "${PROJECT_SOURCE_DIR}/target/jansson.dll" 
 				)
 	
 add_executable(gencode gencode.cpp)
