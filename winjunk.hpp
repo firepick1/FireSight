@@ -5,6 +5,14 @@
 
 #include <cstdarg>
 
+#ifdef _firesight_EXPORTS
+	#define BANANA 1
+  #define CLASS_DECLSPEC    __declspec(dllexport)
+#else
+	#define BANANA 0
+   #define CLASS_DECLSPEC    __declspec(dllimport)
+#endif
+
 #define snprintf c99_snprintf
 
 inline int c99_vsnprintf(char* str, size_t size, const char* format, va_list ap)
@@ -31,6 +39,9 @@ inline int c99_snprintf(char* str, size_t size, const char* format, ...)
     return count;
 }
 
+#else
+	#define CLASS_DECLSPEC
+unix unix unix unix
 #endif // _MSC_VER
 
 #endif

@@ -10,3 +10,4 @@ CPackSourceConfig.cmake
 Makefile
 target/*
 ignore/*
+msvc/*

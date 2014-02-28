@@ -12,8 +12,8 @@ using namespace std;
 
 namespace firesight {
 
-	typedef map<string,const char *> ArgMap;
-	extern ArgMap emptyMap;
+	CLASS_DECLSPEC typedef map<string,const char *> ArgMap;
+	CLASS_DECLSPEC extern ArgMap emptyMap;
 
 	typedef struct MatchedRegion {
 		Range xRange;
@@ -89,7 +89,7 @@ namespace firesight {
 			ArgMap argMap;
 	} Model;
 
-	typedef class Pipeline {
+	 typedef class CLASS_DECLSPEC Pipeline {
 	  private:
 			bool processModel(Model &model);
 			bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);

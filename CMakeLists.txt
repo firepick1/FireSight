@@ -1,13 +1,31 @@
 cmake_minimum_required(VERSION 2.8)
 
-SET(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} -g")
 project( firesight )
+
+IF(WIN32)
+	list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}")
+	# By default, do not warn when built on machines using only VS Express:
+	IF(NOT DEFINED CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_WARNINGS)
+		SET(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_WARNINGS ON)
+	ENDIF()
+	SET(JANSSON_DIR "/github/jansson.2.5")
+	SET(JANSSON_INCLUDE_DIRS "${JANSSON_DIR}/src ${JANSSON_DIR}/win32")
+	SET(JANSSON_LIB "${JANSSON_DIR}/win32/vs2010/Output/Debug/jansson.lib")
+	SET(FIRESIGHT_LIB "_firesight.lib")
+	# etc for the other available configuration types (MinSizeRel, RelWithDebInfo)
+ENDIF(WIN32)
+IF(CMAKE_COMPILER_IS_GNUCXXX)
+	SET(JANSSON_LIB "libjansson.so")
+	SET(FIRESIGHT_LIB "lib_firesight.so")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g")
+	SET(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} -g")
+ENDIF(CMAKE_COMPILER_IS_GNUCXXX)
+
 SET(COMPILE_DEFINITIONS -Werror)
 SET(PROJECT_VERSION_MAJOR 0)
 SET(PROJECT_VERSION_MINOR 5)
-set(PROJECT_VERSION_PATCH 3)
+set(PROJECT_VERSION_PATCH 4)
 set(PROJECT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64")
 
 
@@ -19,7 +37,7 @@ SET(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 SET(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 include (CPack)
 
-SET(BUILD_TARGET_DIR "${CMAKE_CURRENT_BINARY_DIR}/target")
+SET(BUILD_TARGET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/target" CACHE STRING "Put all binary output in target")
 SET(LIBRARY_OUTPUT_PATH "${BUILD_TARGET_DIR}")
 SET(EXECUTABLE_OUTPUT_PATH "${BUILD_TARGET_DIR}")
 SET(RUNTIME_OUTPUT_NAME firesight)
@@ -30,31 +48,52 @@ configure_file (
 	)
 
 find_package( OpenCV REQUIRED )
+if (OpenCV_LIBS) 
+	MESSAGE(STATUS "OpenCV_LIBS:${OpenCV_LIBS}")
+else(OpenCV_LIBS)
+	MESSAGE("find_package(OpenCV) failed => OpenCV_LIBS is not defined")
+endif(OpenCV_LIBS)
 
-include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} )
+include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${JANSSON_INCLUDE_DIRS})
 link_directories( ${BUILD_TARGET_DIR} )
 
-add_library(_firesight SHARED 
-	dft.cpp 
+file(GLOB FIRESIGHT_LIB_FILES
 	FireLog.cpp 
-	generated_code.cpp
 	HoleRecognizer.cpp 
-	jo_util.cpp 
-	MatchedRegion.cpp 
-	MatUtil.cpp
-	Model.cpp 
 	MSER.cpp 
+	MatUtil.cpp
+	MatchedRegion.cpp 
+	Model.cpp 
 	Pipeline.cpp 
+	dft.cpp 
+	generated_code.cpp
+	jo_util.cpp 
 	proto.cpp 
 	warpRing.cpp
 	)
-target_link_libraries(_firesight libjansson.so ${OpenCV_LIBS} )
-set_target_properties(_firesight PROPERTIES VERSION ${PROJECT_VERSION_STRING} SOVERSION ${PROJECT_VERSION_MAJOR})
 
+add_library(_firesight SHARED ${FIRESIGHT_LIB_FILES})
+target_link_libraries(_firesight ${JANSSON_LIB} ${OpenCV_LIBS} )
+set_target_properties(_firesight PROPERTIES 
+		VERSION ${PROJECT_VERSION_STRING} 
+		SOVERSION ${PROJECT_VERSION_MAJOR}
+		)
+add_custom_command(TARGET _firesight POST_BUILD    
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different  
+        "${PROJECT_SOURCE_DIR}/target/Debug/_firesight.dll"      
+        "${PROJECT_SOURCE_DIR}/target/_firesight.dll" 
+				)
+	
 add_executable(gencode gencode.cpp)
 
 add_executable(firesight FireSight.cpp)
-target_link_libraries(firesight libjansson.so lib_firesight.so ${OpenCV_LIBS} )
+add_dependencies(firesight _firesight)
+target_link_libraries(firesight ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS} )
+add_custom_command(TARGET firesight POST_BUILD    
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different  
+        "${PROJECT_SOURCE_DIR}/target/Debug/firesight.exe"      
+        "${PROJECT_SOURCE_DIR}/target/firesight.exe" 
+				)
 
 add_executable(test 
 	test/test_warpAffine.cpp 
@@ -63,7 +102,13 @@ add_executable(test
 	test/test_matMaxima.cpp 
 	test/test_jo_util.cpp
 	test/test.cpp)
-target_link_libraries(test libjansson.so lib_firesight.so ${OpenCV_LIBS} )
+add_dependencies(test _firesight)
+target_link_libraries(test ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS} )
+add_custom_command(TARGET test POST_BUILD    
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different  
+        "${PROJECT_SOURCE_DIR}/target/Debug/test.exe"      
+        "${PROJECT_SOURCE_DIR}/target/test.exe" 
+				)
 
 INSTALL(TARGETS _firesight DESTINATION lib)
 INSTALL(TARGETS firesight DESTINATION bin)

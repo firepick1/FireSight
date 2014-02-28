@@ -63,8 +63,8 @@ extern "C" {
     }\
   }
 
-extern int logLevel;
-extern FILE *logFile;
+extern CLASS_DECLSPEC int logLevel;
+extern CLASS_DECLSPEC FILE *logFile;
 
 /**
  * By default, logging output is sent to cout. You can also call
@@ -74,26 +74,26 @@ extern FILE *logFile;
  * @param level logging level
  * @return 0 for success
  */
-int firelog_init(const char *path, int level = FIRELOG_WARN);
+CLASS_DECLSPEC int firelog_init(const char *path, int level = FIRELOG_WARN);
 
 /**
  * Release resources allocated by firelog_init().
  */
-int firelog_destroy();
+CLASS_DECLSPEC int firelog_destroy();
 
 /**
  * Change logging level.
  * @param newLevel E.g., FIRELOG_TRACE
  * @return former logging level
  */
-int firelog_level(int newLevel);
+CLASS_DECLSPEC int firelog_level(int newLevel);
 
 /**
  * Return last message
  * @param level logging level
  * @return Last message logged for given level
  */
-const char * firelog_lastMessage(int level);
+CLASS_DECLSPEC const char * firelog_lastMessage(int level);
 
 /**
  * Include thread id on each line logged
@@ -112,7 +112,7 @@ void firelog_lastMessageClear();
  * Do not call main logging function directly.
  * Use logging defines instead.
  */
-void firelog(const char *msg, int level);
+CLASS_DECLSPEC void firelog(const char *msg, int level);
 
 #ifdef __cplusplus
 }
