@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 #include <stdio.h>
+#include "winjunk.hpp"
 
 #define FIRELOG_ERROR 0
 #define FIRELOG_WARN 1
