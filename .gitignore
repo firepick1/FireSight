@@ -3,7 +3,9 @@ CMakeCache.txt
 install_manifest.txt
 CMakeFiles/*
 core
-*.cmake
+cmake_install.cmake  
+CPackConfig.cmake  
+CPackSourceConfig.cmake
 *.log
 Makefile
 target/*
