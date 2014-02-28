@@ -25,6 +25,8 @@ string matInfo(const Mat &m) {
 Mat matRotateSize(Size sizeIn, Point2f center, float angle, float &minx, float &maxx, float &miny, float &maxy) {
 	Mat transform = getRotationMatrix2D( center, angle, 1 );
 
+	transform.convertTo(transform, CV_32F);
+
 	Matx<float,3,4> pts(
 		0, sizeIn.width-1.0f, sizeIn.width-1.0f, 0,
 		0, 0, sizeIn.height-1.0f, sizeIn.height-1.0f,
@@ -43,6 +45,10 @@ Mat matRotateSize(Size sizeIn, Point2f center, float angle, float &minx, float &
 		miny = min(miny, y);
 		maxy = max(maxy, y);
 	}
+	LOGTRACE3("matRotateSize() [%12f %12f %12f", 
+		transform.at<float>(0,0), transform.at<float>(0,1), transform.at<float>(0,2))
+	LOGTRACE3("matRotateSize()  %12f %12f %12f]", 
+		transform.at<float>(1,0), transform.at<float>(1,1), transform.at<float>(1,2))
 
 	return transform;
 }
@@ -56,17 +62,17 @@ void matWarpAffine(const Mat &image, Mat &result, Point2f center, float angle, f
 	float maxy;
 	Mat transform = matRotateSize(Size(image.cols,image.rows), center, angle, minx, maxx, miny, maxy);
 
-	transform.at<double>(0,2) += offset.x;
-	transform.at<double>(1,2) += offset.y;
+	transform.at<float>(0,2) += offset.x;
+	transform.at<float>(1,2) += offset.y;
 
 	Size resultSize(size);
 	if (resultSize.width <= 0) {
 		resultSize.width = (int)(maxx - minx + 1.5);
-		transform.at<double>(0,2) += (resultSize.width-1)/2.0 - center.x;
+		transform.at<float>(0,2) += (resultSize.width-1)/2.0 - center.x;
 	}
 	if (resultSize.height <= 0) {
 		resultSize.height = (int)(maxy - miny + 1.5);
-    transform.at<double>(1,2) += (resultSize.height-1)/2.0 - center.y;
+    transform.at<float>(1,2) += (resultSize.height-1)/2.0 - center.y;
 	}
 	if (logLevel >= FIRELOG_TRACE) {
 		char buf[200];
@@ -75,8 +81,8 @@ void matWarpAffine(const Mat &image, Mat &result, Point2f center, float angle, f
 		LOGTRACE4("matWarpAffine() miny:%f, maxy:%f, %s-height:%d", 
 			miny, maxy, (size.height <= 0 ? "auto" : "fixed"), resultSize.height);
 		snprintf(buf, sizeof(buf),"matWarpAffine() transform:[%f,%f,%f; %f,%f,%f]",
-			transform.at<double>(0,0), transform.at<double>(0,1), transform.at<double>(0,2),
-			transform.at<double>(1,0), transform.at<double>(1,1), transform.at<double>(1,2));
+			transform.at<float>(0,0), transform.at<float>(0,1), transform.at<float>(0,2),
+			transform.at<float>(1,0), transform.at<float>(1,1), transform.at<float>(1,2));
 		LOGTRACE(buf);
 	}
 
