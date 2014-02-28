@@ -25,7 +25,7 @@ void Pipeline::covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut)
  */
 void Pipeline::_covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut) {
 	Mat_<double> data(pts.size(),2);
-	for (int i = 0; i < pts.size(); i++) {
+	for (size_t i = 0; i < pts.size(); i++) {
 		data(i,0) = pts[i].x;
 		data(i,1) = pts[i].y;
 	}
@@ -120,15 +120,15 @@ KeyPoint Pipeline::_regionKeypoint(const vector<Point> &region) {
 	double diam = 2*sqrt(region.size()/CV_PI);
 	LOGTRACE4("regionKeypoint() -> x:%f y:%f diam:%f angle:%f", x, y, diam, degrees);
 
-	return KeyPoint(x, y, diam, degrees);
+	return KeyPoint((float) x, (float) y, (float) diam, (float) degrees);
 }
 
 
 static void drawRegions(Mat &image, vector<vector<Point> > &regions, Scalar color) {
 	int nRegions = (int) regions.size();
-	int blue = color[0];
-	int green = color[1];
-	int red = color[2];
+	int blue = (int) color[0];
+	int green = (int) color[1];
+	int red = (int) color[2];
 	bool changeColor = red == -1 && green == -1 && blue == -1;
 
 	for( int i = 0; i < nRegions; i++) {
@@ -184,11 +184,11 @@ bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, Model &model) {
 	int delta = jo_int(pStage, "delta", 5, model.argMap);
 	int minArea = jo_int(pStage, "minArea", 60, model.argMap);
 	int maxArea = jo_int(pStage, "maxArea", 14400, model.argMap);
-	float maxVariation = jo_double(pStage, "maxVariation", 0.25, model.argMap);
-	float minDiversity = jo_double(pStage, "minDiversity", 0.2, model.argMap);
+	float maxVariation = jo_float(pStage, "maxVariation", 0.25, model.argMap);
+	float minDiversity = jo_float(pStage, "minDiversity", 0.2, model.argMap);
 	int maxEvolution = jo_int(pStage, "maxEvolution", 200, model.argMap);
-	double areaThreshold = jo_double(pStage, "areaThreshold", 1.01, model.argMap);
-	double minMargin = jo_double(pStage, "minMargin", .003, model.argMap);
+	float areaThreshold = jo_float(pStage, "areaThreshold", 1.01, model.argMap);
+	float minMargin = jo_float(pStage, "minMargin", .003, model.argMap);
 	int edgeBlurSize = jo_int(pStage, "edgeBlurSize", 5, model.argMap);
 	json_t *pDetect = jo_object(pStage, "detect", model.argMap);
 	Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);

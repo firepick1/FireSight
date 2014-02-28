@@ -16,7 +16,7 @@ void generate_ringMat(short radius) {
 	for (int r=0; r<radius; r++) {
 		cout << "/*" << r << "*/";
 		for (int c=0; c<radius; c++) {
-			int d = floor(sqrt(r*r+c*c));
+			int d = (int) floor(sqrt((float)r*r+c*c));
 			cout << ((r || c) ? "," : " ");
 			cout << d;
 		}
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 				exit(-1);
 			}
 			i++;
-			sscanf(argv[i], "%d", &ringMat_radius);
+			ringMat_radius = atoi(argv[i]);
 		} else {
 			help();
 			exit(-1);

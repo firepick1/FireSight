@@ -6,11 +6,13 @@
 #include <time.h>
 #include <string.h>
 
+#ifdef LOG_THREAD_ID
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE         /* See feature_test_macros(7) */
 #endif
 #include <unistd.h>
 #include <sys/syscall.h>
+#endif
 
 #define LOGMAX 255
 
@@ -91,8 +93,9 @@ int firelog_level(int newLevel) {
 void firelog(const char *msg, int level) {
 	time_t now = time(NULL);
 	struct tm *pLocalNow = localtime(&now);
+#ifdef LOG_THREAD_ID
 	int tid = syscall(SYS_gettid);
-	char logBuf[LOGMAX+1];
+#endif
 
   if (logFile) {
     fprintf(logFile, "%02d:%02d:%02d ", pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec);
@@ -104,9 +107,11 @@ void firelog(const char *msg, int level) {
       case FIRELOG_TRACE: fprintf(logFile, " T "); break;
       default: fprintf(logFile, "?%d? ", level); break;
     }
+#ifdef LOG_THREAD_ID
 		if (logTID) {
 		  fprintf(logFile, "%d ", tid);
 		}
+#endif
 
 		snprintf(lastMessage[level], LOGMAX, "%s", msg);
     fprintf(logFile, "%s", msg);
@@ -124,9 +129,11 @@ void firelog(const char *msg, int level) {
       case FIRELOG_TRACE: cout << " T " ; break;
       default: cout << "?" << level << "? " ; break;
     }
+#ifdef LOG_THREAD_ID
 		if (logTID) {
 		  cout << tid << " ";
 		}
+#endif
 		snprintf(lastMessage[level], LOGMAX, "%s", msg);
 		cout << lastMessage[level] << endl;
 	}

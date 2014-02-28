@@ -22,24 +22,24 @@ string matInfo(const Mat &m) {
 	return string(buf);
 }
 
-Mat matRotateSize(Size sizeIn, Point2f center, double angle, double &minx, double &maxx, double &miny, double &maxy) {
+Mat matRotateSize(Size sizeIn, Point2f center, float angle, float &minx, float &maxx, float &miny, float &maxy) {
 	Mat transform = getRotationMatrix2D( center, angle, 1 );
 
-	Matx<double,3,4> pts(
-		0, sizeIn.width-1, sizeIn.width-1, 0,
-		0, 0, sizeIn.height-1, sizeIn.height-1,
-		1, 1, 1, 1);
+	Matx<float,3,4> pts(
+		0, sizeIn.width-1.0f, sizeIn.width-1.0f, 0,
+		0, 0, sizeIn.height-1.0f, sizeIn.height-1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f);
 	Mat mpts(pts);
 	Mat newPts = transform * mpts;
-	minx = newPts.at<double>(0,0);
-	maxx = newPts.at<double>(0,0);
-	miny = newPts.at<double>(1,0);
-	maxy = newPts.at<double>(1,0);
+	minx = newPts.at<float>(0,0);
+	maxx = newPts.at<float>(0,0);
+	miny = newPts.at<float>(1,0);
+	maxy = newPts.at<float>(1,0);
 	for (int c=1; c<4; c++) {
-		double x = newPts.at<double>(0,c);
+		float x = newPts.at<float>(0,c);
 		minx = min(minx, x);
 		maxx = max(maxx, x);
-		double y = newPts.at<double>(1,c);
+		float y = newPts.at<float>(1,c);
 		miny = min(miny, y);
 		maxy = max(maxy, y);
 	}
@@ -47,13 +47,13 @@ Mat matRotateSize(Size sizeIn, Point2f center, double angle, double &minx, doubl
 	return transform;
 }
 
-void matWarpAffine(const Mat &image, Mat &result, Point2f center, double angle, double scale, 
+void matWarpAffine(const Mat &image, Mat &result, Point2f center, float angle, float scale, 
 	Point2f offset, Size size, int borderMode, Scalar borderValue, int flags)
 {
-	double minx;
-	double maxx;
-	double miny;
-	double maxy;
+	float minx;
+	float maxx;
+	float miny;
+	float maxy;
 	Mat transform = matRotateSize(Size(image.cols,image.rows), center, angle, minx, maxx, miny, maxy);
 
 	transform.at<double>(0,2) += offset.x;
@@ -61,11 +61,11 @@ void matWarpAffine(const Mat &image, Mat &result, Point2f center, double angle, 
 
 	Size resultSize(size);
 	if (resultSize.width <= 0) {
-		resultSize.width = maxx - minx + 1.5;
+		resultSize.width = (int)(maxx - minx + 1.5);
 		transform.at<double>(0,2) += (resultSize.width-1)/2.0 - center.x;
 	}
 	if (resultSize.height <= 0) {
-		resultSize.height = maxy - miny + 1.5;
+		resultSize.height = (int)(maxy - miny + 1.5);
     transform.at<double>(1,2) += (resultSize.height-1)/2.0 - center.y;
 	}
 	if (logLevel >= FIRELOG_TRACE) {
@@ -91,7 +91,7 @@ typedef enum {
 	AFTER_INFLECTION
 } MinMaxState;
 
-template<typename _Tp> _Tp _matMaxima(const cv::Mat &mat, std::vector<Point> &locations, _Tp rangeMin, _Tp rangeMax) {
+template<typename _Tp> void _matMaxima(const cv::Mat &mat, std::vector<Point> &locations, _Tp rangeMin, _Tp rangeMax) {
 	int rEnd = mat.rows-1;
 	int cEnd = mat.cols-1;
 
@@ -167,7 +167,7 @@ template<typename _Tp> _Tp _matMaxima(const cv::Mat &mat, std::vector<Point> &lo
 	}
 }
 
-template<typename _Tp> _Tp _matMinima(const cv::Mat &mat, std::vector<Point> &locations, _Tp rangeMin, _Tp rangeMax) {
+template<typename _Tp> void _matMinima(const cv::Mat &mat, std::vector<Point> &locations, _Tp rangeMin, _Tp rangeMax) {
 	int rEnd = mat.rows-1;
 	int cEnd = mat.cols-1;
 

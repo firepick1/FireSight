@@ -49,7 +49,7 @@ static void modelMatches(Point offset, const Mat &tmplt, const Mat &result, cons
 	LOGTRACE1("modelMatches(%d)", matches.size());
 	json_t *pRects = json_array();
 	assert(pRects);
-	for (int iMatch=0; iMatch<matches.size(); iMatch++) {
+	for (size_t iMatch=0; iMatch<matches.size(); iMatch++) {
 		int cx = matches[iMatch].x;
 		int cy = matches[iMatch].y;
 		LOGTRACE2("modelMatches() matches(%d,%d)", cx, cy);
@@ -76,8 +76,8 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 	validateImage(model.image);
   string methodStr = jo_string(pStage, "method", "CV_TM_CCOEFF_NORMED", model.argMap);
   string tmpltPath = jo_string(pStage, "template", "", model.argMap);
-	float threshold = jo_double(pStage, "threshold", 0.7);
-	float corr = jo_double(pStage, "corr", 0.85);
+	float threshold = jo_float(pStage, "threshold", 0.7f);
+	float corr = jo_float(pStage, "corr", 0.85f);
 	string outputStr = jo_string(pStage, "output", "current", model.argMap);
 	string borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
 	const char *angleKey = "angles";
@@ -118,16 +118,16 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 		if (!pAngles) {
 			angles.push_back(0);
 		} else if (json_is_string(pAngles)) {
-			float angle = atof(json_string_value(pAngles));
+			float angle = (float) atof(json_string_value(pAngles));
 			angles.push_back(angle);
 		} else if (json_is_number(pAngles)) {
-			angles.push_back(json_number_value(pAngles));
+			angles.push_back((float) json_number_value(pAngles));
 		} else if (json_is_array(pAngles)) {
-			int index;
+			size_t index;
 			json_t *pAngle;
 			json_array_foreach(pAngles, index, pAngle) {
 				if (json_is_number(pAngle)) {
-					angles.push_back(json_number_value(pAngle));
+					angles.push_back((float) json_number_value(pAngle));
 				} else {
 					errMsg = "Expected numeric angle";
 				}
@@ -308,7 +308,7 @@ bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, Model &model) {
 	int flags = 0;
 
 	if (json_is_array(pFlags)) {
-		int index;
+		size_t index;
 		json_t *pStr;
 		json_array_foreach(pFlags, index, pStr) {
 			const char *flag = json_string_value(pStr);

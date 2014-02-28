@@ -4,6 +4,7 @@
 #include "opencv2/features2d/features2d.hpp"
 #include <vector>
 #include <map>
+#include "winjunk.hpp"
 #include "jansson.h"
 
 using namespace cv;
@@ -51,11 +52,11 @@ namespace firesight {
 			int delta;
 			int minArea;
 			int maxArea;
-			double maxVariation;
-			double minDiversity;
+			float maxVariation;
+			float minDiversity;
 			int max_evolution;
-			double area_threshold;
-			double min_margin;
+			float area_threshold;
+			float min_margin;
 			int edge_blur_size;
 			void scanRegion(vector<Point> &pts, int i, 
 				Mat &matRGB, vector<MatchedRegion> &matches, float maxEllipse, float maxCovar);

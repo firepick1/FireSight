@@ -11,13 +11,14 @@ using namespace cv;
 using namespace std;
 using namespace firesight;
 
+const float PI = 3.141592653589793f;
 
 MatchedRegion::MatchedRegion(Range xRange, Range yRange, Point2f average, int pointCount, float covar) {
 	this->xRange = xRange;
 	this->yRange = yRange;
 	this->average = average;
 	this->pointCount = pointCount;
-	this->ellipse = (xRange.end-xRange.start+1) * (yRange.end-yRange.start+1) * M_PI/4;
+	this->ellipse = (xRange.end-xRange.start+1) * (yRange.end-yRange.start+1) * PI/4;
 	this->covar = covar;
 }
 

@@ -85,7 +85,9 @@ int jo_int(const json_t *pObj, const char *key, int defaultValue, ArgMap &argMap
 	if (pValue == NULL) {
 	  // default
 	} else if (json_is_integer(pValue)) {
-		result = json_integer_value(pValue);
+		result = (int)json_integer_value(pValue);
+	} else if (json_is_number(pValue)) {
+		result = (int)(0.5+json_number_value(pValue));
 	} else if (json_is_string(pValue)) {
 		string valStr = jo_parse(json_string_value(pValue), argMap);
 		result = atoi(valStr.c_str());

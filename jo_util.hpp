@@ -18,6 +18,10 @@ namespace firesight {
 
 	double jo_double(const json_t *pObj, const char *key, double defaultValue=0, ArgMap &argMap=emptyMap) ;
 
+	inline float jo_float(const json_t *pObj, const char *key, double defaultValue=0, ArgMap &argMap=emptyMap) {
+			return (float) jo_double(pObj, key, defaultValue, argMap);
+	}
+
 	string jo_string(const json_t *pObj, const char *key, const char *defaultValue = "", ArgMap &argMap=emptyMap) ;
 
 	Scalar jo_Scalar(const json_t *pObj, const char *key, const Scalar &defaultValue, ArgMap &argMap=emptyMap) ;

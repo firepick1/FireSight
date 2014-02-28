@@ -26,18 +26,18 @@ void matWarpRing(const Mat &image, Mat &result, vector<float> angles) {
 		matRing(image, result);
 	} else { // discrete angles
 		Size imageSize(image.cols, image.rows);
-		float cx = (image.cols-1)/2.0;
-		float cy = (image.rows-1)/2.0;
+		float cx = (image.cols-1)/2.0f;
+		float cy = (image.rows-1)/2.0f;
 		Point2f center(cx,cy);
-		double all_minx;
-		double all_maxx;
-		double all_miny;
-		double all_maxy;
-		for (int i=0; i<angles.size(); i++) {
-			double minx;
-			double maxx;
-			double miny;
-			double maxy;
+		float all_minx;
+		float all_maxx;
+		float all_miny;
+		float all_maxy;
+		for (size_t i=0; i<angles.size(); i++) {
+			float minx;
+			float maxx;
+			float miny;
+			float maxy;
 			matRotateSize(imageSize, center, angles[i], minx, maxx, miny, maxy);
 			if (i == 0) {
 				all_minx = minx;
@@ -52,12 +52,12 @@ void matWarpRing(const Mat &image, Mat &result, vector<float> angles) {
 			}
 			LOGTRACE4("matWarpRing() all_minx:%f all_maxx:%f all_miny:%f all_maxy:%f", all_minx, all_maxx,  all_miny, all_maxy);
 		}
-		Size resultSize(all_maxx - all_minx + 1.5, all_maxy - all_miny + 1.5);
+		Size resultSize((int)(all_maxx - all_minx + 1.5), (int)(all_maxy - all_miny + 1.5));
 		LOGTRACE2("matWarpRing() resultSize.width:%d resultSize.height:%d", resultSize.width, resultSize.height);
 		int sumType = CV_MAKETYPE(CV_32F, image.channels());
 		Mat resultSum(resultSize.height, resultSize.width, sumType, Scalar(0));
-		Point2f translate((resultSize.width-1.0)/2 - cx, (resultSize.height-1.0)/2 - cy);
-		for (int i=0; i<angles.size(); i++) {
+		Point2f translate((resultSize.width-1.0f)/2 - cx, (resultSize.height-1.0f)/2 - cy);
+		for (size_t i=0; i<angles.size(); i++) {
 			float angle = angles[i];
 			Mat localResult;
 			matWarpAffine(image, localResult, center, angle, 1, translate, resultSize);
@@ -66,7 +66,7 @@ void matWarpRing(const Mat &image, Mat &result, vector<float> angles) {
 			}
 			resultSum += localResult;
 		}
-		float scale = 1.0/angles.size();
+		float scale = 1.0f/angles.size();
 		resultSum = resultSum * scale;
 		resultSum.convertTo(result, CV_MAKETYPE(image.type(), image.channels()));
 	}
@@ -79,13 +79,13 @@ bool Pipeline::apply_warpRing(json_t *pStage, json_t *pStageModel, Model &model)
   json_t *pAngles = jo_object(pStage, "angles", model.argMap);
 	vector<float> angles;
 	if (json_is_array(pAngles)) {
-		int index;
+		size_t index;
 		json_t *pAngle;
 		json_array_foreach(pAngles, index, pAngle) {
 			if (json_is_number(pAngle)) {
-				angles.push_back(json_number_value(pAngle));
+				angles.push_back((float) json_number_value(pAngle));
 			} else if (json_is_string(pAngle)) {
-				float angle = atof(json_string_value(pAngle));
+				float angle = (float) atof(json_string_value(pAngle));
 				angles.push_back(angle);
 			} else {
 				errMsg = "Expected angle values in degrees";
@@ -118,7 +118,7 @@ void matRing(const Mat &image, Mat &result) {
 	int cx2 = xodd ? cx : cx+1;
 	int cy = my/2; // 1x1=>0; 2x2=>0; 3x3=>1; 4x4=>1
 	int cy2 = yodd ? cy : cy+1;
-	short radius = max(ceil(sqrt(mx*mx+my*my)/2.0), 1.0);
+	short radius = (short) max(ceil(sqrt((float) mx*mx+my*my)/2.0), 1.0);
 	assert(radius<MAX_RADIUS);
 	int sum1D[MAX_RADIUS];
 	memset(sum1D, 0, sizeof(sum1D));
@@ -172,7 +172,7 @@ void matRing(const Mat &image, Mat &result) {
 	for (int r=0; r<=cy; r++) {
 		for (int c=0; c<=cx; c++) {
 			int d = ringMap[r][c];
-			short rcAvg = d >= MAX_RADIUS ? rcAvgExtend : avg1D[d];
+			uchar rcAvg = (uchar)(d >= MAX_RADIUS ? rcAvgExtend : avg1D[d]);
 			if (rcAvg) {
 				result.at<uchar>(cy-r,cx-c) = rcAvg;
 				result.at<uchar>(cy-r,cx2+c) = rcAvg;

@@ -11,18 +11,20 @@ using namespace cv;
 using namespace std;
 using namespace firesight;
 
+const float PI = 3.141592653589793f;
+
 HoleRecognizer::HoleRecognizer(float minDiameter, float maxDiameter) {
 	maxDiam = maxDiameter;
 	minDiam = minDiameter;
 	_showMatches = HOLE_SHOW_NONE;
   delta = 5;
-	minArea = (int)(minDiameter*minDiameter*M_PI/4); // 60;
-	maxArea = (int)(maxDiameter*maxDiameter*M_PI/4); // 14400;
+	minArea = (int)(minDiameter*minDiameter*PI/4); // 60;
+	maxArea = (int)(maxDiameter*maxDiameter*PI/4); // 14400;
 	maxVariation = 0.25;
 	minDiversity = (maxDiam - minDiam)/(float)minDiam; // 0.2;
 	max_evolution = 200;
-	area_threshold = 1.01;
-	min_margin = .003;
+	area_threshold = 1.01f;
+	min_margin = .003f;
 	edge_blur_size = 5;
 	LOGTRACE3("HoleRecognizer() MSER(minArea:%d maxArea:%d minDiversity:%d/100)", minArea, maxArea, (int)(minDiversity*100+0.5));
 	mser = MSER(delta, minArea, maxArea, maxVariation, minDiversity,
@@ -65,7 +67,7 @@ void HoleRecognizer::scanRegion(vector<Point> &pts, int i,
 	int duplicate = 0;
 	bool matched = 0;
 	if (covar < maxCovar && maxX - minX < maxDiam && maxY - minY < maxDiam) {
-		for (int j = 0; !duplicate && j < matches.size(); j++) {
+		for (size_t j = 0; !duplicate && j < matches.size(); j++) {
 			if (abs(match.average.x - matches[j].average.x) < maxDiam &&
 					abs(match.average.y - matches[j].average.y) < maxDiam) 
 			{ duplicate++; }
