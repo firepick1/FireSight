@@ -1,5 +1,0 @@
-language: c
-compiler:
-  - gcc
-  - clang
-script: autoreconf -f -i && CFLAGS=-Werror ./configure && make check
