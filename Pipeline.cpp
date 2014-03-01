@@ -785,12 +785,12 @@ Pipeline::Pipeline(json_t *pJson) {
 }
 
 Pipeline::~Pipeline() {
-	json_decref(pPipeline);
-	if (pPipeline->refcount) {
-		LOGERROR1("~Pipeline() pPipeline->refcount:%d EXPECTED 0", pPipeline->refcount);
-	} else {
+	if (pPipeline->refcount == 1) {
 		LOGTRACE1("~Pipeline() pPipeline->refcount:%d", pPipeline->refcount);
+	} else {
+		LOGERROR1("~Pipeline() pPipeline->refcount:%d EXPECTED 0", pPipeline->refcount);
 	}
+	json_decref(pPipeline);
 }
 
 static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStage) {
