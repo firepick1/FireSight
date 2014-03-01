@@ -146,18 +146,12 @@ static int uiVideo(const char * pJsonPipeline, ArgMap &argMap) {
   return 0;
 }
 
-#include <direct.h>
-#include <stdlib.h>
-#include <stdio.h>
-
 int main(int argc, char *argv[])
 {
 	UIMode uimode;
 	string pipelineString;
 	char * imagePath = NULL;
 	char * outputPath = NULL;
-	char buf[100];
-	_getcwd(buf,100);
 	ArgMap argMap;
 	parseArgs(argc, argv, pipelineString, imagePath, outputPath, uimode, argMap); 
 
