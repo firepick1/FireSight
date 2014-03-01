@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 project( firesight )
 
 IF(WIN32)
+	MESSAGE("Creating WINDOWS build")
 	list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}")
 	# By default, do not warn when built on machines using only VS Express:
 	IF(NOT DEFINED CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_WARNINGS)
@@ -13,13 +14,13 @@ IF(WIN32)
 	SET(JANSSON_LIB "${JANSSON_DIR}/win32/vs2010/Output/Debug/jansson.lib")
 	SET(JANSSON_DLL "${JANSSON_DIR}/win32/vs2010/Output/Debug/jansson.dll")
 	SET(FIRESIGHT_LIB "_firesight.lib")
-ENDIF(WIN32)
-IF(CMAKE_COMPILER_IS_GNUCXXX)
+ELSE(WIN32)
+	MESSAGE("Creating LINUX build")
 	SET(JANSSON_LIB "libjansson.so")
 	SET(FIRESIGHT_LIB "lib_firesight.so")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g")
 	SET(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} -g")
-ENDIF(CMAKE_COMPILER_IS_GNUCXXX)
+ENDIF(WIN32)
 
 SET(COMPILE_DEFINITIONS -Werror)
 SET(PROJECT_VERSION_MAJOR 0)
@@ -78,7 +79,8 @@ set_target_properties(_firesight PROPERTIES
 		VERSION ${PROJECT_VERSION_STRING} 
 		SOVERSION ${PROJECT_VERSION_MAJOR}
 		)
-add_custom_command(TARGET _firesight POST_BUILD    
+if(WIN32)
+	add_custom_command(TARGET _firesight POST_BUILD    
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  
         "${PROJECT_SOURCE_DIR}/target/Debug/_firesight.dll"      
         "${PROJECT_SOURCE_DIR}/target/_firesight.dll" 
@@ -86,17 +88,20 @@ add_custom_command(TARGET _firesight POST_BUILD
         "${JANSSON_DLL}"      
         "${PROJECT_SOURCE_DIR}/target/jansson.dll" 
 				)
+endif(WIN32)
 	
 add_executable(gencode gencode.cpp)
 
 add_executable(firesight FireSight.cpp)
 add_dependencies(firesight _firesight)
 target_link_libraries(firesight ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS} )
-add_custom_command(TARGET firesight POST_BUILD    
+if(WIN32)
+	add_custom_command(TARGET firesight POST_BUILD    
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  
         "${PROJECT_SOURCE_DIR}/target/Debug/firesight.exe"      
         "${PROJECT_SOURCE_DIR}/target/firesight.exe" 
 				)
+endif(WIN32)
 
 add_executable(test 
 	test/test_warpAffine.cpp 
@@ -107,11 +112,13 @@ add_executable(test
 	test/test.cpp)
 add_dependencies(test _firesight)
 target_link_libraries(test ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS} )
-add_custom_command(TARGET test POST_BUILD    
+if(WIN32)
+	add_custom_command(TARGET test POST_BUILD    
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  
         "${PROJECT_SOURCE_DIR}/target/Debug/test.exe"      
         "${PROJECT_SOURCE_DIR}/target/test.exe" 
 				)
+endif(WIN32)
 
 INSTALL(TARGETS _firesight DESTINATION lib)
 INSTALL(TARGETS firesight DESTINATION bin)

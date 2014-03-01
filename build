@@ -1,6 +1,6 @@
 #! /bin/bash
 
-if [ ! -e /usr/local/bin/cmake ]
+if [ ! -e /usr/bin/cmake ]
 then
 	echo "++++++++++++++++++ INSTALLING CMAKE ++++++++++++"
 	apt-get -y install cmake
