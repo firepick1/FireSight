@@ -88,6 +88,9 @@ if(WIN32)
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  
         "${JANSSON_DLL}"      
         "${PROJECT_SOURCE_DIR}/target/jansson.dll" 
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different  
+        "${JANSSON_DLL}"      
+        "${PROJECT_SOURCE_DIR}/target/Debug/jansson.dll" 
 				)
 endif(WIN32)
 	
