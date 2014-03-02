@@ -60,16 +60,17 @@ include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${JANSSON_INCLUDE
 link_directories( ${BUILD_TARGET_DIR} )
 
 file(GLOB FIRESIGHT_LIB_FILES
-	FireLog.cpp 
-	HoleRecognizer.cpp 
-	MSER.cpp 
-	MatUtil.cpp
-	MatchedRegion.cpp 
-	Model.cpp 
-	Pipeline.cpp 
+	bgSub.cpp
 	dft.cpp 
+	FireLog.cpp 
 	generated_code.cpp
+	HoleRecognizer.cpp 
 	jo_util.cpp 
+	MatchedRegion.cpp 
+	MatUtil.cpp
+	Model.cpp 
+	MSER.cpp 
+	Pipeline.cpp 
 	proto.cpp 
 	warpRing.cpp
 	)

@@ -25,6 +25,8 @@ namespace firesight {
 
 	CLASS_DECLSPEC Scalar jo_Scalar(const json_t *pObj, const char *key, const Scalar &defaultValue, ArgMap &argMap=emptyMap) ;
 
+	CLASS_DECLSPEC Point jo_Point(const json_t *pObj, const char *key, const Point &defaultValue, ArgMap &argMap=emptyMap) ;
+
 	CLASS_DECLSPEC int jo_shape(json_t *pStage, const char *key, const char *&errMsg, ArgMap &argMap=emptyMap) ;
 
   CLASS_DECLSPEC string jo_parse(const char * pSource, ArgMap &argMap=emptyMap);

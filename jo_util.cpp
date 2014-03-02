@@ -124,6 +124,34 @@ string jo_string(const json_t *pObj, const char *key, const char *defaultValue, 
 	return jo_parse(result, argMap);
 }
 
+Point jo_Point(const json_t *pObj, const char *key, const Point &defaultValue, ArgMap &argMap) {
+	Point result = defaultValue;
+	json_t *pValue = jo_object(pObj, key, argMap);
+	if (pValue) {
+		if (!json_is_array(pValue)) {
+			LOGERROR1("expected JSON array for %s", key);
+		} else { 
+			switch (json_array_size(pValue)) {
+				case 2: 
+					result = Point(
+						(size_t)json_integer_value(json_array_get(pValue, 0)),
+						(size_t)json_integer_value(json_array_get(pValue, 1)));
+					break;
+				default:
+					LOGERROR1("expected JSON array with 2 integer values for %s", key);
+					return defaultValue;
+			}
+		}
+	}
+	if (pValue && logLevel >= FIRELOG_TRACE) {
+		char buf[250];
+		snprintf(buf, sizeof(buf), "jo_Point(key:%s default:[%f %f]) -> [%f %f]", 
+			key, defaultValue.x, defaultValue.y, result.x, result.y);
+		LOGTRACE1("%s", buf);
+	}
+	return result;
+}
+
 Scalar jo_Scalar(const json_t *pObj, const char *key, const Scalar &defaultValue, ArgMap &argMap) {
 	Scalar result = defaultValue;
 	json_t *pValue = jo_object(pObj, key, argMap);

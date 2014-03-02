@@ -16,6 +16,14 @@ using namespace cv;
 using namespace std;
 using namespace firesight;
 
+StageData::StageData(string stageName) {
+	LOGTRACE1("StageData constructor %s", stageName.c_str());
+}
+
+StageData::~StageData() {
+	LOGTRACE("StageData destructor");
+}
+
 bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
 	if (errMsg) {
 		char *pStageJson = json_dumps(pStage, JSON_COMPACT|JSON_PRESERVE_ORDER);
@@ -79,6 +87,44 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 	}
 
 	return stageOK("apply_warpAffine(%s) %s", errMsg, pStage, pStageModel);
+}
+
+bool Pipeline::apply_putText(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
+	string text = jo_string(pStage, "text", "FireSight");
+	Scalar color = jo_Scalar(pStage, "color", Scalar(0,255,0), model.argMap);
+	string fontFaceName = jo_string(pStage, "fontFace", "FONT_HERSHEY_PLAIN");
+	int thickness = jo_int(pStage, "thickness", 1);
+	int fontFace = FONT_HERSHEY_PLAIN;
+	double fontScale = jo_double(pStage, "fontScale", 1);
+	Point org = jo_Point(pStage, "org", Point(5,model.image.rows-6));
+	const char *errMsg = NULL;
+
+	if (fontFaceName.compare("FONT_HERSHEY_SIMPLEX") == 0) {
+		fontFace = FONT_HERSHEY_SIMPLEX;
+	} else if (fontFaceName.compare("FONT_HERSHEY_PLAIN") == 0) {
+		fontFace = FONT_HERSHEY_PLAIN;
+	} else if (fontFaceName.compare("FONT_HERSHEY_COMPLEX") == 0) {
+		fontFace = FONT_HERSHEY_COMPLEX;
+	} else if (fontFaceName.compare("FONT_HERSHEY_DUPLEX") == 0) {
+		fontFace = FONT_HERSHEY_DUPLEX;
+	} else if (fontFaceName.compare("FONT_HERSHEY_TRIPLEX") == 0) {
+		fontFace = FONT_HERSHEY_TRIPLEX;
+	} else if (fontFaceName.compare("FONT_HERSHEY_COMPLEX_SMALL") == 0) {
+		fontFace = FONT_HERSHEY_COMPLEX_SMALL;
+	} else if (fontFaceName.compare("FONT_HERSHEY_SCRIPT_SIMPLEX") == 0) {
+		fontFace = FONT_HERSHEY_SCRIPT_SIMPLEX;
+	} else if (fontFaceName.compare("FONT_HERSHEY_SCRIPT_COMPLEX") == 0) {
+		fontFace = FONT_HERSHEY_SCRIPT_COMPLEX;
+	} else {
+		errMsg = "Unknown fontFace (default is FONT_HERSHEY_PLAIN)";
+	}
+
+	if (!errMsg) { 
+		putText(model.image, text.c_str(), org, fontFace, fontScale, color, thickness);
+	}
+
+	return stageOK("apply_putText(%s) %s", errMsg, pStage, pStageModel);
 }
 
 bool Pipeline::apply_resize(json_t *pStage, json_t *pStageModel, Model &model) {
@@ -896,7 +942,9 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
 	bool ok = true;
   const char *errMsg = NULL;
  
-	if (strcmp(pOp, "blur")==0) {
+	if (strcmp(pOp, "backgroundSubtractor")==0) {
+		ok = apply_backgroundSubtractor(pStage, pStageModel, model);
+	} else if (strcmp(pOp, "blur")==0) {
 		ok = apply_blur(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "calcHist")==0) {
 		ok = apply_calcHist(pStage, pStageModel, model);
@@ -938,6 +986,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
 		ok = apply_normalize(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "proto")==0) {
 		ok = apply_proto(pStage, pStageModel, model);
+	} else if (strcmp(pOp, "putText")==0) {
+		ok = apply_putText(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "rectangle")==0) {
 		ok = apply_rectangle(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "resize")==0) {
