@@ -58,6 +58,22 @@ IF(WIN32)
 				SET(OpenCV_LIBS "${OPENCV2_DEBUG_LIBS}" CACHE STRING "OpenCV library files")
 			endif(BUILD_RELEASE_OPTION)
 		endif(MSVC10)
+				
+		# Visual Studio 12
+		if(MSVC12)
+			UNSET(OPENCV2_LIB_PATH CACHE)
+			SET(OPENCV2_LIB_PATH ${BUILD_DIR}/vc12/lib/ CACHE PATH "OpenCV library path")
+			file(GLOB OPENCV2_RELEASE_LIBS "${OPENCV2_LIB_PATH}/*[0-9][0-9][0-9].lib")
+			file(GLOB OPENCV2_DEBUG_LIBS "${OPENCV2_LIB_PATH}/*[0-9][0-9][0-9]d.lib")
+			UNSET(OpenCV_LIBS CACHE)
+			if(BUILD_RELEASE_OPTION)
+				MESSAGE(STATUS "MSVC12 Release libraries OPENCV2_LIB_PATH:${OPENCV2_LIB_PATH}")
+				SET(OpenCV_LIBS "${OPENCV2_RELEASE_LIBS}" CACHE STRING "OpenCV library files")
+			else(BUILD_RELEASE_OPTION)
+				MESSAGE(STATUS "MSVC12 Debug libraries OPENCV2_LIB_PATH:${OPENCV2_LIB_PATH}")
+				SET(OpenCV_LIBS "${OPENCV2_DEBUG_LIBS}" CACHE STRING "OpenCV library files")
+			endif(BUILD_RELEASE_OPTION)
+		endif(MSVC12)
 
 		# Set the includes
 		SET(OPENCV2_INCLUDE_PATH ${OPENCV2_PATH}/build/include/opencv2 ${OPENCV2_PATH}/build/include)
