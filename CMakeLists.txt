@@ -11,10 +11,19 @@ IF(WIN32)
 	ENDIF()
 	SET(JANSSON_DIR "${CMAKE_SOURCE_DIR}/jansson" CACHE STRING "Jansson directory")
 	SET(JANSSON_INCLUDE_DIRS "${JANSSON_DIR}/src;${JANSSON_DIR}/win32")
-	SET(JANSSON_LIB "${JANSSON_DIR}/win32/vs2010/Output/Debug/jansson.lib")
-	SET(JANSSON_DLL "${JANSSON_DIR}/win32/vs2010/Output/Debug/jansson.dll")
-	SET(FIRESIGHT_LIB "_firesight.lib")
+	SET(JANSSON_OUTPUT_DIR "${JANSSON_DIR}/win32/vs2010/Output/Debug")
+	IF(EXISTS ${JANSSON_OUTPUT_DIR}/jansson_d.lib)
+		SET(JANSSON_LIB "${JANSSON_OUTPUT_DIR}/jansson_d.lib")
+		SET(JANSSON_DLL "${JANSSON_OUTPUT_DIR}/jansson_d.dll")
+	ELSE(EXISTS ${JANSSON_OUTPUT_DIR}/jansson_d.lib)
+		SET(JANSSON_LIB "${JANSSON_OUTPUT_DIR}/jansson.lib")
+		SET(JANSSON_DLL "${JANSSON_OUTPUT_DIR}/jansson.dll")
+	ENDIF(EXISTS ${JANSSON_OUTPUT_DIR}/jansson_d.lib)
 	MESSAGE(STATUS "JANSSON_INCLUDE_DIRS:${JANSSON_INCLUDE_DIRS}")
+	MESSAGE(STATUS "JANSSON_DLL:${JANSSON_DLL}")
+	MESSAGE(STATUS "JANSSON_LIB:${JANSSON_LIB}")
+	SET(FIRESIGHT_LIB "_firesight.lib")
+	SET(FIRESIGHT_DLL "_firesight.dll")
 ELSE(WIN32)
 	MESSAGE(STATUS "Creating LINUX build")
 	SET(JANSSON_LIB "libjansson.so")
@@ -81,17 +90,23 @@ set_target_properties(_firesight PROPERTIES
 		SOVERSION ${PROJECT_VERSION_MAJOR}
 		)
 if(WIN32)
+	add_custom_command(TARGET _firesight PRE_LINK
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different  
+        "${JANSSON_LIB}"      
+        "${PROJECT_SOURCE_DIR}/target/Debug/" 
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different  
+        "${JANSSON_DLL}"      
+        "${PROJECT_SOURCE_DIR}/target/" 
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different  
+        "${JANSSON_DLL}"      
+        "${PROJECT_SOURCE_DIR}/target/Debug/" 
+		)
 	add_custom_command(TARGET _firesight POST_BUILD    
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different  
-        "${PROJECT_SOURCE_DIR}/target/Debug/_firesight.dll"      
-        "${PROJECT_SOURCE_DIR}/target/_firesight.dll" 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different  
-        "${JANSSON_DLL}"      
-        "${PROJECT_SOURCE_DIR}/target/jansson.dll" 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different  
-        "${JANSSON_DLL}"      
-        "${PROJECT_SOURCE_DIR}/target/Debug/jansson.dll" 
-				)
+		COMMAND cd ${PROJECT_SOURCE_DIR}/target/Debug
+		COMMAND copy ${FIRESIGHT_DLL} ..
+		COMMAND copy ${FIRESIGHT_DLL} ..
+		COMMAND cd ${PROJECT_SOURCE_DIR}/msvc
+		)
 endif(WIN32)
 	
 add_executable(gencode gencode.cpp)
