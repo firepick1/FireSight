@@ -1,9 +1,9 @@
 #! /bin/bash
 
-# echo test-one $1 $2 "$3"
-cmd="target/firesight -i img/$1  -p json/$2.json -o target/$2.jpg $3"
-echo $cmd
-$cmd > target/$2-model.json
+echo
+echo "========= test-one $1 $2 $3 $4 $5 $6 $7 $8 $9 =========="
+echo target/firesight -i img/$1  -p json/$2.json -o target/$2.jpg $3 $4 $5 $6 $7 $8 $9
+target/firesight -trace -i img/$1  -p json/$2.json -o target/$2.jpg $3 $4 $5 $6 $7 $8 $9 | tee target/$2-model.json
 cmp target/$2.jpg img/$2.jpg
 if [ $? -ne 0 ] 
 then 
@@ -16,4 +16,4 @@ then
 	echo FAILED: diff target/$2-model.json test/$2-model.json
 	exit 1
 fi
-echo OK
+echo TEST PASSED

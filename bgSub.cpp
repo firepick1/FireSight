@@ -37,13 +37,13 @@ class SubtractorStageData : public StageData {
 
 bool Pipeline::apply_backgroundSubtractor(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
-	int history = jo_int(pStage, "history", 0);
-	float varThreshold = jo_float(pStage, "varThreshold", 16);
-	bool bShadowDetection = jo_bool(pStage, "bShadowDetectioin", TRUE);
-  string background = jo_string(pStage, "background", "");
-	string method = jo_string(pStage, "method", "MOG2");
-	string stageName = jo_string(pStage, "name", method.c_str());
-	double learningRate = jo_double(pStage, "learningRate", -1);
+	int history = jo_int(pStage, "history", 0, model.argMap);
+	float varThreshold = jo_float(pStage, "varThreshold", 16, model.argMap);
+	bool bShadowDetection = jo_bool(pStage, "bShadowDetectioin", TRUE, model.argMap);
+  string background = jo_string(pStage, "background", "", model.argMap);
+	string method = jo_string(pStage, "method", "MOG2", model.argMap);
+	string stageName = jo_string(pStage, "name", method.c_str(), model.argMap);
+	double learningRate = jo_double(pStage, "learningRate", -1, model.argMap);
 	const char *errMsg = NULL;
 	StageDataPtr pStageData = model.stageDataMap[stageName];
 
