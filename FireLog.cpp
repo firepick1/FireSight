@@ -93,48 +93,34 @@ int firelog_level(int newLevel) {
 void firelog(const char *msg, int level) {
 	time_t now = time(NULL);
 	struct tm *pLocalNow = localtime(&now);
+	int tid = 0;
 #ifdef LOG_THREAD_ID
-	int tid = syscall(SYS_gettid);
+	tid = syscall(SYS_gettid);
 #endif
+	const char * levelStr = "?";
+
+	switch (level) {
+		case FIRELOG_ERROR: levelStr = " ERROR "; break;
+		case FIRELOG_WARN: levelStr = " W "; break;
+		case FIRELOG_INFO: levelStr = " I "; break;
+		case FIRELOG_DEBUG: levelStr = " D "; break;
+		case FIRELOG_TRACE: levelStr = " T "; break;
+	}
+	if (logTID) {
+		snprintf(lastMessage[level], LOGMAX, "%02d:%02d:%02d %d %s %s", 
+				pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec, tid, levelStr, msg);
+	} else {
+		snprintf(lastMessage[level], LOGMAX, "%02d:%02d:%02d %s %s", 
+				pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec, levelStr, msg);
+	}
 
   if (logFile) {
-    fprintf(logFile, "%02d:%02d:%02d ", pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec);
-    switch (level) {
-      case FIRELOG_ERROR: fprintf(logFile, " ERROR "); break;
-      case FIRELOG_WARN: fprintf(logFile, " W "); break;
-      case FIRELOG_INFO: fprintf(logFile, " I "); break;
-      case FIRELOG_DEBUG: fprintf(logFile, " D "); break;
-      case FIRELOG_TRACE: fprintf(logFile, " T "); break;
-      default: fprintf(logFile, "?%d? ", level); break;
-    }
-#ifdef LOG_THREAD_ID
-		if (logTID) {
-		  fprintf(logFile, "%d ", tid);
-		}
-#endif
-
-		snprintf(lastMessage[level], LOGMAX, "%s", msg);
-    fprintf(logFile, "%s", msg);
+    fprintf(logFile, "%s", lastMessage[level]);
     fprintf(logFile, "\n");
     fflush(logFile);
   }
 #ifdef __cplusplus
   else {
-		cerr << pLocalNow->tm_hour << ":" << pLocalNow->tm_min << ":" << pLocalNow->tm_sec;
-    switch (level) {
-      case FIRELOG_ERROR: cerr << " ERROR " ; break;
-      case FIRELOG_WARN: cerr << " W " ; break;
-      case FIRELOG_INFO: cerr << " I " ; break;
-      case FIRELOG_DEBUG: cerr << " D " ; break;
-      case FIRELOG_TRACE: cerr << " T " ; break;
-      default: cerr << "?" << level << "? " ; break;
-    }
-#ifdef LOG_THREAD_ID
-		if (logTID) {
-		  cerr << tid << " ";
-		}
-#endif
-		snprintf(lastMessage[level], LOGMAX, "%s", msg);
 		cerr << lastMessage[level] << endl;
 	}
 #endif

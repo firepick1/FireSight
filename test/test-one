@@ -2,18 +2,18 @@
 
 echo
 echo "========= test-one $1 $2 $3 $4 $5 $6 $7 $8 $9 =========="
-echo target/firesight -i img/$1  -p json/$2.json -o target/$2.jpg $3 $4 $5 $6 $7 $8 $9
-target/firesight -trace -i img/$1  -p json/$2.json -o target/$2.jpg $3 $4 $5 $6 $7 $8 $9 | tee target/$2-model.json
-cmp target/$2.jpg img/$2.jpg
+echo target/firesight -i img/$1  -p json/$2.json -o target/$2$3.png $4 $5 $6 $7 $8 $9
+target/firesight -trace -i img/$1  -p json/$2.json -o target/$2$3.png $4 $5 $6 $7 $8 $9 > target/$2$3-model.json
+cmp target/$2$3.png img/$2$3.png
 if [ $? -ne 0 ] 
 then 
-	echo FAILED: cmp target/$2.jpg img/$2.jpg
+	echo FAILED: cmp target/$2$3.png img/$2$3.png
 	exit 1
 fi
-diff target/$2-model.json test/$2-model.json
+diff target/$2$3-model.json test/$2$3-model.json
 if [ $? != 0 ] 
 then 
-	echo FAILED: diff target/$2-model.json test/$2-model.json
+	echo FAILED: diff target/$2$3-model.json test/$2$3-model.json
 	exit 1
 fi
 echo TEST PASSED
