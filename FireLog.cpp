@@ -120,22 +120,22 @@ void firelog(const char *msg, int level) {
   }
 #ifdef __cplusplus
   else {
-		cout << pLocalNow->tm_hour << ":" << pLocalNow->tm_min << ":" << pLocalNow->tm_sec;
+		cerr << pLocalNow->tm_hour << ":" << pLocalNow->tm_min << ":" << pLocalNow->tm_sec;
     switch (level) {
-      case FIRELOG_ERROR: cout << " ERROR " ; break;
-      case FIRELOG_WARN: cout << " W " ; break;
-      case FIRELOG_INFO: cout << " I " ; break;
-      case FIRELOG_DEBUG: cout << " D " ; break;
-      case FIRELOG_TRACE: cout << " T " ; break;
-      default: cout << "?" << level << "? " ; break;
+      case FIRELOG_ERROR: cerr << " ERROR " ; break;
+      case FIRELOG_WARN: cerr << " W " ; break;
+      case FIRELOG_INFO: cerr << " I " ; break;
+      case FIRELOG_DEBUG: cerr << " D " ; break;
+      case FIRELOG_TRACE: cerr << " T " ; break;
+      default: cerr << "?" << level << "? " ; break;
     }
 #ifdef LOG_THREAD_ID
 		if (logTID) {
-		  cout << tid << " ";
+		  cerr << tid << " ";
 		}
 #endif
 		snprintf(lastMessage[level], LOGMAX, "%s", msg);
-		cout << lastMessage[level] << endl;
+		cerr << lastMessage[level] << endl;
 	}
 #endif
 }

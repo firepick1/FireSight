@@ -1,6 +1,10 @@
 #ifndef WINJUNK_HPP
 #define WINJUNK_HPP
 
+/***********************************************
+ * This file hides all the Windows weirdness
+ ***********************************************/
+
 #ifdef _MSC_VER
 
 #include <cstdarg>

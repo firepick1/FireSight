@@ -2,8 +2,13 @@ cmake_minimum_required(VERSION 2.8)
 
 project( firesight )
 
+SET(PROJECT_VERSION_MAJOR 0)
+SET(PROJECT_VERSION_MINOR 5)
+set(PROJECT_VERSION_PATCH 5)
+set(PROJECT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
+
 IF(WIN32)
-	MESSAGE(STATUS "Creating WINDOWS build")
+	MESSAGE(STATUS "Detecting WINDOWS build")
 	list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}")
 	# By default, do not warn when built on machines using only VS Express:
 	IF(NOT DEFINED CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_WARNINGS)
@@ -18,7 +23,7 @@ IF(WIN32)
 	SET(FIRESIGHT_LIB "_firesight.lib")
 	SET(FIRESIGHT_DLL "_firesight.dll")
 ELSE(WIN32)
-	MESSAGE(STATUS "Creating LINUX build")
+	MESSAGE(STATUS "Detecting LINUX build")
 	SET(JANSSON_LIB "libjansson.so")
 	SET(FIRESIGHT_LIB "lib_firesight.so")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g")
@@ -26,12 +31,7 @@ ELSE(WIN32)
 ENDIF(WIN32)
 
 SET(COMPILE_DEFINITIONS -Werror)
-SET(PROJECT_VERSION_MAJOR 0)
-SET(PROJECT_VERSION_MINOR 5)
-set(PROJECT_VERSION_PATCH 4)
-set(PROJECT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64")
-
 
 include (InstallRequiredSystemLibraries)
 SET(CPACK_RESOURCE_FILE_LICENSE  
@@ -62,16 +62,17 @@ include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${JANSSON_INCLUDE
 link_directories( ${BUILD_TARGET_DIR} )
 
 file(GLOB FIRESIGHT_LIB_FILES
-	FireLog.cpp 
-	HoleRecognizer.cpp 
-	MSER.cpp 
-	MatUtil.cpp
-	MatchedRegion.cpp 
-	Model.cpp 
-	Pipeline.cpp 
+	bgSub.cpp
 	dft.cpp 
+	FireLog.cpp 
 	generated_code.cpp
+	HoleRecognizer.cpp 
 	jo_util.cpp 
+	MatchedRegion.cpp 
+	MatUtil.cpp
+	Model.cpp 
+	MSER.cpp 
+	Pipeline.cpp 
 	proto.cpp 
 	warpRing.cpp
 	)

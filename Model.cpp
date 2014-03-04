@@ -18,4 +18,7 @@ Model::Model(ArgMap &argMap) {
 
 Model::~Model() {
   json_decref(pJson);
+	for (std::map<string,StageDataPtr>::iterator it=stageDataMap.begin(); it!=stageDataMap.end(); ++it){
+			delete it->second;
+	}
 }

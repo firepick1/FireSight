@@ -9,13 +9,13 @@ then
 	exit 1
 fi
 
-echo
-echo =========== TEST firesight =============
+test/test-one pcb.jpg backgroundSubtractorMOG2-fgMask "-DbgImg=img/backgroundSubtractorMOG2.jpg"
+if [ $? -ne 0 ] ; then exit 1 ; fi
 
 test/test-one duck.jpg resize "-Dfx=0.25 -Dfy=0.5"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
-test/test-one pcb.jpg matchAngle "-Dangle=[45] -Dtemplate=img/tmplt-37x29.jpg"
+test/test-one pcb.jpg matchAngle "-Dangle=[45]" "-Dtemplate=img/tmplt-37x29.jpg"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 test/test-one pcb.jpg matchCCOEFF_NORMED 

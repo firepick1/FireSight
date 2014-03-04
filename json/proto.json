@@ -1,3 +1,3 @@
 [
-	{"op":"proto"}
+	{"op":"putText", "text":"FireSight", "org":[200,120], "fontScale":2, "thickness":1.5, "color":[0,255,0], "fontFace":"FONT_HERSHEY_PLAIN"}
 ]

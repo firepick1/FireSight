@@ -39,14 +39,14 @@ void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath,
 				exit(-1);
 			}
 			pipelinePath = argv[++i];
-			LOGTRACE1("-p %s is JSON pipeline path", pipelinePath);
+			LOGTRACE1("parseArgs(-p) \"%s\" is JSON pipeline path", pipelinePath);
 		} else if (strcmp("-o",argv[i]) == 0) {
 			if (i+1>=argc) {
 				LOGERROR("expected output path after -o");
 				exit(-1);
 			}
 			outputPath = argv[++i];
-			LOGTRACE1("-o %s is output image path", outputPath);
+			LOGTRACE1("parseArgs(-o) \"%s\" is output image path", outputPath);
 		} else if (strncmp("-D",argv[i],2) == 0) {
 			char * pEq = strchr(argv[i],'=');
 			if (!pEq || (pEq-argv[i])<=2) {
@@ -57,7 +57,7 @@ void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath,
 			char *pName = argv[i] + 2;
 			char *pVal = pEq + 1;
 			argMap[pName] = pVal;
-			LOGTRACE2("-D argMap[%s]=%s", pName, pVal );
+			LOGTRACE2("parseArgs(-D) argMap[%s]=\"%s\"", pName, pVal );
 			*pEq = '=';
 		} else if (strcmp("-i",argv[i]) == 0) {
 			if (i+1>=argc) {
@@ -65,16 +65,18 @@ void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath,
 				exit(-1);
 			}
 			imagePath = argv[++i];
-			LOGTRACE1("-i %s is input image path", imagePath);
+			LOGTRACE1("parseArgs(-i) \"%s\" is input image path", imagePath);
 		} else if (strcmp("-video", argv[i]) == 0) {
 			uimode = UI_VIDEO;
-			LOGTRACE("-video UI_VIDEO user interface selected");
+			LOGTRACE("parseArgs(-video) UI_VIDEO user interface selected");
+		} else if (strcmp("-info", argv[i]) == 0) {
+			firelog_level(FIRELOG_INFO);
 		} else if (strcmp("-debug", argv[i]) == 0) {
 			firelog_level(FIRELOG_DEBUG);
 		} else if (strcmp("-trace", argv[i]) == 0) {
 			firelog_level(FIRELOG_TRACE);
 		} else {
-			LOGERROR1("argument error detected at: %s", argv[i]);
+			LOGERROR1("unknown firesight argument: '%s'", argv[i]);
 			help();
 			exit(-1);
 		}
