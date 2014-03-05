@@ -9,13 +9,12 @@ then
 	exit 1
 fi
 
-suffix=""
 
 if [ "$WINDIR" == "" ]; then suffix=""; else suffix="-win" ; fi
 test/test-one pcb.jpg backgroundSubtractorMOG2-fgMask "$suffix" "-DbgImg=img/backgroundSubtractorMOG2.jpg" 
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
-if [ "$WINDIR" == "" ]; then suffix=""; else suffix="-win" ; fi
+suffix=""
 test/test-one duck.jpg resize "$suffix" "-Dfx=0.25" "-Dfy=0.5"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 

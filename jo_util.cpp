@@ -12,6 +12,7 @@ using namespace cv;
 #define START_DELIM "{{"
 #define END_DELIM "}}"
 #define DEFAULT_SEP "||"
+#define SINGLE_SEP "|"
 
 
 namespace firesight {
@@ -23,13 +24,21 @@ string jo_parse(const char * pSource, ArgMap &argMap) {
 	size_t startDelim = 0;
 	int substitutions = 0; 
 	while ((startDelim=result.find(START_DELIM,startDelim)) != string::npos) {
+		size_t defaultSep = result.find(DEFAULT_SEP,startDelim);
+		if (defaultSep == string::npos) {
+			size_t singleSep = result.find(SINGLE_SEP,startDelim);
+			if (singleSep != string::npos) {
+				LOGWARN("jo_parse() expected " DEFAULT_SEP " before default parameter value");
+				result.replace(singleSep, sizeof(SINGLE_SEP)-1, DEFAULT_SEP);
+				defaultSep = singleSep;
+			}
+		}
 		size_t endDelim = result.find(END_DELIM,startDelim);
 		if (endDelim == string::npos) {
 			LOGERROR1("jo_parse(): Invalid variable specification: '%s'", pSource);
 			break;
 		} 
 		size_t varEnd = endDelim + sizeof(END_DELIM)-1;
-		size_t defaultSep = result.find(DEFAULT_SEP,startDelim);
 		substitutions++;
 		size_t nameStart = startDelim + sizeof(START_DELIM)-1;
 		size_t nameEnd = defaultSep == string::npos ? endDelim : defaultSep;

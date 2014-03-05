@@ -1,0 +1,3 @@
+[
+	{"op":"PSNR", "path":"{{path}}", "threshold":"{{threshold|-1}}", "comment":"compare pipeline image to image at given path"}
+]
