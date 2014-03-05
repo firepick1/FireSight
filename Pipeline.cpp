@@ -770,6 +770,47 @@ bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model
 	return stageOK("apply_normalize(%s) %s", errMsg, pStage, pStageModel);
 }
 
+
+bool Pipeline::apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model) {
+	validateImage(model.image);
+  string path = jo_string(pStage, "path", "", model.argMap);
+	double psnrSame = jo_double(pStage, "psnrSame", FLT_MAX, model.argMap);
+	const char *errMsg = NULL;
+	Mat thatImage;
+
+	if (path.empty()) {
+		errMsg = "expected path for imread";
+	} else {
+		thatImage = imread(path.c_str(), CV_LOAD_IMAGE_COLOR);
+		if (model.image.data) {
+			LOGTRACE2("apply_PSNR(%s) %s", path.c_str(), matInfo(thatImage).c_str());
+			assert(model.image.cols == thatImage.cols);
+			assert(model.image.rows == thatImage.rows);
+			assert(model.image.channels == thatImage.channels);
+		} else {
+			errMsg = "imread failed";
+		}
+	}
+
+	if (!errMsg) {
+		Mat s1;
+		absdiff(model.image, thatImage, s1);  // |I1 - I2|
+		s1.convertTo(s1, CV_32F);  						// cannot make a square on 8 bits
+		s1 = s1.mul(s1);           						// |I1 - I2|^2
+		double psnr = psnrSame;								// value to use for MSE == 0
+		Scalar s = sum(s1);         					// sum elements per channel
+		double sse = s.val[0] + s.val[1] + s.val[2]; // sum channels
+
+		if( sse > 1e-10) {
+			double  mse =sse /(double)(model.image..channels() * model.image..total());
+			psnr = 10.0*log10((255*255)/mse);
+		}
+		json_object_set(pStageModel, "PSNR", json_real(psnr));
+	}
+
+	return stageOK("apply_PSNR(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, Model &model) {
 	validateImage(model.image);
 	float threshold1 = jo_float(pStage, "threshold1", 0, model.argMap);
@@ -984,6 +1025,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
 		ok = apply_MSER(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "normalize")==0) {
 		ok = apply_normalize(pStage, pStageModel, model);
+	} else if (strcmp(pOp, "PSNR")==0) {
+		ok = apply_PSNR(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "proto")==0) {
 		ok = apply_proto(pStage, pStageModel, model);
 	} else if (strcmp(pOp, "putText")==0) {
