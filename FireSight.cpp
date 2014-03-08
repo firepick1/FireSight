@@ -93,7 +93,7 @@ void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath,
 	pipelineString = pipelineStream.str();
 	const char *pJsonPipeline = pipelineString.c_str();
 	if (strlen(pJsonPipeline) < 10) {
-		cout << "invalid pipeline: " << pipelinePath << endl;
+		LOGERROR1("Invalid pipeline path: %s", pipelinePath);
 		exit(-1);
 	}
 }

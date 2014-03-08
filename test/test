@@ -11,7 +11,7 @@ fi
 
 
 if [ "$WINDIR" == "" ]; then suffix=""; else suffix="-win" ; fi
-test/test-one pcb.jpg backgroundSubtractorMOG2-fgMask "$suffix" "-DbgImg=img/backgroundSubtractorMOG2.jpg" 
+test/test-one mog2.jpg mog2-fgMask "$suffix" "-DbgImg=img/pcb.jpg" 
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 suffix=""

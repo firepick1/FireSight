@@ -63,18 +63,28 @@ bool Pipeline::apply_backgroundSubtractor(json_t *pStage, json_t *pStageModel, M
 
 	Mat bgImage;
 	if (!background.empty()) {
-		if (model.image.channels() == 1) {
-			bgImage = imread(background.c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+		if (history != 0) {
+			errMsg = "Expected history=0 if background image is specified";
 		} else {
-			bgImage = imread(background.c_str(), CV_LOAD_IMAGE_COLOR);
-		}
-		if (bgImage.data) {
-			LOGTRACE2("apply_backgroundSubtractor(%s) %s", background.c_str(), matInfo(bgImage).c_str());
-			if (model.image.rows!=bgImage.rows || model.image.cols!=bgImage.cols) {
-				errMsg = "Expected background image of same size as pipeline image";
+			if (model.image.channels() == 1) {
+				bgImage = imread(background.c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+			} else {
+				bgImage = imread(background.c_str(), CV_LOAD_IMAGE_COLOR);
 			}
-		} else {
-			errMsg = "Could not load background image";
+			if (bgImage.data) {
+				LOGTRACE2("apply_backgroundSubtractor(%s) %s", background.c_str(), matInfo(bgImage).c_str());
+				if (model.image.rows!=bgImage.rows || model.image.cols!=bgImage.cols) {
+					errMsg = "Expected background image of same size as pipeline image";
+				}
+			} else {
+				errMsg = "Could not load background image";
+			}
+		}
+	}
+
+	if (!errMsg) {
+		if (history < 0) {
+				errMsg = "Expected history >= 0";
 		}
 	}
 
