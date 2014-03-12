@@ -888,9 +888,9 @@ Pipeline::Pipeline(json_t *pJson) {
 
 Pipeline::~Pipeline() {
 	if (pPipeline->refcount == 1) {
-		LOGTRACE1("~Pipeline() pPipeline->refcount:%d", pPipeline->refcount);
+		LOGTRACE1("~Pipeline() pPipeline->refcount:%d", (int)pPipeline->refcount);
 	} else {
-		LOGERROR1("~Pipeline() pPipeline->refcount:%d EXPECTED 0", pPipeline->refcount);
+		LOGERROR1("~Pipeline() pPipeline->refcount:%d EXPECTED 0", (int)pPipeline->refcount);
 	}
 	json_decref(pPipeline);
 }
@@ -950,7 +950,7 @@ bool Pipeline::processModel(Model &model) {
 		bool isSaveImage = true;
 		if (pName.empty()) {
 			char defaultName[100];
-			snprintf(defaultName, sizeof(defaultName), "s%d", index+1);
+			snprintf(defaultName, sizeof(defaultName), "s%d", (int)index+1);
 			pName = defaultName;
 		  isSaveImage = false;
 		}
@@ -989,7 +989,7 @@ bool Pipeline::processModel(Model &model) {
 		}
 	} // json_array_foreach
 
-	LOGDEBUG2("Pipeline::processModel(stages:%d) -> %s", json_array_size(pPipeline), matInfo(model.image).c_str());
+	LOGDEBUG2("Pipeline::processModel(stages:%d) -> %s", (int)json_array_size(pPipeline), matInfo(model.image).c_str());
 
 	return ok;
 }

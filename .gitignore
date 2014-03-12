@@ -11,6 +11,6 @@ Makefile
 target/*
 ignore/*
 msvc/*
-jansson/*
+jannson
 jansson
 FireSight.wiki

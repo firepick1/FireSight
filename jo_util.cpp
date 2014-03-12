@@ -154,7 +154,7 @@ Point jo_Point(const json_t *pObj, const char *key, const Point &defaultValue, A
 	}
 	if (pValue && logLevel >= FIRELOG_TRACE) {
 		char buf[250];
-		snprintf(buf, sizeof(buf), "jo_Point(key:%s default:[%f %f]) -> [%f %f]", 
+		snprintf(buf, sizeof(buf), "jo_Point(key:%s default:[%d %d]) -> [%d %d]", 
 			key, defaultValue.x, defaultValue.y, result.x, result.y);
 		LOGTRACE1("%s", buf);
 	}

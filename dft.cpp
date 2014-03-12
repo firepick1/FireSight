@@ -46,7 +46,7 @@ static void dftShift(Mat &image, const char *&errMsg) {
 static void modelMatches(Point offset, const Mat &tmplt, const Mat &result, const vector<float> &angles, 
 	const vector<Point> &matches, json_t *pStageModel, float maxVal, bool isMin) 
 {
-	LOGTRACE1("modelMatches(%d)", matches.size());
+	LOGTRACE1("modelMatches(%d)", (int)matches.size());
 	json_t *pRects = json_array();
 	assert(pRects);
 	for (size_t iMatch=0; iMatch<matches.size(); iMatch++) {

@@ -11,14 +11,8 @@ FireSight is available as a C++ library as well as a standalone runtime under th
 
 ### Installation
 
-Linux is easy. The following has been tested on Raspbian, Debian. Gentoo is a little more involved:
-<pre>
-git clone git://github.com/firepick1/FireSight
-cd FireSight
-sudo ./build
-</pre>
-
-The [Windows Installation](https://github.com/firepick1/FireSight/wiki/Build-FireSight-(Windows)) is more complicated.
+* [[Build FireSight (Linus)]]
+* [[Build FireSight (Windows)]]
 
 ### Examples
 Recognize holes in <a href="img/cam.jpg">cam.jpg</a>:
