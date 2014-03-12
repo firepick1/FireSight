@@ -10,8 +10,8 @@ if [ ! -e /usr/local/include/jansson.h ]
 then
 	echo "++++++++++++++++++ INSTALLING JANNSON C LIBRARY ++++++++++++"
 	apt-get -y install dh-autoreconf
-	git clone git://github.com/akheron/jansson ~pi/jannson
-	pushd ~pi/jannson
+	git clone git://github.com/akheron/jansson jannson
+	pushd jannson
 	autoreconf -i
 	./configure
 	sudo -u $SUDO_USER cmake .
