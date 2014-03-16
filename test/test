@@ -1,7 +1,8 @@
 #! /bin/bash
 
-if [ `uname -m` == "x86_64" ]; then suffix64="-win"; else suffix64="" ; fi
+if [ `uname -m` == "x86_64" -o "$WINDIR" != "" ]; then suffix64="-win"; else suffix64="" ; fi
 echo "Machine platform is:" `uname -m`
+echo "Test suffix is:$suffix64"
 
 suffix=$suffix64
 test/test-one mog2.jpg mog2-fgMask "$suffix" "-DbgImg=img/pcb.jpg" 
