@@ -1,6 +1,6 @@
 {
   "FireSight":{
-    "version":"0.7.1",
+    "version":"0.7.2",
     "url":"https://github.com/firepick1/FireSight"
   },
   "s1":{},
@@ -12,7 +12,7 @@
         "width":29.0,
         "height":37.0,
         "angle":-45.0,
-        "corr":0.92322701741209423
+        "corr":"0.923227"
       },
       {
         "x":511.0,
@@ -20,10 +20,10 @@
         "width":29.0,
         "height":37.0,
         "angle":-45.0,
-        "corr":1.0
+        "corr":"1"
       }
     ],
-    "maxVal":0.89201092720031738,
+    "maxVal":"0.892011",
     "matches":2
   },
   "s3":{}

@@ -63,11 +63,11 @@ static void modelMatches(Point offset, const Mat &tmplt, const Mat &result, cons
 		if (angles.size() == 1) {
 			json_object_set(pRect, "angle", json_real(-angles[0]));
 		}
-		json_object_set(pRect, "corr", json_real(val/maxVal));
+		json_object_set(pRect, "corr", json_float(val/maxVal));
 		json_array_append(pRects, pRect);
 	}
 	json_object_set(pStageModel, "rects", pRects);
-	json_object_set(pStageModel, "maxVal", json_real(maxVal));
+	json_object_set(pStageModel, "maxVal", json_float(maxVal));
 	json_object_set(pStageModel, "matches", json_integer(matches.size()));
 	LOGTRACE("modelMatches() end");
 }
