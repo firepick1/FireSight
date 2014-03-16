@@ -105,7 +105,7 @@ bool parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath,
  */
 static int uiStill(const char * pJsonPipeline, Mat &image, ArgMap &argMap) {
   Pipeline pipeline(pJsonPipeline);
-
+  
   json_t *pModel = pipeline.process(image, argMap);
 
   // Print out returned model 
