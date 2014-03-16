@@ -6,6 +6,7 @@
 #include "FireLog.h"
 #include "FireSight.hpp"
 #include "version.h"
+#include "jo_util.hpp"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -27,7 +28,7 @@ static void help() {
 	cout << "   firesight -p json/pipeline2.json " << endl;
 }
 
-void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap) {
+bool parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap) {
 	char *pipelinePath = NULL;
 	uimode = UI_STILL;
 	firelog_level(FIRELOG_INFO);
@@ -77,13 +78,11 @@ void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath,
 			firelog_level(FIRELOG_TRACE);
 		} else {
 			LOGERROR1("unknown firesight argument: '%s'", argv[i]);
-			help();
-			exit(-1);
+			return false;
 		}
 	}
 	if (!pipelinePath) {
-		help();
-		exit(-1);
+		return false;
 	}
 
 	LOGTRACE1("Reading pipeline: %s", pipelinePath);
@@ -96,6 +95,7 @@ void parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath,
 		LOGERROR1("Invalid pipeline path: %s", pipelinePath);
 		exit(-1);
 	}
+	return true;
 }
 
 /**
@@ -155,7 +155,11 @@ int main(int argc, char *argv[])
 	char * imagePath = NULL;
 	char * outputPath = NULL;
 	ArgMap argMap;
-	parseArgs(argc, argv, pipelineString, imagePath, outputPath, uimode, argMap); 
+	bool argsOk = parseArgs(argc, argv, pipelineString, imagePath, outputPath, uimode, argMap);
+	if (!argsOk) {
+	  help();
+	  exit(-1);
+	}
 
 	Mat image;
 	if (imagePath) {

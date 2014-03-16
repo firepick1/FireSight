@@ -19,6 +19,12 @@ namespace firesight {
 
 ArgMap emptyMap;
 
+json_t *json_float(float value) {
+  char buf[100];
+  snprintf(buf, sizeof(buf), "%g", value);
+  return json_string(buf);
+}
+
 string jo_parse(const char * pSource, ArgMap &argMap) {
 	string result(pSource);
 	size_t startDelim = 0;
