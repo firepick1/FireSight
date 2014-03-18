@@ -24,6 +24,10 @@ suffix=$suffix64
 test/test-one pcb.jpg match45 "$suffix"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
+suffix=""
+test/test-one pcb.jpg absdiff "$suffix" "-Dimg=img/mog2.jpg" 
+if [ $? -ne 0 ] ; then exit 1 ; fi
+
 echo ========== TEST lib_firesight.so =============
 echo target/test 
 target/test

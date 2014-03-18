@@ -841,6 +841,67 @@ bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, Model &model) {
   return stageOK("apply_Canny(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_absdiff(json_t *pStage, json_t *pStageModel, Model &model) {
+  validateImage(model.image);
+  string img2_path = jo_string(pStage, "path", "", model.argMap);
+  const char *errMsg = NULL;
+  Mat img2;
+
+  if (img2_path.empty()) {
+    errMsg = "Expected path to image for absdiff";
+  }
+
+  if (!errMsg) {
+    if (model.image.channels() == 1) {
+      img2 = imread(img2_path.c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+    } else {
+      img2 = imread(img2_path.c_str(), CV_LOAD_IMAGE_COLOR);
+    }
+    if (img2.data) {
+      LOGTRACE2("apply_absdiff() path:%s %s", img2_path.c_str(), matInfo(img2).c_str());
+    } else {
+      errMsg = "Could not read image from given path";
+    }
+  }
+
+  if (!errMsg) {
+    absdiff(model.image, img2, model.image);
+  }
+
+  return stageOK("apply_absdiff(%s) %s", errMsg, pStage, pStageModel);
+}
+
+bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model) {
+  validateImage(model.image);
+  float diamMin = jo_float(pStage, "diamMin", 0, model.argMap);
+  float diamMax = jo_float(pStage, "diamMax", 0, model.argMap);
+  int showMatches = jo_int(pStage, "show", 0, model.argMap);
+  const char *errMsg = NULL;
+
+  if (diamMin <= 0 || diamMax <= 0 || diamMin > diamMax) {
+    errMsg = "expected: 0 < diamMin < diamMax ";
+  } else if (showMatches < 0) {
+    errMsg = "expected: 0 < showMatches ";
+  } else if (logLevel >= FIRELOG_TRACE) {
+    char *pStageJson = json_dumps(pStage, 0);
+    LOGTRACE1("apply_threshold(%s)", pStageJson);
+    free(pStageJson);
+  }
+  if (!errMsg) {
+    vector<MatchedRegion> matches;
+    HoleRecognizer recognizer(diamMin, diamMax);
+    recognizer.showMatches(showMatches);
+    recognizer.scan(model.image, matches);
+    json_t *holes = json_array();
+    json_object_set(pStageModel, "holes", holes);
+    for (size_t i = 0; i < matches.size(); i++) {
+      json_array_append(holes, matches[i].as_json_t());
+    }
+  }
+
+  return stageOK("apply_threshold(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
   float diamMin = jo_float(pStage, "diamMin", 0, model.argMap);
@@ -1001,7 +1062,9 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
   bool ok = true;
   const char *errMsg = NULL;
  
-  if (strcmp(pOp, "backgroundSubtractor")==0) {
+  if (strcmp(pOp, "absdiff")==0) {
+    ok = apply_absdiff(pStage, pStageModel, model);
+  }else if (strcmp(pOp, "backgroundSubtractor")==0) {
     ok = apply_backgroundSubtractor(pStage, pStageModel, model);
   } else if (strcmp(pOp, "blur")==0) {
     ok = apply_blur(pStage, pStageModel, model);
@@ -1059,6 +1122,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_split(pStage, pStageModel, model);
   } else if (strcmp(pOp, "stageImage")==0) {
     ok = apply_stageImage(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "threshold")==0) {
+    ok = apply_threshold(pStage, pStageModel, model);
   } else if (strcmp(pOp, "warpAffine")==0) {
     ok = apply_warpAffine(pStage, pStageModel, model);
   } else if (strcmp(pOp, "warpRing")==0) {

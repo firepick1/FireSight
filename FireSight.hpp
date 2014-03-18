@@ -112,6 +112,7 @@ namespace firesight {
 			void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
 			void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
 
+			bool apply_absdiff(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_backgroundSubtractor(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_blur(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model);
@@ -139,6 +140,7 @@ namespace firesight {
 			bool apply_putText(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_resize(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_threshold(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_warpRing(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_split(json_t *pStage, json_t *pStageModel, Model &model);
