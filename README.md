@@ -8,6 +8,8 @@ returns a JSON model with information recognized during each pipeline stage.
 FireSight is available as a C++ library as well as a standalone runtime under the MIT license. It has been tested on:
 
 * Raspbian (Raspberry Pi Debian)
+* ChromeBook Pixel (Crouton+Ubuntu)
+* Windows 7 Professional ThinkPad T410
 
 ### Installation
 
