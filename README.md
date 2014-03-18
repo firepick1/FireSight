@@ -1,9 +1,12 @@
 FireSight
 =========
 
-FireSight is a C++ library for OpenCV image processing pipelines constructed from a JSON specification.
+FireSight is a factory for building an OpenCV image processing pipeline from a declarative pipeline specfication.
 When processed, the pipeline transforms an optional input image and 
-returns a JSON model with information recognized during each pipeline stage.
+returns a recognized data model with information recognized during each pipeline stage. Both pipeline specification and data model are represented using the JSON data format, which is easy to generate and parse. 
+
+Intended for pick-and-place vision recognition, FireSight provides the power of OpenCV in an easy to use JSON format.
+FireSight lets users customize their vision recognition solutions with minimal effort. FireSight also provides a scriptable command line utility that permit quick exploration of alternate pipeline implementations. 
 
 FireSight is available as a C++ library as well as a standalone runtime under the MIT license. It has been tested on:
 
