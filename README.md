@@ -11,7 +11,7 @@ FireSight is available as a C++ library as well as a standalone runtime under th
 
 ### Installation
 
-* [[Build FireSight (Linus)]]
+* [[Build FireSight (Linux)]]
 * [[Build FireSight (Windows)]]
 
 ### Examples
