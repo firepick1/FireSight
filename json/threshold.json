@@ -1,0 +1,4 @@
+[
+  {"op":"{{cvt||nop}}"},
+  {"op":"threshold", "type":"{{type||THRESH_BINARY}}", "thresh":"{{thresh||128}}", "maxval":"{{maxval||255}}"}
+]

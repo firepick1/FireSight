@@ -174,8 +174,8 @@ bool Pipeline::apply_imread(json_t *pStage, json_t *pStageModel, Model &model) {
       json_object_set(pStageModel, "rows", json_integer(model.image.rows));
       json_object_set(pStageModel, "cols", json_integer(model.image.cols));
     } else {
-      errMsg = "imread failed";
-      cout << "ERROR:" << errMsg << endl;
+      LOGERROR1("imread(%s) failed", path.c_str());
+      errMsg = "apply_imread() failed";
     }
   }
 
@@ -780,16 +780,16 @@ bool Pipeline::apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model) {
   Mat thatImage;
 
   if (path.empty()) {
-    errMsg = "expected path for imread";
+    errMsg = "apply_PSNR() expected path for imread";
   } else {
     thatImage = imread(path.c_str(), CV_LOAD_IMAGE_COLOR);
-    if (model.image.data) {
-      LOGTRACE2("apply_PSNR(%s) %s", path.c_str(), matInfo(thatImage).c_str());
+    LOGTRACE2("apply_PSNR(%s) %s", path.c_str(), matInfo(thatImage).c_str());
+    if (thatImage.data) {
       assert(model.image.cols == thatImage.cols);
       assert(model.image.rows == thatImage.rows);
       assert(model.image.channels() == thatImage.channels());
     } else {
-      errMsg = "imread failed";
+      errMsg = "apply_PSNR() imread failed";
     }
   }
 
@@ -873,30 +873,27 @@ bool Pipeline::apply_absdiff(json_t *pStage, json_t *pStageModel, Model &model) 
 
 bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
-  float diamMin = jo_float(pStage, "diamMin", 0, model.argMap);
-  float diamMax = jo_float(pStage, "diamMax", 0, model.argMap);
-  int showMatches = jo_int(pStage, "show", 0, model.argMap);
+  string typeStr = jo_string(pStage, "type", "THRESH_BINARY", model.argMap);
+  float maxval = jo_float(pStage, "maxval", 255, model.argMap);
+  float thresh = jo_float(pStage, "thresh", 128, model.argMap);
+  int type;
   const char *errMsg = NULL;
 
-  if (diamMin <= 0 || diamMax <= 0 || diamMin > diamMax) {
-    errMsg = "expected: 0 < diamMin < diamMax ";
-  } else if (showMatches < 0) {
-    errMsg = "expected: 0 < showMatches ";
-  } else if (logLevel >= FIRELOG_TRACE) {
-    char *pStageJson = json_dumps(pStage, 0);
-    LOGTRACE1("apply_threshold(%s)", pStageJson);
-    free(pStageJson);
+  if (typeStr.compare("THRESH_BINARY") == 0) {
+    type = THRESH_BINARY;
+  } else if (typeStr.compare("THRESH_BINARY_INV") == 0) {
+    type = THRESH_BINARY_INV;
+  } else if (typeStr.compare("THRESH_TRUNC") == 0) {
+    type = THRESH_TRUNC;
+  } else if (typeStr.compare("THRESH_TOZERO") == 0) {
+    type = THRESH_TOZERO;
+  } else if (typeStr.compare("THRESH_TOZERO_INV") == 0) {
+    type = THRESH_TOZERO_INV;
+  } else {
+    errMsg = "Expected threshold type (e.g., THRESH_BINARY)";
   }
   if (!errMsg) {
-    vector<MatchedRegion> matches;
-    HoleRecognizer recognizer(diamMin, diamMax);
-    recognizer.showMatches(showMatches);
-    recognizer.scan(model.image, matches);
-    json_t *holes = json_array();
-    json_object_set(pStageModel, "holes", holes);
-    for (size_t i = 0; i < matches.size(); i++) {
-      json_array_append(holes, matches[i].as_json_t());
-    }
+    threshold(model.image, model.image, thresh, maxval, type);
   }
 
   return stageOK("apply_threshold(%s) %s", errMsg, pStage, pStageModel);
@@ -1022,7 +1019,7 @@ bool Pipeline::processModel(Model &model) {
     snprintf(debugBuf,sizeof(debugBuf), "process() %s op:%s stage:%s %s", 
       matInfo(model.image).c_str(), pOp.c_str(), pName.c_str(), comment.c_str());
     if (strncmp(pOp.c_str(), "nop", 3)==0) {
-      LOGTRACE1("%s (NO ACTION TAKEN)", debugBuf);
+      LOGDEBUG1("%s (NO ACTION TAKEN)", debugBuf);
     } else if (pName.compare("input")==0) {
       ok = logErrorMessage("\"input\" is the reserved stage name for the input image", pName.c_str(), pStage);
     } else {
