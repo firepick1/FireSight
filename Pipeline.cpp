@@ -1067,6 +1067,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_absdiff(pStage, pStageModel, model);
   }else if (strcmp(pOp, "backgroundSubtractor")==0) {
     ok = apply_backgroundSubtractor(pStage, pStageModel, model);
+  }else if (strcmp(pOp, "bgsub")==0) {
+    ok = apply_backgroundSubtractor(pStage, pStageModel, model);
   } else if (strcmp(pOp, "blur")==0) {
     ok = apply_blur(pStage, pStageModel, model);
   } else if (strcmp(pOp, "calcHist")==0) {

@@ -43,19 +43,23 @@ bool Pipeline::apply_backgroundSubtractor(json_t *pStage, json_t *pStageModel, M
   string background = jo_string(pStage, "background", "", model.argMap);
   string method = jo_string(pStage, "method", "MOG2", model.argMap);
   string stageName = jo_string(pStage, "name", method.c_str(), model.argMap);
+  int maxval = 255;
   double learningRate = jo_double(pStage, "learningRate", -1, model.argMap);
   const char *errMsg = NULL;
   StageDataPtr pStageData = model.stageDataMap[stageName];
 
   BackgroundSubtractor *pSubtractor;
+  bool is_absdiff = false;
   if (!errMsg) {
     if (method.compare("MOG2") == 0) {
-        if (pStageData) {
-          pSubtractor = ((SubtractorStageData *) pStageData)->pSubtractor;
-        } else {
-          pSubtractor = new BackgroundSubtractorMOG2(history, varThreshold, bShadowDetection);
-          model.stageDataMap[stageName] = new SubtractorStageData(stageName, pSubtractor);
-        }
+      if (pStageData) {
+	pSubtractor = ((SubtractorStageData *) pStageData)->pSubtractor;
+      } else {
+	pSubtractor = new BackgroundSubtractorMOG2(history, varThreshold, bShadowDetection);
+	model.stageDataMap[stageName] = new SubtractorStageData(stageName, pSubtractor);
+      }
+    } else if (method.compare("absdiff") == 0) {
+      is_absdiff = true;
     } else {
         errMsg = "Expected method: MOG2";
     }
@@ -81,20 +85,27 @@ bool Pipeline::apply_backgroundSubtractor(json_t *pStage, json_t *pStageModel, M
       }
     }
   }
-
   if (!errMsg) {
     if (history < 0) {
-        errMsg = "Expected history >= 0";
+      errMsg = "Expected history >= 0";
     }
   }
 
   if (!errMsg) { 
     Mat fgMask;
-    if (bgImage.data) {
-      pSubtractor->operator()(bgImage, fgMask, learningRate);
+    if (is_absdiff) {
+      absdiff(model.image, bgImage, fgMask);
+      if (fgMask.channels() > 1) {
+        cvtColor(fgMask, fgMask, CV_BGR2GRAY);
+      }
+      threshold(fgMask, model.image, varThreshold, maxval, THRESH_BINARY);
+    } else {
+      if (bgImage.data) {
+	pSubtractor->operator()(bgImage, fgMask, learningRate);
+      }
+      pSubtractor->operator()(model.image, fgMask, learningRate);
+      model.image = fgMask;
     }
-    pSubtractor->operator()(model.image, fgMask, learningRate);
-    model.image = fgMask;
   }
 
   return stageOK("apply_backgroundSubtractor(%s) %s", errMsg, pStage, pStageModel);
