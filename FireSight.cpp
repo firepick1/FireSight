@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
     LOGTRACE1("Reading image: %s", imagePath);
     image = imread(imagePath);
     if (!image.data) {
-      cout << "imread failed: " << imagePath << endl;
+      LOGERROR1("main() imread(%s) failed", imagePath);
       exit(-1);
     }
   } else {

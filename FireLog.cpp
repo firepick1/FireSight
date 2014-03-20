@@ -30,10 +30,10 @@ int firelog_init(const char *path, int level) {
   if (!logFile) {
     return errno;
   }
-	char version[32];
-	snprintf(version, sizeof(version), "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+  char version[32];
+  snprintf(version, sizeof(version), "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
   LOGINFO2("FireLog %s versio %s", path, version);
-	firelog_lastMessageClear();
+  firelog_lastMessageClear();
   return 0;
 }
 
@@ -47,12 +47,12 @@ int firelog_destroy() {
 
 /* Last message up to given level*/
 const char * firelog_lastMessage(int level) {
-	int i;
-	for (i = 0; i<FIRELOG_TRACE; i++) {
-	  if (lastMessage[i]) {
-		  return lastMessage[i];
-		}
-	}
+  int i;
+  for (i = 0; i<FIRELOG_TRACE; i++) {
+    if (lastMessage[i]) {
+      return lastMessage[i];
+    }
+  }
   return "";
 }
 
@@ -61,58 +61,58 @@ void firelog_show_thread_id(bool show) {
 }
 
 void firelog_lastMessageClear() {
-	memset(lastMessage, 0, sizeof(lastMessage));
+  memset(lastMessage, 0, sizeof(lastMessage));
 }
 
 int firelog_level(int newLevel) {
   int oldLevel = logLevel;
   logLevel = newLevel;
-	switch (newLevel) {
-	  case FIRELOG_ERROR:
-			LOGDEBUG1("firelog_level(%s)", "FIRELOG_ERROR");
-			break;
-	  case FIRELOG_WARN:
-			LOGDEBUG1("firelog_level(%s)", "FIRELOG_WARN");
-			break;
-	  case FIRELOG_INFO:
-			LOGDEBUG1("firelog_level(%s)", "FIRELOG_INFO");
-			break;
-	  case FIRELOG_DEBUG:
-			LOGDEBUG1("firelog_level(%s)", "FIRELOG_DEBUG");
-			break;
-	  case FIRELOG_TRACE:
-			LOGDEBUG1("firelog_level(%s)", "FIRELOG_TRACE");
-			break;
-		default:
-			LOGERROR1("firelog_level(unknown level %d)", newLevel);
-			break;
-	}
+  switch (newLevel) {
+    case FIRELOG_ERROR:
+      LOGDEBUG1("firelog_level(%s)", "FIRELOG_ERROR");
+      break;
+    case FIRELOG_WARN:
+      LOGDEBUG1("firelog_level(%s)", "FIRELOG_WARN");
+      break;
+    case FIRELOG_INFO:
+      LOGDEBUG1("firelog_level(%s)", "FIRELOG_INFO");
+      break;
+    case FIRELOG_DEBUG:
+      LOGDEBUG1("firelog_level(%s)", "FIRELOG_DEBUG");
+      break;
+    case FIRELOG_TRACE:
+      LOGDEBUG1("firelog_level(%s)", "FIRELOG_TRACE");
+      break;
+    default:
+      LOGERROR1("firelog_level(unknown level %d)", newLevel);
+      break;
+  }
   return oldLevel;
 }
 
 void firelog(const char *msg, int level) {
-	time_t now = time(NULL);
-	struct tm *pLocalNow = localtime(&now);
-	int tid = 0;
+  time_t now = time(NULL);
+  struct tm *pLocalNow = localtime(&now);
+  int tid = 0;
 #ifdef LOG_THREAD_ID
-	tid = syscall(SYS_gettid);
+  tid = syscall(SYS_gettid);
 #endif
-	const char * levelStr = "?";
+  const char * levelStr = "?";
 
-	switch (level) {
-		case FIRELOG_ERROR: levelStr = " ERROR "; break;
-		case FIRELOG_WARN: levelStr = " W "; break;
-		case FIRELOG_INFO: levelStr = " I "; break;
-		case FIRELOG_DEBUG: levelStr = " D "; break;
-		case FIRELOG_TRACE: levelStr = " T "; break;
-	}
-	if (logTID) {
-		snprintf(lastMessage[level], LOGMAX, "%02d:%02d:%02d %d %s %s", 
-				pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec, tid, levelStr, msg);
-	} else {
-		snprintf(lastMessage[level], LOGMAX, "%02d:%02d:%02d %s %s", 
-				pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec, levelStr, msg);
-	}
+  switch (level) {
+    case FIRELOG_ERROR: levelStr = " ERROR "; break;
+    case FIRELOG_WARN: levelStr = " W "; break;
+    case FIRELOG_INFO: levelStr = " I "; break;
+    case FIRELOG_DEBUG: levelStr = " D "; break;
+    case FIRELOG_TRACE: levelStr = " T "; break;
+  }
+  if (logTID) {
+    snprintf(lastMessage[level], LOGMAX, "%02d:%02d:%02d %d %s %s", 
+        pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec, tid, levelStr, msg);
+  } else {
+    snprintf(lastMessage[level], LOGMAX, "%02d:%02d:%02d %s %s", 
+        pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec, levelStr, msg);
+  }
 
   if (logFile) {
     fprintf(logFile, "%s", lastMessage[level]);
@@ -121,7 +121,8 @@ void firelog(const char *msg, int level) {
   }
 #ifdef __cplusplus
   else {
-		cerr << lastMessage[level] << endl;
-	}
+    cerr << lastMessage[level] << endl;
+    cerr.flush();
+  }
 #endif
 }
