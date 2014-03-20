@@ -7,19 +7,19 @@ target/firesight -trace -i img/$1  -p json/$2.json -o target/$2$3.png $4 $5 $6 $
 if [ $? -ne 0 ] ; then exit 1 ; fi
 echo "verifying output image..."
 target/firesight -i img/$2$3.png -p json/PSNR.json -Dthreshold=50 -Dpath=target/$2$3.png > target/samePSNR.json
-echo "verifying JSON output..."
 diff target/samePSNR.json test/samePSNR.json
 if [ $? -ne 0 ] 
 then 
   echo diff target/samePSNR.json test/samePSNR.json
   echo target/firesight.exe -i img/$2$3.png -p json/PSNR.json -Dthreshold=50 -Dpath=target/$2$3.png 
-	echo FAILED: PSNR detected a difference between: target/$2$3.png img/$2$3.png
-	exit 1
+  echo FAILED: PSNR detected a difference between: target/$2$3.png img/$2$3.png
+  exit 1
 fi
+echo "verifying JSON output..."
 diff target/$2$3-model.json test/$2$3-model.json
-if [ $? != 0 ] 
+if [ $? -ne 0 ] 
 then 
-	echo FAILED: diff target/$2$3-model.json test/$2$3-model.json
-	exit 1
+  echo FAILED: diff target/$2$3-model.json test/$2$3-model.json
+  exit 1
 fi
 echo TEST PASSED

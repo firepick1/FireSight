@@ -40,7 +40,9 @@ test/test-one pcb.jpg absdiff "$suffix" "-Dimg=img/mog2.jpg"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 suffix=""
-test/test-one absdiff.png threshold "$suffix" "-Dthresh=64" "-Dcvt=cvtColor" 
+test/test-one absdiff.png threshold "64$suffix" "-Dthresh=64" 
+if [ $? -ne 0 ] ; then exit 1 ; fi
+test/test-one absdiff.png threshold "64-color$suffix" "-Dthresh=64" "-Dgray=false"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 echo "---------------------------------------"
