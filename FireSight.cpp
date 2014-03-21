@@ -30,9 +30,12 @@ static void help() {
   cout << "   firesight -p json/pipeline2.json " << endl;
 }
 
-bool parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap) {
+bool parseArgs(int argc, char *argv[], 
+  string &pipelineString, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap, bool &isTime) 
+{
   char *pipelinePath = NULL;
   uimode = UI_STILL;
+  isTime = false;
   firelog_level(FIRELOG_INFO);
 
   for (int i = 1; i < argc; i++) {
@@ -50,6 +53,8 @@ bool parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath,
       }
       outputPath = argv[++i];
       LOGTRACE1("parseArgs(-o) \"%s\" is output image path", outputPath);
+    } else if (strcmp("-time",argv[i]) == 0) {
+      isTime = true;
     } else if (strncmp("-D",argv[i],2) == 0) {
       char * pEq = strchr(argv[i],'=');
       if (!pEq || (pEq-argv[i])<=2) {
@@ -103,10 +108,21 @@ bool parseArgs(int argc, char *argv[], string &pipelineString, char *&imagePath,
 /**
  * Single image example of FireSight lib_firesight library use
  */
-static int uiStill(const char * pJsonPipeline, Mat &image, ArgMap &argMap) {
+static int uiStill(const char * pJsonPipeline, Mat &image, ArgMap &argMap, bool isTime) {
   Pipeline pipeline(pJsonPipeline);
   
   json_t *pModel = pipeline.process(image, argMap);
+
+  if (isTime) {
+    long tickStart = cvGetTickCount();
+    int iterations = 100;
+    for (int i=0; i < iterations; i++) {
+      json_decref(pModel);
+      pModel = pipeline.process(image, argMap);
+    }
+    float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000.0;
+    LOGINFO2("timed %d iterations with an average of %fms per iteration", iterations, msElapsed/iterations);
+  }
 
   // Print out returned model 
   char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
@@ -157,7 +173,8 @@ int main(int argc, char *argv[])
   char * imagePath = NULL;
   char * outputPath = NULL;
   ArgMap argMap;
-  bool argsOk = parseArgs(argc, argv, pipelineString, imagePath, outputPath, uimode, argMap);
+  bool isTime;
+  bool argsOk = parseArgs(argc, argv, pipelineString, imagePath, outputPath, uimode, argMap, isTime);
   if (!argsOk) {
     help();
     exit(-1);
@@ -179,7 +196,7 @@ int main(int argc, char *argv[])
 
   switch (uimode) {
     case UI_STILL: 
-      uiStill(pJsonPipeline, image, argMap); 
+      uiStill(pJsonPipeline, image, argMap, isTime);
       break;
     case UI_VIDEO: 
       uiVideo(pJsonPipeline, argMap); 

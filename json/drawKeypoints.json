@@ -1,8 +1,8 @@
 [
-	{"op":"cvtColor", "code":"CV_BGR2GRAY"},
-	{"op":"SimpleBlobDetector"},
-	{"op":"cvtColor", "code":"CV_GRAY2BGR"},
-	{"op":"drawKeypoints","model":"s2", "color":[-1,-1,-1,-1], "flags":5},
-	{"op":"imwrite", "path":"target/drawKeypoints.jpg" }
+  {"op":"cvtColor", "code":"CV_BGR2GRAY"},
+  {"op":"SimpleBlobDetector"},
+  {"op":"cvtColor", "code":"CV_GRAY2BGR"},
+  {"op":"drawKeypoints","model":"s2", "color":[-1,-1,-1,-1], "flags":5},
+  {"op":"imwrite", "path":"target/drawKeypoints.jpg" }
 ]
 

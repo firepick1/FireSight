@@ -1,5 +1,5 @@
 [
-	{"name":"mser2", "op":"MSER", "minArea":1100, "maxArea":1200, "detect":"rects" },
-	{"op":"drawRects", "model":"mser2", "color":[255,255,0]}
+  {"name":"mser2", "op":"MSER", "minArea":1100, "maxArea":1200, "detect":"rects" },
+  {"op":"drawRects", "model":"mser2", "color":[255,255,0]}
 ]
 

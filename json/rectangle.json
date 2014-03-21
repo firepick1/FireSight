@@ -1,4 +1,4 @@
 [
-	{"op":"rectangle", "fill":[0,0,255], "width":323, "height":200},
-	{"op":"rectangle", "thickness":5, "color":[255,0,0], "fill":[0,255,0], "x":100, "y":50, "width":30, "height":60}
+  {"op":"rectangle", "fill":[0,0,255], "width":323, "height":200},
+  {"op":"rectangle", "thickness":5, "color":[255,0,0], "fill":[0,255,0], "x":100, "y":50, "width":30, "height":60}
 ]

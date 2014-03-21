@@ -1,7 +1,7 @@
 [
-	{"name":"mser1", "op":"MSER", "minArea":1100, "maxArea":1200, "detect":"keypoints" },
-	{"name":"mser2", "op":"MSER", "minArea":1100, "maxArea":1200, "detect":"rects" },
-	{"op":"drawKeypoints", "model":"mser1", "color":[255,0,255]},
-	{"op":"drawRects", "model":"mser2", "color":[255,255,0]}
+  {"name":"mser1", "op":"MSER", "minArea":1100, "maxArea":1200, "detect":"keypoints" },
+  {"name":"mser2", "op":"MSER", "minArea":1100, "maxArea":1200, "detect":"rects" },
+  {"op":"drawKeypoints", "model":"mser1", "color":[255,0,255]},
+  {"op":"drawRects", "model":"mser2", "color":[255,255,0]}
 ]
 

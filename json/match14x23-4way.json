@@ -1,6 +1,6 @@
 [
   {"op":"matchTemplate", "name":"match4way", "threshold":0.7, "corr":0.8, "angle":0, "output":"corr", "template":"img/rect14x23-4way.jpg"},
-	{"op":"cout", "row":135, "col":294, "rows":5, "cols":9},
-	{"op":"drawRects", "model":"match4way", "color":[32,255,32]}
+  {"op":"cout", "row":135, "col":294, "rows":5, "cols":9},
+  {"op":"drawRects", "model":"match4way", "color":[32,255,32]}
 ]
 

@@ -1,5 +1,5 @@
 [
-	{"op":"cvtColor", "code":"CV_BGR2GRAY", "comment":"Convert to gray scale"},
-	{"op":"dft","flags":["DFT_INVERSE","DFT_REAL_OUTPUT"], "comment":"Compute inverse DFT"}
+  {"op":"cvtColor", "code":"CV_BGR2GRAY", "comment":"Convert to gray scale"},
+  {"op":"dft","flags":["DFT_INVERSE","DFT_REAL_OUTPUT"], "comment":"Compute inverse DFT"}
 ]
 

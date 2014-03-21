@@ -1,8 +1,8 @@
 [
-	{"op":"Mat", "width":400, "height":400, "type":"CV_8U", "comment":"grayscale 400x400 image"},
-	{"op":"rectangle", "x":175, "y":150, "width":50, "height":100, "fill":[255,255,255], "comment":"White rectangle"},
-	{"op":"dft", "flags":["DFT_SCALE","DFT_COMPLEX_OUTPUT"], "comment":"2D Fourier transform"},
-	{"op":"dftSpectrum", "comment":"Show spectrum magnitude"},
-	{"op":"normalize", "alpha":0, "beta":1024, "normType":"NORM_MINMAX", "comment":"Normalize values in preparation for CV_8U conversion"},
-	{"op":"convertTo", "rType":"CV_8U", "comment":"Convert to grayscale"}
+  {"op":"Mat", "width":400, "height":400, "type":"CV_8U", "comment":"grayscale 400x400 image"},
+  {"op":"rectangle", "x":175, "y":150, "width":50, "height":100, "fill":[255,255,255], "comment":"White rectangle"},
+  {"op":"dft", "flags":["DFT_SCALE","DFT_COMPLEX_OUTPUT"], "comment":"2D Fourier transform"},
+  {"op":"dftSpectrum", "comment":"Show spectrum magnitude"},
+  {"op":"normalize", "alpha":0, "beta":1024, "normType":"NORM_MINMAX", "comment":"Normalize values to 0..255 before conversion"},
+  {"op":"convertTo", "rType":"CV_8U", "comment":"Convert to 8-bit grayscale"}
 ]

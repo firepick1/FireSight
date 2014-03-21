@@ -1,6 +1,6 @@
 [
   {"op":"cvtColor", "code":"CV_BGR2GRAY"},
-	{"op":"matchTemplate", "name":"find-rects", "method":"CV_TM_CCOEFF", "template":"img/tmplt-37x29.jpg"},
-	{"op":"drawRects", "model":"find-rects", "color":[32,255,32]},
-	{"op":"nop", "comment":"end of pipeline"}
+  {"op":"matchTemplate", "name":"find-rects", "method":"CV_TM_CCOEFF", "template":"img/tmplt-37x29.jpg"},
+  {"op":"drawRects", "model":"find-rects", "color":[32,255,32]},
+  {"op":"nop", "comment":"end of pipeline"}
 ]

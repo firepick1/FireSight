@@ -1,8 +1,8 @@
 [
-	{"op":"cvtColor", "code":"CV_BGR2GRAY"},
-	{"name":"mser", "op":"MSER", "color":[128,255,255], "minArea":700, "maxArea":800, 
-		"mask":{"x":35, "y":20,"height":130,"width":230}, 
-		"detect":"keypoints", "q4Offset":180 },
-	{"op":"drawKeypoints", "model":"mser", "color":[0,0,255], "flags":5}
+  {"op":"cvtColor", "code":"CV_BGR2GRAY"},
+  {"name":"mser", "op":"MSER", "color":[128,255,255], "minArea":700, "maxArea":800, 
+  	"mask":{"x":35, "y":20,"height":130,"width":230}, 
+  	"detect":"keypoints", "q4Offset":180 },
+  {"op":"drawKeypoints", "model":"mser", "color":[0,0,255], "flags":5}
 ]
 
