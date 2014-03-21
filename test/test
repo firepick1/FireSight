@@ -18,7 +18,6 @@ echo "Test suffix is:$suffix64"
 suffix=$suffix64
 test/test-one mog2.jpg bgsub "-mog2$suffix" "-DbgImg=img/pcb.jpg" "-Dmethod=MOG2"
 if [ $? -ne 0 ] ; then exit 1 ; fi
-suffix=""
 test/test-one mog2.jpg bgsub "-absdiff$suffix" "-DbgImg=img/pcb.jpg" "-Dmethod=absdiff" "-Dthresh=32"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
