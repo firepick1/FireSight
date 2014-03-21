@@ -70,6 +70,37 @@ string jo_parse(const char * pSource, ArgMap &argMap) {
   return result;
 }
 
+string jo_object_dump(json_t *pObj, ArgMap &argMap) {
+  json_t *pValue;
+  const char *key;
+  string result;
+
+  json_object_foreach(pObj, key, pValue) {
+    char buf[255];
+    if (!result.empty()) {
+      result = result + " ";
+    }
+    if (key) {
+      result = result + key + ":";
+    } else {
+      result = result + "null" + ":";
+    }
+    if (json_is_string(pValue)) {
+      result = result + jo_parse(json_string_value(pValue), argMap);
+    } else if (pValue) {
+      char *valueStr = json_dumps(pValue, JSON_PRESERVE_ORDER|JSON_COMPACT);
+      if (valueStr) {
+	result = result + valueStr;
+	free(valueStr);
+      } else {
+        result = result + "N/A";
+      }
+    }
+  }
+
+  return result;
+}
+
 json_t *jo_object(const json_t *pObj, const char *key, ArgMap &argMap) {
   json_t *pVal = json_object_get(pObj, key);
   if (pVal) {

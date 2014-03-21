@@ -1,5 +1,5 @@
 [
   {"op":"cvtColor", "code":"CV_BGR2GRAY"},
-  {"op":"matchTemplate", "dbg":15, "name":"find-rects", "template":"img/tmplt-37x29.jpg"},
+  {"op":"matchTemplate", "name":"find-rects", "template":"img/tmplt-37x29.jpg"},
   {"op":"drawRects", "model":"find-rects", "color":[32,255,32]}
 ]

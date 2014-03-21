@@ -1020,8 +1020,11 @@ bool Pipeline::processModel(Model &model) {
     string comment = jo_string(pStage, "comment", "", model.argMap);
     json_t *pStageModel = json_object();
     json_object_set(model.getJson(false), pName.c_str(), pStageModel);
-    snprintf(debugBuf,sizeof(debugBuf), "process() %s op:%s stage:%s %s", 
-      matInfo(model.image).c_str(), pOp.c_str(), pName.c_str(), comment.c_str());
+    if (logLevel >= FIRELOG_DEBUG) {
+      string stageDump = jo_object_dump(pStage, model.argMap);
+      snprintf(debugBuf,sizeof(debugBuf), "process() %s %s", 
+	matInfo(model.image).c_str(), stageDump.c_str());
+    }
     if (strncmp(pOp.c_str(), "nop", 3)==0) {
       LOGDEBUG1("%s (NO ACTION TAKEN)", debugBuf);
     } else if (pName.compare("input")==0) {

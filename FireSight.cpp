@@ -121,7 +121,7 @@ static int uiStill(const char * pJsonPipeline, Mat &image, ArgMap &argMap, bool 
       pModel = pipeline.process(image, argMap);
     }
     float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000.0;
-    LOGINFO2("timed %d iterations with an average of %fms per iteration", iterations, msElapsed/iterations);
+    LOGINFO2("timed %d iterations with an average of %.1fms per iteration", iterations, msElapsed/iterations);
   }
 
   // Print out returned model 
