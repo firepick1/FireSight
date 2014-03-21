@@ -76,7 +76,6 @@ string jo_object_dump(json_t *pObj, ArgMap &argMap) {
   string result;
 
   json_object_foreach(pObj, key, pValue) {
-    char buf[255];
     if (!result.empty()) {
       result = result + " ";
     }

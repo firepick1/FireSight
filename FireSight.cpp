@@ -120,7 +120,8 @@ static int uiStill(const char * pJsonPipeline, Mat &image, ArgMap &argMap, bool 
       json_decref(pModel);
       pModel = pipeline.process(image, argMap);
     }
-    float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000.0;
+    long ticksElapsed = cvGetTickCount() - tickStart;
+    double msElapsed = ticksElapsed/cvGetTickFrequency()*1E-3;
     LOGINFO2("timed %d iterations with an average of %.1fms per iteration", iterations, msElapsed/iterations);
   }
 
