@@ -31,7 +31,7 @@ static void help() {
 }
 
 bool parseArgs(int argc, char *argv[], 
-  string &pipelineString, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap, bool &isTime) 
+  string &pipelineString, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap, bool &isTime, int &jsonIndent) 
 {
   char *pipelinePath = NULL;
   uimode = UI_STILL;
@@ -46,6 +46,13 @@ bool parseArgs(int argc, char *argv[],
       }
       pipelinePath = argv[++i];
       LOGTRACE1("parseArgs(-p) \"%s\" is JSON pipeline path", pipelinePath);
+    } else if (strcmp("-ji",argv[i]) == 0) {
+      if (i+1>=argc) {
+        LOGERROR("expected JSON indent after -ji");
+        exit(-1);
+      }
+      jsonIndent = atoi(argv[++i]);
+      LOGTRACE1("parseArgs(-ji) JSON indent:%d", jsonIndent);
     } else if (strcmp("-o",argv[i]) == 0) {
       if (i+1>=argc) {
         LOGERROR("expected output path after -o");
@@ -77,6 +84,10 @@ bool parseArgs(int argc, char *argv[],
     } else if (strcmp("-video", argv[i]) == 0) {
       uimode = UI_VIDEO;
       LOGTRACE("parseArgs(-video) UI_VIDEO user interface selected");
+    } else if (strcmp("-warn", argv[i]) == 0) {
+      firelog_level(FIRELOG_WARN);
+    } else if (strcmp("-error", argv[i]) == 0) {
+      firelog_level(FIRELOG_ERROR);
     } else if (strcmp("-info", argv[i]) == 0) {
       firelog_level(FIRELOG_INFO);
     } else if (strcmp("-debug", argv[i]) == 0) {
@@ -108,7 +119,7 @@ bool parseArgs(int argc, char *argv[],
 /**
  * Single image example of FireSight lib_firesight library use
  */
-static int uiStill(const char * pJsonPipeline, Mat &image, ArgMap &argMap, bool isTime) {
+static int uiStill(const char * pJsonPipeline, Mat &image, ArgMap &argMap, bool isTime, int jsonIndent) {
   Pipeline pipeline(pJsonPipeline);
   
   json_t *pModel = pipeline.process(image, argMap);
@@ -121,16 +132,16 @@ static int uiStill(const char * pJsonPipeline, Mat &image, ArgMap &argMap, bool 
       pModel = pipeline.process(image, argMap);
     }
     float ticksElapsed = cvGetTickCount() - tickStart;
-		//cout << "ticksElapsed:" << ticksElapsed << endl;
+    //cout << "ticksElapsed:" << ticksElapsed << endl;
     float msElapsed = ticksElapsed/cvGetTickFrequency()*1E-3;
-		//cout << "msElapsed:" << msElapsed << endl;
-		float msIter = msElapsed/iterations;
-		//cout << "msIter:" << msIter << endl;
+    //cout << "msElapsed:" << msElapsed << endl;
+    float msIter = msElapsed/iterations;
+    //cout << "msIter:" << msIter << endl;
     LOGINFO2("timed %d iterations with an average of %.1fms per iteration", iterations, msIter);
   }
 
   // Print out returned model 
-  char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
+  char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(jsonIndent));
   cout << pModelStr << endl;
   free(pModelStr);
 
@@ -179,7 +190,8 @@ int main(int argc, char *argv[])
   char * outputPath = NULL;
   ArgMap argMap;
   bool isTime;
-  bool argsOk = parseArgs(argc, argv, pipelineString, imagePath, outputPath, uimode, argMap, isTime);
+  int jsonIndent = 2;
+  bool argsOk = parseArgs(argc, argv, pipelineString, imagePath, outputPath, uimode, argMap, isTime, jsonIndent);
   if (!argsOk) {
     help();
     exit(-1);
@@ -201,7 +213,7 @@ int main(int argc, char *argv[])
 
   switch (uimode) {
     case UI_STILL: 
-      uiStill(pJsonPipeline, image, argMap, isTime);
+      uiStill(pJsonPipeline, image, argMap, isTime, jsonIndent);
       break;
     case UI_VIDEO: 
       uiVideo(pJsonPipeline, argMap); 

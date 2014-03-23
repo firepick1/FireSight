@@ -63,6 +63,7 @@ link_directories( ${BUILD_TARGET_DIR} )
 
 file(GLOB FIRESIGHT_LIB_FILES
 	bgSub.cpp
+	calcHist.cpp
 	dft.cpp 
 	FireLog.cpp 
 	generated_code.cpp

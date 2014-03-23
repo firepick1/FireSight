@@ -203,6 +203,68 @@ Point jo_Point(const json_t *pObj, const char *key, const Point &defaultValue, A
   return result;
 }
 
+template<typename T>
+const vector<T> jo_vector(const json_t *pObj, const char *key, const vector<T> &defaultValue, ArgMap &argMap) {
+  vector<T> result;
+  json_t *pVector = jo_object(pObj, key, argMap);
+  json_t *pParsedVector = NULL;
+  if (pVector) {
+    if (json_is_string(pVector)) {
+      string vectorStr = jo_parse(json_string_value(pVector), argMap);
+      json_error_t jerr;
+      pParsedVector = json_loads(vectorStr.c_str(), 0, &jerr);
+      if (pParsedVector) {
+        pVector = pParsedVector;
+      } else {
+        LOGERROR("Could not parse JSON string as vector");
+      }
+    }
+    if (json_is_number(pVector)) {
+      result.push_back(json_number_value(pVector));
+    } else if (json_is_array(pVector)) {
+      int index;
+      json_t *pValue;
+      json_array_foreach(pVector, index, pValue) {
+        if (json_is_number(pValue)) {
+	  result.push_back((T)json_number_value(pValue));
+	} else {
+	  LOGERROR("Expected vector of numbers");
+	}
+      }
+    } else { 
+      LOGERROR1("expected JSON array for %s", key);
+    }
+  }
+  if (pParsedVector) {
+    json_decref(pParsedVector);
+  }
+  if (result.size() == 0) {
+    result = defaultValue;
+  }
+  if (logLevel >= FIRELOG_TRACE) {
+    char buf[512];
+    snprintf(buf, sizeof(buf), "jo_vector(key:%s default:[", key);
+    for (int i = 0; i < defaultValue.size(); i++) {
+      snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), i ? ",%g" : "%g",  (float) defaultValue[i]);
+    }
+    snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "]) -> [");
+    for (int i = 0; i < result.size(); i++) {
+      snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), i ? ",%g" : "%g",  (float) result[i]);
+    }
+    snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "]");
+    LOGTRACE(buf);
+  }
+  return result;
+}
+
+const vector<float> jo_vectorf(const json_t *pObj, const char *key, const vector<float> &defaultValue, ArgMap &argMap) {
+  return jo_vector<float>(pObj, key, defaultValue, argMap);
+}
+
+const vector<int> jo_vectori(const json_t *pObj, const char *key, const vector<int> &defaultValue, ArgMap &argMap) {
+  return jo_vector<int>(pObj, key, defaultValue, argMap);
+}
+
 Scalar jo_Scalar(const json_t *pObj, const char *key, const Scalar &defaultValue, ArgMap &argMap) {
   Scalar result = defaultValue;
   json_t *pValue = jo_object(pObj, key, argMap);

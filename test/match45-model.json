@@ -1,6 +1,6 @@
 {
   "FireSight":{
-    "version":"0.8.4",
+    "version":"0.8.5",
     "url":"https://github.com/firepick1/FireSight"
   },
   "s1":{},
@@ -23,7 +23,7 @@
         "corr":"1"
       }
     ],
-    "maxVal":"0.8.4978",
+    "maxVal":"0.8.5978",
     "matches":2
   },
   "s3":{}

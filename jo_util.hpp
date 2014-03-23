@@ -11,6 +11,8 @@ using namespace cv;
 using namespace std;
 
 namespace firesight {
+  CLASS_DECLSPEC const vector<float> jo_vectorf(const json_t *pObj, const char *key, const vector<float> &defaultValue, ArgMap &argMap) ;
+  CLASS_DECLSPEC const vector<int> jo_vectori(const json_t *pObj, const char *key, const vector<int> &defaultValue, ArgMap &argMap) ;
   CLASS_DECLSPEC bool jo_bool(const json_t *pObj, const char *key, bool defaultValue=0, ArgMap &argMap=emptyMap) ;
 
   CLASS_DECLSPEC int jo_int(const json_t *pObj, const char *key, int defaultValue=0, ArgMap &argMap=emptyMap) ;

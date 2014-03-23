@@ -549,41 +549,6 @@ bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, Model &model) {
   return stageOK("apply_Mat(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model) {
-  validateImage(model.image);
-  float rangeMin = jo_float(pStage, "rangeMin", 0, model.argMap);
-  float rangeMax = jo_float(pStage, "rangeMax", 256, model.argMap);
-  int locations = jo_int(pStage, "locations", 0, model.argMap);
-  int bins = jo_int(pStage, "bins", (int)(rangeMax-rangeMin), model.argMap);
-  int histSize = bins;
-  bool uniform = true;
-  bool accumulate = false;
-  const char *errMsg = NULL;
-  Mat mask;
-
-  if (rangeMin > rangeMax) {
-    errMsg = "Expected rangeMin <= rangeMax";
-  } else if (bins < 2 || bins > 256 ) {
-    errMsg = "Expected 1<bins and bins<=256";
-  }
-
-  if (!errMsg) {
-    float rangeC0[] = { rangeMin, rangeMax }; 
-    const float* ranges[] = { rangeC0 };
-    Mat hist;
-    calcHist(&model.image, 1, 0, mask, hist, 1, &histSize, ranges, uniform, accumulate);
-    json_t *pHist = json_array();
-    for (int i = 0; i < histSize; i++) {
-      json_array_append(pHist, json_real(hist.at<float>(i)));
-    }
-    json_object_set(pStageModel, "hist", pHist);
-    json_t *pLocations = json_array();
-    json_object_set(pStageModel, "locations", pLocations);
-  }
-
-  return stageOK("apply_calcHist(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_split(json_t *pStage, json_t *pStageModel, Model &model) {
   json_t *pFromTo = jo_object(pStage, "fromTo", model.argMap);
   const char *errMsg = NULL;
@@ -1056,7 +1021,7 @@ bool Pipeline::processModel(Model &model) {
   } // json_array_foreach
 
   float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000;
-  LOGDEBUG3("Pipeline::processModel(stages:%d) -> %s %fms", 
+  LOGDEBUG3("Pipeline::processModel(stages:%d) -> %s %.1fms", 
   	(int)json_array_size(pPipeline), matInfo(model.image).c_str(), msElapsed);
 
   return ok;
