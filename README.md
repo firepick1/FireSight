@@ -1,7 +1,7 @@
 FireSight
 =========
 
-FireSight is a factory for building an OpenCV image processing pipeline from a declarative pipeline specfication.
+FireSight is a factory that builds an OpenCV image processing pipeline from a declarative pipeline specfication.
 When processed, the pipeline transforms an optional input image and 
 returns a recognized data model with information recognized during each pipeline stage. Both pipeline specification and data model are represented using the JSON data format, which is easy to generate and parse. 
 
