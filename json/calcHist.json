@@ -1,0 +1,10 @@
+[
+  {"op":"calcHist", 
+    "rangeMin":"{{rangeMin||0}}", 
+    "rangeMax":"{{rangeMax||256}}", 
+    "dims":"{{dims||1}}",
+    "bins":"{{bins||256}}",
+    "accumulate":"{{accumulate||false}}",
+    "channels":"{{channels||[]}}"
+  }
+]
