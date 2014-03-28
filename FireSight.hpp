@@ -117,6 +117,7 @@ namespace firesight {
 			bool apply_blur(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model);
+			bool apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_Canny(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model);
 			bool apply_cout(json_t *pStage, json_t *pStageModel, Model &model);

@@ -226,6 +226,83 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
   return stageOK("apply_matchTemplate(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &model) {
+  validateImage(model.image);
+  string tmpltPath = jo_string(pStage, "template", "", model.argMap);
+  int xTolerance = jo_int(pStage, "xTolerance", 50, model.argMap);
+  int yTolerance = jo_int(pStage, "yTolerance", 50, model.argMap);
+  assert(model.image.cols > 2*xTolerance);
+  assert(model.image.rows > 2*yTolerance);
+  Rect mask= jo_Rect(pStage, "mask", Rect(xTolerance, yTolerance, model.image.cols-2*xTolerance, model.image.rows-2*yTolerance));
+  Rect maskScan = Rect(mask.x-xTolerance, mask.y-yTolerance, mask.width+2*xTolerance, mask.height+2*yTolerance);
+  float threshold = jo_float(pStage, "threshold", 0.7f);
+  float corr = jo_float(pStage, "corr", 0.95f);
+  string outputStr = jo_string(pStage, "output", "current", model.argMap);
+  const char *errMsg = NULL;
+  int flags = INTER_LINEAR;
+  int method = CV_TM_CCOEFF_NORMED;
+  Mat tmplt;
+  int borderMode = BORDER_REPLICATE;
+
+  if (tmpltPath.empty()) {
+    errMsg = "Expected template path for imread";
+  } else {
+    if (model.image.channels() == 1) {
+      tmplt = imread(tmpltPath.c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+    } else {
+      tmplt = imread(tmpltPath.c_str(), CV_LOAD_IMAGE_COLOR);
+    }
+    if (tmplt.data) {
+      LOGTRACE2("apply_calcOffset(%s) %s", tmpltPath.c_str(), matInfo(tmplt).c_str());
+      if (model.image.rows<tmplt.rows || model.image.cols<tmplt.cols) {
+        errMsg = "Expected template smaller than image to match";
+      }
+    } else {
+      errMsg = "imread failed";
+    }
+  }
+
+  int separation = jo_int(pStage, "separation", min(tmplt.cols,tmplt.rows), model.argMap);
+
+  if (!errMsg) {
+    Mat result;
+    Mat imageSource(model.image, maskScan);
+    Mat tmpltSource(tmplt, mask);
+
+    matchTemplate(imageSource, tmpltSource, result, method);
+    LOGTRACE4("apply_calcOffset() matchTemplate(%s,%s,%s,%d)", 
+      matInfo(imageSource).c_str(), matInfo(tmplt).c_str(), matInfo(result).c_str(), method);
+
+    vector<Point> matches;
+    float maxVal = *max_element(result.begin<float>(),result.end<float>());
+    float rangeMin = corr * maxVal;
+    float rangeMax = maxVal;
+    matMaxima(result, matches, rangeMin, rangeMax);
+
+    if (logLevel >= FIRELOG_TRACE) {
+      for (size_t iMatch=0; iMatch<matches.size(); iMatch++) {
+	int cx = matches[iMatch].x;
+	int cy = matches[iMatch].y;
+	float val = result.at<float>(cy,cx);
+	LOGTRACE4("apply_calcOffset() matched (%d,%d) val:%g corr:%g", cx, cy, val, val/maxVal);
+      }
+    }
+    if (matches.size() == 1) {
+	int dx = xTolerance - matches[0].x;
+	int dy = yTolerance - matches[0].y;
+    	json_object_set(pStageModel, "dx", json_real(dx));
+    	json_object_set(pStageModel, "dy", json_real(dy));
+    }
+
+    LOGTRACE("apply_calcOffset() normalize()");
+    normalize(result, result, 0, 255, NORM_MINMAX);
+    result.convertTo(result, CV_MAKETYPE(CV_8U, model.image.channels())); 
+    model.image(mask) = result;
+  }
+
+  return stageOK("apply_calcOffset(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
   int delta = jo_int(pStage, "delta", 1, model.argMap);

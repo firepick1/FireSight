@@ -1,0 +1,4 @@
+[
+  {"op":"cvtColor", "code":"{{cvtColor||CV_BGR2GRAY}}"},
+  {"op":"calcOffset", "template":"{{template}}"}
+]
