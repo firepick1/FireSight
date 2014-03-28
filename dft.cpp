@@ -334,6 +334,16 @@ bool Pipeline::apply_dft(json_t *pStage, json_t *pStageModel, Model &model) {
   }
 
   if (!errMsg) {
+    switch (model.image.channels()) {
+      case 4:
+	LOGTRACE("apply_dft(): converting 4 channel image assuming CV_BGRA2GRAY");
+	cvtColor(model.image, model.image, CV_BGRA2GRAY, 1);
+	break;
+      case 3:
+	LOGTRACE("apply_dft(): converting 3 channel image assuming CV_BGR2GRAY");
+	cvtColor(model.image, model.image, CV_BGR2GRAY, 1);
+	break;
+    }
     if (model.image.type() != CV_32F) {
       Mat fImage;
       LOGTRACE("apply_dft(): Convert image to CV_32F");
