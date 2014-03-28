@@ -76,7 +76,7 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
   validateImage(model.image);
   string methodStr = jo_string(pStage, "method", "CV_TM_CCOEFF_NORMED", model.argMap);
   string tmpltPath = jo_string(pStage, "template", "", model.argMap);
-  float threshold = jo_float(pStage, "threshold", 0.7f);
+  float thresh = jo_float(pStage, "thresh", 0.7f);
   float corr = jo_float(pStage, "corr", 0.85f);
   string outputStr = jo_string(pStage, "output", "current", model.argMap);
   string borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
@@ -136,8 +136,6 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
       errMsg = "Expected numeric angle or JSON array of angles";
     }
   }
-
-  int separation = jo_int(pStage, "separation", min(tmplt.cols,tmplt.rows), model.argMap);
 
   if (!errMsg) {
     if (borderModeStr.compare("BORDER_CONSTANT") == 0) {
@@ -229,14 +227,15 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
   string tmpltPath = jo_string(pStage, "template", "", model.argMap);
-  int xTolerance = jo_int(pStage, "xTolerance", 50, model.argMap);
-  int yTolerance = jo_int(pStage, "yTolerance", 50, model.argMap);
+  int xTolerance = jo_int(pStage, "xTolerance", 32, model.argMap);
+  int yTolerance = jo_int(pStage, "yTolerance", 32, model.argMap);
+  vector<int> channels = jo_vectori(pStage, "channels", vector<int>(), model.argMap);
   assert(model.image.cols > 2*xTolerance);
   assert(model.image.rows > 2*yTolerance);
   Rect mask= jo_Rect(pStage, "mask", Rect(xTolerance, yTolerance, model.image.cols-2*xTolerance, model.image.rows-2*yTolerance));
   Rect maskScan = Rect(mask.x-xTolerance, mask.y-yTolerance, mask.width+2*xTolerance, mask.height+2*yTolerance);
-  float threshold = jo_float(pStage, "threshold", 0.7f);
-  float corr = jo_float(pStage, "corr", 0.95f);
+  float minMatch = jo_float(pStage, "minMatch", 0.7f);
+  float corr = jo_float(pStage, "corr", 0.99f);
   string outputStr = jo_string(pStage, "output", "current", model.argMap);
   const char *errMsg = NULL;
   int flags = INTER_LINEAR;
@@ -261,43 +260,119 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
       errMsg = "imread failed";
     }
   }
-
-  int separation = jo_int(pStage, "separation", min(tmplt.cols,tmplt.rows), model.argMap);
+  if (!errMsg) {
+    if (model.image.channels() > 3) {
+      errMsg = "Expected at most 3 channels for pipeline image";
+    } else if (tmplt.channels() != model.image.channels()) {
+      errMsg = "Template and pipeline image must have same number of channels";
+    } else {
+      for (int iChannel = 0; iChannel < channels.size(); iChannel++) {
+	if (channels[iChannel] < 0 || model.image.channels() <= channels[iChannel]) {
+	  errMsg = "Referenced channel is not in image";
+	}
+      }
+    }
+  }
 
   if (!errMsg) {
     Mat result;
-    Mat imageSource(model.image, maskScan);
-    Mat tmpltSource(tmplt, mask);
+    Mat imagePlanes[] = { Mat(), Mat(), Mat() };
+    Mat tmpltPlanes[] = { Mat(), Mat(), Mat() };
+    if (channels.size() == 0) {
+      channels.push_back(0);
+      if (model.image.channels() == 1) {
+	imagePlanes[0] = model.image;
+	tmpltPlanes[0] = tmplt;
+      } else {
+	cvtColor(model.image, imagePlanes[0], CV_BGR2GRAY);
+	cvtColor(tmplt, tmpltPlanes[0], CV_BGR2GRAY);
+      }
+    } else if (model.image.channels() == 1) {
+      imagePlanes[0] = model.image;
+      tmpltPlanes[0] = tmplt;
+    } else {
+      split(model.image, imagePlanes);
+      split(tmplt, tmpltPlanes);
+    }
 
-    matchTemplate(imageSource, tmpltSource, result, method);
-    LOGTRACE4("apply_calcOffset() matchTemplate(%s,%s,%s,%d)", 
-      matInfo(imageSource).c_str(), matInfo(tmplt).c_str(), matInfo(result).c_str(), method);
+    json_t *pChannels = json_object();
+    json_object_set(pStageModel, "channels", pChannels);
+    for (int iChannel=0; iChannel<channels.size(); iChannel++) {
+      int channel = channels[iChannel];
+      Mat imageSource(imagePlanes[channel], maskScan);
+      Mat tmpltSource(tmpltPlanes[channel], mask);
 
-    vector<Point> matches;
-    float maxVal = *max_element(result.begin<float>(),result.end<float>());
-    float rangeMin = corr * maxVal;
-    float rangeMax = maxVal;
-    matMaxima(result, matches, rangeMin, rangeMax);
+      matchTemplate(imageSource, tmpltSource, result, method);
+      LOGTRACE4("apply_calcOffset() matchTemplate(%s,%s,%s,CV_TM_CCOEFF_NORMED) channel:%d", 
+	matInfo(imageSource).c_str(), matInfo(tmpltSource).c_str(), matInfo(result).c_str(), channel);
 
-    if (logLevel >= FIRELOG_TRACE) {
-      for (size_t iMatch=0; iMatch<matches.size(); iMatch++) {
-	int cx = matches[iMatch].x;
-	int cy = matches[iMatch].y;
-	float val = result.at<float>(cy,cx);
-	LOGTRACE4("apply_calcOffset() matched (%d,%d) val:%g corr:%g", cx, cy, val, val/maxVal);
+      vector<Point> matches;
+      float maxVal = *max_element(result.begin<float>(),result.end<float>());
+      float rangeMin = corr * maxVal;
+      float rangeMax = maxVal;
+      matMaxima(result, matches, rangeMin, rangeMax);
+
+      if (logLevel >= FIRELOG_TRACE) {
+	for (size_t iMatch=0; iMatch<matches.size(); iMatch++) {
+	  int mx = matches[iMatch].x;
+	  int my = matches[iMatch].y;
+	  float val = result.at<float>(my,mx);
+	  if (val < minMatch) {
+	    LOGTRACE4("apply_calcOffset() ignoring (%d,%d) val:%g corr:%g", mx, my, val, val/maxVal);
+	  } else {
+	    LOGTRACE4("apply_calcOffset() matched (%d,%d) val:%g corr:%g", mx, my, val, val/maxVal);
+	  }
+	}
+      }
+      json_t *pMatches = json_object();
+      char key[10];
+      snprintf(key, sizeof(key), "%d", channel);
+      json_object_set(pChannels, key, pMatches);
+      if (matches.size() == 1) {
+	  int mx = matches[0].x;
+	  int my = matches[0].y;
+	  float val = result.at<float>(my,mx);
+	  if (minMatch <= val) {
+	    int dx = xTolerance - mx;
+	    int dy = yTolerance - my;
+	    json_object_set(pMatches, "dx", json_integer(dx));
+	    json_object_set(pMatches, "dy", json_integer(dy));
+	    json_object_set(pMatches, "match", json_float(val));
+	  }
       }
     }
-    if (matches.size() == 1) {
-	int dx = xTolerance - matches[0].x;
-	int dy = yTolerance - matches[0].y;
-    	json_object_set(pStageModel, "dx", json_real(dx));
-    	json_object_set(pStageModel, "dy", json_real(dy));
-    }
 
-    LOGTRACE("apply_calcOffset() normalize()");
+    json_t *pRects = json_array();
+    json_object_set(pStageModel, "rects", pRects);
+    json_t *pRect = json_object();
+    json_array_append(pRects, pRect);
+    json_object_set(pRect, "x", json_integer(mask.x+mask.width/2));
+    json_object_set(pRect, "y", json_integer(mask.y+mask.height/2));
+    json_object_set(pRect, "width", json_integer(mask.width));
+    json_object_set(pRect, "height", json_integer(mask.height));
+    json_object_set(pRect, "angle", json_integer(0));
+    pRect = json_object();
+    json_array_append(pRects, pRect);
+    json_object_set(pRect, "x", json_integer(maskScan.x+maskScan.width/2));
+    json_object_set(pRect, "y", json_integer(maskScan.y+maskScan.height/2));
+    json_object_set(pRect, "width", json_integer(maskScan.width));
+    json_object_set(pRect, "height", json_integer(maskScan.height));
+    json_object_set(pRect, "angle", json_integer(0));
+
     normalize(result, result, 0, 255, NORM_MINMAX);
-    result.convertTo(result, CV_MAKETYPE(CV_8U, model.image.channels())); 
-    model.image(mask) = result;
+    result.convertTo(result, CV_8U);
+    Mat roi = model.image.colRange(0,result.cols).rowRange(0,result.rows);
+    switch (model.image.channels()) {
+      case 3:
+        cvtColor(result, roi, CV_GRAY2BGR);
+	break;
+      case 4:
+        cvtColor(result, roi, CV_GRAY2BGRA);
+	break;
+      default:
+	result.copyTo(roi);
+	break;
+    }
   }
 
   return stageOK("apply_calcOffset(%s) %s", errMsg, pStage, pStageModel);

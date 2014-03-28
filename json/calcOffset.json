@@ -1,4 +1,11 @@
 [
-  {"op":"cvtColor", "code":"{{cvtColor||CV_BGR2GRAY}}"},
-  {"op":"calcOffset", "template":"{{template}}"}
+  {"op":"calcOffset", 
+    "name":"calcOffset-stage", 
+    "minMatch":"{{minMatch||0.7}}",
+    "xTolerance":"{{xTolerance||32}}",
+    "yTolerance":"{{yTolerance||32}}",
+    "channels":"{{channels||[]}}", 
+    "template":"{{template}}"
+  },
+  {"op":"drawRects", "model":"calcOffset-stage", "color":[32,255,32]}
 ]

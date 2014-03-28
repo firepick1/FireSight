@@ -34,10 +34,11 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
 
   if (logLevel >= FIRELOG_TRACE) {
     char *pStageJson = json_dumps(pStage, 0);
-    char *pModelJson = json_dumps(pStageModel, 0);
-    LOGTRACE2(fmt, pStageJson, pModelJson);
+    //char *pModelJson = json_dumps(pStageModel, 0);
+    //LOGTRACE2(fmt, pStageJson, pModelJson);
+    LOGTRACE2(fmt, pStageJson, "");
+    //free(pModelJson);
     free(pStageJson);
-    free(pModelJson);
   }
 
   return true;
