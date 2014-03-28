@@ -99,15 +99,15 @@ bool parseArgs(int argc, char *argv[],
       return false;
     }
   }
-  if (!pipelinePath) {
-    return false;
+  if (pipelinePath) {
+    LOGTRACE1("Reading pipeline: %s", pipelinePath);
+    ifstream ifs(pipelinePath);
+    stringstream pipelineStream;
+    pipelineStream << ifs.rdbuf();
+    pipelineString = pipelineStream.str();
+  } else {
+    pipelineString = "[{\"op\":\"nop\"}]";
   }
-
-  LOGTRACE1("Reading pipeline: %s", pipelinePath);
-  ifstream ifs(pipelinePath);
-  stringstream pipelineStream;
-  pipelineStream << ifs.rdbuf();
-  pipelineString = pipelineStream.str();
   const char *pJsonPipeline = pipelineString.c_str();
   if (strlen(pJsonPipeline) < 10) {
     LOGERROR1("Invalid pipeline path: %s", pipelinePath);

@@ -1,0 +1,4 @@
+[
+  {"op":"absdiff", "path":"{{img}}"},
+  {"op":"threshold", "thresh":"{{thresh||1}}", "gray":"{{gray||false}}"}
+]
