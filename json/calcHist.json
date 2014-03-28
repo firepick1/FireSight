@@ -4,6 +4,8 @@
     "rangeMax":"{{rangeMax||256}}", 
     "dims":"{{dims||1}}",
     "bins":"{{bins||256}}",
+    "binMax":"{{binMax||0}}",
+    "binMin":"{{binMin||1}}",
     "accumulate":"{{accumulate||false}}",
     "channels":"{{channels||[]}}"
   }
