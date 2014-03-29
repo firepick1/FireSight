@@ -203,6 +203,38 @@ Point jo_Point(const json_t *pObj, const char *key, const Point &defaultValue, A
   return result;
 }
 
+Rect jo_Rect(const json_t *pObj, const char *key, const Rect &defaultValue, ArgMap &argMap) {
+  Rect result = defaultValue;
+  json_t *pValue = jo_object(pObj, key, argMap);
+  if (pValue) {
+    if (!json_is_array(pValue)) {
+      LOGERROR1("expected JSON array for %s", key);
+    } else { 
+      switch (json_array_size(pValue)) {
+        case 4: 
+          result = Rect(
+            (size_t)json_integer_value(json_array_get(pValue, 0)),
+            (size_t)json_integer_value(json_array_get(pValue, 1)),
+            (size_t)json_integer_value(json_array_get(pValue, 2)),
+            (size_t)json_integer_value(json_array_get(pValue, 3)));
+          break;
+        default:
+          LOGERROR1("expected JSON array with 4 integer values (i.e., x,y,width,height) for %s", key);
+          return defaultValue;
+      }
+    }
+  }
+  if (pValue && logLevel >= FIRELOG_TRACE) {
+    char buf[250];
+    snprintf(buf, sizeof(buf), "jo_Rect(key:%s default:[%d %d %d %d]) -> [%d %d %d %d]", 
+      key, 
+      defaultValue.x, defaultValue.y, defaultValue.width, defaultValue.height, 
+      result.x, result.y, result.width, result.height);
+    LOGTRACE1("%s", buf);
+  }
+  return result;
+}
+
 template<typename T>
 const vector<T> jo_vector(const json_t *pObj, const char *key, const vector<T> &defaultValue, ArgMap &argMap) {
   vector<T> result;

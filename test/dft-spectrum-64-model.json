@@ -3,7 +3,10 @@
     "version":"0.9.0",
     "url":"https://github.com/firepick1/FireSight"
   },
-  "s1":{
-    "PSNR":"SAME"
-  }
+  "s1":{},
+  "s2":{},
+  "s3":{},
+  "s4":{},
+  "s5":{},
+  "s6":{}
 }

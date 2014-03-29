@@ -22,6 +22,7 @@ bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model)
   float rangeMin = jo_float(pStage, "rangeMin", 0, model.argMap);
   float rangeMax = jo_float(pStage, "rangeMax", 256, model.argMap);
   float binMax = jo_float(pStage, "binMax", 0, model.argMap);
+  float binMin = jo_float(pStage, "binMin", 1, model.argMap);
   int dims = jo_int(pStage, "dims", 1, model.argMap);
   bool accumulate = jo_bool(pStage, "accumulate", false, model.argMap);
   vector<int> defaultChannels;
@@ -76,21 +77,19 @@ bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model)
     if (split) {
       for (int i = 0; i < bins; i++) {
 	json_t *pDimHist = json_array();
-	bool zero = true;
-	bool keepBin = binMax == 0;
+	bool keep = false;
 	for (int channel = 0; channel < histChannels.size(); channel++) {
 	  float binValue = hist[channel].at<float>(i);
-	  zero = zero && (binValue == 0);
-	  keepBin = keepBin || binMax && 0 != binValue && binValue < binMax;
+	  keep = keep || binMin <= binValue && (binMax==0 || binValue < binMax);
 	  json_t *pNum = (int)binValue == binValue ? json_integer(binValue) : json_real(binValue);
 	  json_array_append(pDimHist, pNum);
 	}
-	if ((zero || !keepBin) ) {
-	  json_decref(pDimHist);
-	} else {
+	if (keep) {
 	  char numBuf[20];
 	  snprintf(numBuf, sizeof(numBuf), "%d", i);
 	  json_object_set(pHist, numBuf, pDimHist);
+	} else {
+	  json_decref(pDimHist);
 	}
       }
     } else {

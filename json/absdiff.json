@@ -1,3 +1,4 @@
 [
-  {"op":"absdiff", "path":"{{img}}"}
+  {"op":"absdiff", "path":"{{img}}"},
+  {"op":"calcHist"}
 ]

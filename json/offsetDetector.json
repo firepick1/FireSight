@@ -1,0 +1,6 @@
+[
+  {"op":"dft", "flags":["DFT_SCALE","DFT_COMPLEX_OUTPUT"]},
+  {"op":"dftSpectrum", "show":"{{show||magnitude}}"},
+  {"op":"normalize", "alpha":0, "beta":"{{beta||1024}}", "normType":"NORM_MINMAX"},
+  {"op":"convertTo", "rType":"CV_8U"}
+]

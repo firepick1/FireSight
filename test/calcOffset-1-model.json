@@ -1,0 +1,32 @@
+{
+  "FireSight":{
+    "version":"0.9.0",
+    "url":"https://github.com/firepick1/FireSight"
+  },
+  "calcOffset-stage":{
+    "channels":{
+      "0":{
+        "dx":14,
+        "dy":0,
+        "match":"0.984573"
+      }
+    },
+    "rects":[
+      {
+        "x":400,
+        "y":100,
+        "width":736,
+        "height":136,
+        "angle":0
+      },
+      {
+        "x":400,
+        "y":100,
+        "width":800,
+        "height":200,
+        "angle":0
+      }
+    ]
+  },
+  "s2":{}
+}

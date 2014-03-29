@@ -38,7 +38,7 @@ test/test-one pcb.jpg match45 "$suffix"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 suffix=""
-test/test-one pcb.jpg absdiff "$suffix" "-Dimg=img/mog2.jpg" 
+test/test-one pcb.jpg absdiff "$suffix" "-Dimg=img/mog2.jpg" -ji 0
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 suffix=""
@@ -47,6 +47,16 @@ if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one absdiff.png threshold "64-color$suffix" "-Dthresh=64" "-Dgray=false"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one absdiff.png threshold "64-inv$suffix" "-Dthresh=64" "-Dtype=THRESH_BINARY_INV"
+if [ $? -ne 0 ] ; then exit 1 ; fi
+
+suffix=$suffix64
+test/test-one whiterect.jpg dft-spectrum "$suffix" 
+if [ $? -ne 0 ] ; then exit 1 ; fi
+
+suffix=""
+test/test-one headcam1.jpg calcOffset "-1$suffix" -Dtemplate=img/headcam0.jpg
+if [ $? -ne 0 ] ; then exit 1 ; fi
+test/test-one headcam0a.jpg calcOffset "-0a$suffix" -Dtemplate=img/headcam0.jpg
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 echo "-------------------------------------------------"
