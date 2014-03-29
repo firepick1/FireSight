@@ -227,14 +227,14 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
   string tmpltPath = jo_string(pStage, "template", "", model.argMap);
-  int xTolerance = jo_int(pStage, "xTolerance", 32, model.argMap);
-  int yTolerance = jo_int(pStage, "yTolerance", 32, model.argMap);
+  int xtol = jo_int(pStage, "xtol", 32, model.argMap);
+  int ytol = jo_int(pStage, "ytol", 32, model.argMap);
   vector<int> channels = jo_vectori(pStage, "channels", vector<int>(), model.argMap);
-  assert(model.image.cols > 2*xTolerance);
-  assert(model.image.rows > 2*yTolerance);
-  Rect mask= jo_Rect(pStage, "mask", Rect(xTolerance, yTolerance, model.image.cols-2*xTolerance, model.image.rows-2*yTolerance));
-  Rect maskScan = Rect(mask.x-xTolerance, mask.y-yTolerance, mask.width+2*xTolerance, mask.height+2*yTolerance);
-  float minMatch = jo_float(pStage, "minMatch", 0.7f);
+  assert(model.image.cols > 2*xtol);
+  assert(model.image.rows > 2*ytol);
+  Rect mask= jo_Rect(pStage, "mask", Rect(xtol, ytol, model.image.cols-2*xtol, model.image.rows-2*ytol));
+  Rect maskScan = Rect(mask.x-xtol, mask.y-ytol, mask.width+2*xtol, mask.height+2*ytol);
+  float minval = jo_float(pStage, "minval", 0.7f);
   float corr = jo_float(pStage, "corr", 0.99f);
   string outputStr = jo_string(pStage, "output", "current", model.argMap);
   const char *errMsg = NULL;
@@ -317,7 +317,7 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
 	  int mx = matches[iMatch].x;
 	  int my = matches[iMatch].y;
 	  float val = result.at<float>(my,mx);
-	  if (val < minMatch) {
+	  if (val < minval) {
 	    LOGTRACE4("apply_calcOffset() ignoring (%d,%d) val:%g corr:%g", mx, my, val, val/maxVal);
 	  } else {
 	    LOGTRACE4("apply_calcOffset() matched (%d,%d) val:%g corr:%g", mx, my, val, val/maxVal);
@@ -332,9 +332,9 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
 	  int mx = matches[0].x;
 	  int my = matches[0].y;
 	  float val = result.at<float>(my,mx);
-	  if (minMatch <= val) {
-	    int dx = xTolerance - mx;
-	    int dy = yTolerance - my;
+	  if (minval <= val) {
+	    int dx = xtol - mx;
+	    int dy = ytol - my;
 	    json_object_set(pMatches, "dx", json_integer(dx));
 	    json_object_set(pMatches, "dy", json_integer(dy));
 	    json_object_set(pMatches, "match", json_float(val));
