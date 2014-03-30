@@ -37,6 +37,10 @@ bool parseArgs(int argc, char *argv[],
   uimode = UI_STILL;
   isTime = false;
   firelog_level(FIRELOG_INFO);
+ 
+  if (argc <= 1) {
+    return false;
+  }
 
   for (int i = 1; i < argc; i++) {
     if (strcmp("-p",argv[i]) == 0) {
