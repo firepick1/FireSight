@@ -218,6 +218,8 @@ Rect jo_Rect(const json_t *pObj, const char *key, const Rect &defaultValue, ArgM
             (size_t)json_integer_value(json_array_get(pValue, 2)),
             (size_t)json_integer_value(json_array_get(pValue, 3)));
           break;
+	case 0:
+          return defaultValue;
         default:
           LOGERROR1("expected JSON array with 4 integer values (i.e., x,y,width,height) for %s", key);
           return defaultValue;

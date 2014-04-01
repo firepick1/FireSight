@@ -60,6 +60,8 @@ test/test-one headcam0a.jpg calcOffset "-0a$suffix" -Dtemplate=img/headcam0.jpg
 if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one headcam2.jpg calcOffset "-1BGR$suffix" -Dtemplate=img/headcam0.jpg -Dchannels=[0,1,2]
 if [ $? -ne 0 ] ; then exit 1 ; fi
+test/test-one headcam1.jpg calcOffset "-1roi$suffix" -Dtemplate=img/headcam0.jpg -Droi=[380,75,35,35]
+if [ $? -ne 0 ] ; then exit 1 ; fi
 
 echo "-------------------------------------------------"
 echo "BLISS AND HAPPINESS. FireSight TESTS ALL PASS!!!"

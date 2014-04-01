@@ -6,24 +6,24 @@
   "calcOffset-stage":{
     "channels":{
       "0":{
-        "dx":14,
+        "dx":15,
         "dy":0,
-        "match":"0.984573"
+        "match":"0.993851"
       }
     },
     "rects":[
       {
-        "x":400,
-        "y":100,
-        "width":736,
-        "height":136,
+        "x":397,
+        "y":92,
+        "width":35,
+        "height":35,
         "angle":0
       },
       {
-        "x":400,
-        "y":100,
-        "width":800,
-        "height":200,
+        "x":397,
+        "y":92,
+        "width":99,
+        "height":99,
         "angle":0
       }
     ]

@@ -232,9 +232,9 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
   vector<int> channels = jo_vectori(pStage, "channels", vector<int>(), model.argMap);
   assert(model.image.cols > 2*xtol);
   assert(model.image.rows > 2*ytol);
-  Rect mask= jo_Rect(pStage, "mask", Rect(xtol, ytol, model.image.cols-2*xtol, model.image.rows-2*ytol));
-  Rect maskScan = Rect(mask.x-xtol, mask.y-ytol, mask.width+2*xtol, mask.height+2*ytol);
-  float minval = jo_float(pStage, "minval", 0.7f);
+  Rect roi= jo_Rect(pStage, "roi", Rect(xtol, ytol, model.image.cols-2*xtol, model.image.rows-2*ytol), model.argMap);
+  Rect roiScan = Rect(roi.x-xtol, roi.y-ytol, roi.width+2*xtol, roi.height+2*ytol);
+  float minval = jo_float(pStage, "minval", 0.7f, model.argMap);
   float corr = jo_float(pStage, "corr", 0.99f);
   string outputStr = jo_string(pStage, "output", "current", model.argMap);
   const char *errMsg = NULL;
@@ -299,8 +299,8 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
     json_object_set(pStageModel, "channels", pChannels);
     for (int iChannel=0; iChannel<channels.size(); iChannel++) {
       int channel = channels[iChannel];
-      Mat imageSource(imagePlanes[channel], maskScan);
-      Mat tmpltSource(tmpltPlanes[channel], mask);
+      Mat imageSource(imagePlanes[channel], roiScan);
+      Mat tmpltSource(tmpltPlanes[channel], roi);
 
       matchTemplate(imageSource, tmpltSource, result, method);
       LOGTRACE4("apply_calcOffset() matchTemplate(%s,%s,%s,CV_TM_CCOEFF_NORMED) channel:%d", 
@@ -346,31 +346,31 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
     json_object_set(pStageModel, "rects", pRects);
     json_t *pRect = json_object();
     json_array_append(pRects, pRect);
-    json_object_set(pRect, "x", json_integer(mask.x+mask.width/2));
-    json_object_set(pRect, "y", json_integer(mask.y+mask.height/2));
-    json_object_set(pRect, "width", json_integer(mask.width));
-    json_object_set(pRect, "height", json_integer(mask.height));
+    json_object_set(pRect, "x", json_integer(roi.x+roi.width/2));
+    json_object_set(pRect, "y", json_integer(roi.y+roi.height/2));
+    json_object_set(pRect, "width", json_integer(roi.width));
+    json_object_set(pRect, "height", json_integer(roi.height));
     json_object_set(pRect, "angle", json_integer(0));
     pRect = json_object();
     json_array_append(pRects, pRect);
-    json_object_set(pRect, "x", json_integer(maskScan.x+maskScan.width/2));
-    json_object_set(pRect, "y", json_integer(maskScan.y+maskScan.height/2));
-    json_object_set(pRect, "width", json_integer(maskScan.width));
-    json_object_set(pRect, "height", json_integer(maskScan.height));
+    json_object_set(pRect, "x", json_integer(roiScan.x+roiScan.width/2));
+    json_object_set(pRect, "y", json_integer(roiScan.y+roiScan.height/2));
+    json_object_set(pRect, "width", json_integer(roiScan.width));
+    json_object_set(pRect, "height", json_integer(roiScan.height));
     json_object_set(pRect, "angle", json_integer(0));
 
     normalize(result, result, 0, 255, NORM_MINMAX);
     result.convertTo(result, CV_8U);
-    Mat roi = model.image.colRange(0,result.cols).rowRange(0,result.rows);
+    Mat corrInset = model.image.colRange(0,result.cols).rowRange(0,result.rows);
     switch (model.image.channels()) {
       case 3:
-        cvtColor(result, roi, CV_GRAY2BGR);
+        cvtColor(result, corrInset, CV_GRAY2BGR);
 	break;
       case 4:
-        cvtColor(result, roi, CV_GRAY2BGRA);
+        cvtColor(result, corrInset, CV_GRAY2BGRA);
 	break;
       default:
-	result.copyTo(roi);
+	result.copyTo(corrInset);
 	break;
     }
   }
