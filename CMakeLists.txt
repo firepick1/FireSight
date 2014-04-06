@@ -24,6 +24,7 @@ IF(WIN32)
 	SET(FIRESIGHT_DLL "_firesight.dll")
 ELSE(WIN32)
 	MESSAGE(STATUS "Detecting LINUX build")
+	SET(JANSSON_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/jannson/src")
 	SET(JANSSON_LIB "libjansson.so")
 	SET(FIRESIGHT_LIB "lib_firesight.so")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g")
@@ -58,8 +59,8 @@ else(OpenCV_LIBS)
 	MESSAGE("find_package(OpenCV) failed => OpenCV_LIBS is not defined")
 endif(OpenCV_LIBS)
 
-include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${JANSSON_INCLUDE_DIRS})
-link_directories( ${BUILD_TARGET_DIR} )
+include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${JANSSON_INCLUDE_DIRS} /usr/local/include )
+link_directories( ${BUILD_TARGET_DIR} /usr/local/lib )
 
 file(GLOB FIRESIGHT_LIB_FILES
 	bgSub.cpp

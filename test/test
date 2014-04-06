@@ -15,12 +15,6 @@ if [ `uname -m` == "x86_64" -o "$WINDIR" != "" ]; then suffix64="-64"; else suff
 echo "Machine platform is:" `uname -m`
 echo "Test suffix is:$suffix64"
 
-suffix=$suffix64
-test/test-one mog2.jpg bgsub "-mog2$suffix" "-DbgImg=img/pcb.jpg" "-Dmethod=MOG2"
-if [ $? -ne 0 ] ; then exit 1 ; fi
-test/test-one mog2.jpg bgsub "-absdiff$suffix" "-DbgImg=img/pcb.jpg" "-Dmethod=absdiff" "-Dthresh=32"
-if [ $? -ne 0 ] ; then exit 1 ; fi
-
 suffix=""
 test/test-one duck.jpg resize "$suffix" "-Dfx=0.25" "-Dfy=0.5"
 if [ $? -ne 0 ] ; then exit 1 ; fi
@@ -61,6 +55,12 @@ if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one headcam2.jpg calcOffset "-1BGR$suffix" -Dtemplate=img/headcam0.jpg -Dchannels=[0,1,2]
 if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one headcam1.jpg calcOffset "-1roi$suffix" -Dtemplate=img/headcam0.jpg -Droi=[380,75,35,35]
+if [ $? -ne 0 ] ; then exit 1 ; fi
+
+suffix=$suffix64
+test/test-one mog2.jpg bgsub "-mog2$suffix" "-DbgImg=img/pcb.jpg" "-Dmethod=MOG2"
+if [ $? -ne 0 ] ; then exit 1 ; fi
+test/test-one mog2.jpg bgsub "-absdiff$suffix" "-DbgImg=img/pcb.jpg" "-Dmethod=absdiff" "-Dthresh=32"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 echo "-------------------------------------------------"

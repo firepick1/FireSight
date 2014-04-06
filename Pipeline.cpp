@@ -309,8 +309,10 @@ bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model)
   } else if (codeStr.compare("CV_BayerGB2GRAY")==0) { code = CV_BayerGB2GRAY;
   } else if (codeStr.compare("CV_BayerRG2GRAY")==0) { code = CV_BayerRG2GRAY;
   } else if (codeStr.compare("CV_BayerGR2GRAY")==0) { code = CV_BayerGR2GRAY;
+#ifdef CV_YUV420i2RGB
   } else if (codeStr.compare("CV_YUV420i2RGB")==0) { code = CV_YUV420i2RGB;
   } else if (codeStr.compare("CV_YUV420i2BGR")==0) { code = CV_YUV420i2BGR;
+#endif
   } else if (codeStr.compare("CV_YUV420sp2RGB")==0) { code = CV_YUV420sp2RGB;
   } else if (codeStr.compare("CV_YUV420sp2BGR")==0) { code = CV_YUV420sp2BGR;
   } else {
