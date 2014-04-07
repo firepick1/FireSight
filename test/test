@@ -43,21 +43,21 @@ if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one absdiff.png threshold "64-inv$suffix" "-Dthresh=64" "-Dtype=THRESH_BINARY_INV"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
-suffix=$suffix64
-test/test-one whiterect.jpg dft-spectrum "$suffix" 
+suffix="-64"
+test/test-one whiterect.png dft-spectrum "$suffix" 
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 suffix=""
-test/test-one headcam1.jpg calcOffset "-1$suffix" -Dtemplate=img/headcam0.jpg
+test/test-one headcam1.png calcOffset "-1$suffix" -Dtemplate=img/headcam0.png
 if [ $? -ne 0 ] ; then exit 1 ; fi
-test/test-one headcam0a.jpg calcOffset "-0a$suffix" -Dtemplate=img/headcam0.jpg
+test/test-one headcam0a.png calcOffset "-0a$suffix" -Dtemplate=img/headcam0.png
 if [ $? -ne 0 ] ; then exit 1 ; fi
-test/test-one headcam2.jpg calcOffset "-1BGR$suffix" -Dtemplate=img/headcam0.jpg -Dchannels=[0,1,2]
+test/test-one headcam2.png calcOffset "-1BGR$suffix" -Dtemplate=img/headcam0.png -Dchannels=[0,1,2]
 if [ $? -ne 0 ] ; then exit 1 ; fi
-test/test-one headcam1.jpg calcOffset "-1roi$suffix" -Dtemplate=img/headcam0.jpg -Droi=[380,75,35,35]
+test/test-one headcam1.png calcOffset "-1roi$suffix" -Dtemplate=img/headcam0.png -Droi=[380,75,35,35]
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
-suffix=$suffix64
+suffix="-64"
 test/test-one mog2.png bgsub "-mog2$suffix" "-DbgImg=img/pcb.png" "-Dmethod=MOG2"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one mog2.png bgsub "-absdiff$suffix" "-DbgImg=img/pcb.png" "-Dmethod=absdiff" "-Dthresh=32"
