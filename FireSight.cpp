@@ -129,7 +129,9 @@ static int uiStill(const char * pJsonPipeline, Mat &image, ArgMap &argMap, bool 
   json_t *pModel = pipeline.process(image, argMap);
 
   if (isTime) {
-    float tickStart = cvGetTickCount();
+    long long tickStart = cvGetTickCount();
+    //cout << "cvGetTickCount()" << cvGetTickCount() << endl;
+    //cout << "tickStart" << tickStart << endl;
     int iterations = 100;
     for (int i=0; i < iterations; i++) {
       json_decref(pModel);
