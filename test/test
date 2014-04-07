@@ -32,7 +32,7 @@ test/test-one pcb.png match45 "$suffix"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 suffix=""
-test/test-one pcb.png absdiff "$suffix" "-Dimg=img/mog2.jpg" -ji 0
+test/test-one pcb.png absdiff "$suffix" "-Dimg=img/mog2.png" -ji 0
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 suffix=""
@@ -58,9 +58,9 @@ test/test-one headcam1.jpg calcOffset "-1roi$suffix" -Dtemplate=img/headcam0.jpg
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 suffix=$suffix64
-test/test-one mog2.jpg bgsub "-mog2$suffix" "-DbgImg=img/pcb.jpg" "-Dmethod=MOG2"
+test/test-one mog2.png bgsub "-mog2$suffix" "-DbgImg=img/pcb.png" "-Dmethod=MOG2"
 if [ $? -ne 0 ] ; then exit 1 ; fi
-test/test-one mog2.jpg bgsub "-absdiff$suffix" "-DbgImg=img/pcb.jpg" "-Dmethod=absdiff" "-Dthresh=32"
+test/test-one mog2.png bgsub "-absdiff$suffix" "-DbgImg=img/pcb.png" "-Dmethod=absdiff" "-Dthresh=32"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 echo "-------------------------------------------------"
