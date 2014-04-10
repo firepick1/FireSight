@@ -19,15 +19,15 @@ suffix=""
 test/test-one duck.jpg resize "$suffix" "-Dfx=0.25" "-Dfy=0.5"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
-suffix=$suffix64
+suffix="-64"
 test/test-one pcb.png matchAngle "$suffix" "-Dangle=[45]" "-Dtemplate=img/tmplt-37x29.jpg"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
-suffix=$suffix64
+suffix="-64"
 test/test-one pcb.png matchCCOEFF_NORMED "$suffix" 
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
-suffix=$suffix64
+suffix="-64"
 test/test-one pcb.png match45 "$suffix"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
