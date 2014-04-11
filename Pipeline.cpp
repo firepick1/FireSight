@@ -94,11 +94,15 @@ bool Pipeline::apply_putText(json_t *pStage, json_t *pStageModel, Model &model) 
   validateImage(model.image);
   string text = jo_string(pStage, "text", "FireSight");
   Scalar color = jo_Scalar(pStage, "color", Scalar(0,255,0), model.argMap);
-  string fontFaceName = jo_string(pStage, "fontFace", "FONT_HERSHEY_PLAIN");
-  int thickness = jo_int(pStage, "thickness", 1);
+  string fontFaceName = jo_string(pStage, "fontFace", "FONT_HERSHEY_PLAIN", model.argMap);
+  int thickness = jo_int(pStage, "thickness", 1, model.argMap);
   int fontFace = FONT_HERSHEY_PLAIN;
+  bool italic = jo_bool(pStage, "italic", false, model.argMap);
   double fontScale = jo_double(pStage, "fontScale", 1);
-  Point org = jo_Point(pStage, "org", Point(5,model.image.rows-6));
+  Point org = jo_Point(pStage, "org", Point(5,-6));
+  if (org.y < 0) {
+    org.y = model.image.rows - org.y;
+  }
   const char *errMsg = NULL;
 
   if (fontFaceName.compare("FONT_HERSHEY_SIMPLEX") == 0) {
@@ -119,6 +123,10 @@ bool Pipeline::apply_putText(json_t *pStage, json_t *pStageModel, Model &model) 
     fontFace = FONT_HERSHEY_SCRIPT_COMPLEX;
   } else {
     errMsg = "Unknown fontFace (default is FONT_HERSHEY_PLAIN)";
+  }
+  
+  if (!errMsg && italic) {
+    fontFace |= FONT_ITALIC;
   }
 
   if (!errMsg) { 
@@ -813,23 +821,39 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
 }
 
 bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model) {
-  double alpha = jo_float(pStage, "alpha", 1, model.argMap);
-  double beta = jo_float(pStage, "beta", 0, model.argMap);
+  double lvl = jo_float(pStage, "lvl", -1, model.argMap);
+  double alpha = 1;
+  double beta = 0;
   string normTypeStr = jo_string(pStage, "normType", "NORM_L2", model.argMap);
   int normType  = NORM_L2;
   const char *errMsg = NULL;
 
   if (normTypeStr.compare("NORM_L2") == 0) {
     normType = NORM_L2;
+    if (lvl >= 0) {
+      alpha = sqrt((double) model.image.cols * (double) model.image.rows * lvl * lvl);
+    }
   } else if (normTypeStr.compare("NORM_L1") == 0) {
     normType = NORM_L1;
+    if (lvl >= 0) {
+      alpha = (double) model.image.cols * (double) model.image.rows * lvl;
+    }
   } else if (normTypeStr.compare("NORM_MINMAX") == 0) {
     normType = NORM_MINMAX;
+    if (lvl >= 0) {
+      alpha = lvl;
+    }
   } else if (normTypeStr.compare("NORM_INF") == 0) {
     normType = NORM_INF;
+    if (lvl >= 0) {
+      alpha = lvl;
+    }
   } else {
     errMsg = "Unknown normType";
   }
+
+  alpha = jo_float(pStage, "alpha", alpha, model.argMap);
+  beta = jo_float(pStage, "beta", alpha, model.argMap);
 
   if (!errMsg) {
     normalize(model.image, model.image, alpha, beta, normType);
@@ -1074,7 +1098,7 @@ bool Pipeline::processModel(Model &model) {
   size_t index;
   json_t *pStage;
   char debugBuf[255];
-  long tickStart = cvGetTickCount();
+  long long tickStart = cvGetTickCount();
   json_array_foreach(pPipeline, index, pStage) {
     string pOp = jo_string(pStage, "op", "", model.argMap);
     string pName = jo_string(pStage, "name");

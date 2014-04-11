@@ -33,7 +33,7 @@ namespace firesight {
 
   CLASS_DECLSPEC int jo_shape(json_t *pStage, const char *key, const char *&errMsg, ArgMap &argMap=emptyMap) ;
 
-  CLASS_DECLSPEC string jo_parse(const char * pSource, ArgMap &argMap=emptyMap);
+  CLASS_DECLSPEC string jo_parse(const char * pSource, const char * defaultValue = "", ArgMap &argMap=emptyMap);
 
   CLASS_DECLSPEC json_t *jo_object(const json_t *pStage, const char *key, ArgMap &argMap=emptyMap) ;
   

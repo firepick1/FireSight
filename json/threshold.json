@@ -1,7 +1,7 @@
 [
   {"op":"threshold", 
     "type":"{{type||THRESH_BINARY}}", 
-  "thresh":"{{thresh||128}}", 
-  "maxval":"{{maxval||255}}", 
-  "gray":"{{gray||true}}"}
+    "thresh":"{{thresh||128}}", 
+    "maxval":"{{maxval||255}}", 
+    "gray":"{{gray||true}}"}
 ]

@@ -28,6 +28,23 @@ static void help() {
   cout << "   firesight -p json/pipeline0.json -i img/cam.jpg -o target/output.jpg" << endl;
   cout << "   firesight -p json/pipeline1.json " << endl;
   cout << "   firesight -p json/pipeline2.json " << endl;
+  cout << endl;
+  cout << "Input:" << endl;
+  cout << " -i input-image-file" << endl;
+  cout << " -video Video input" << endl;
+  cout << endl;
+  cout << "Transformation:" << endl;
+  cout << " -Dvar=value Pipeline parameter" << endl;
+  cout << " -ji JSON-model-indent" << endl;
+  cout << " -o output-image-file" << endl;
+  cout << " -p JSON-pipeline-file" << endl;
+  cout << endl;
+  cout << "Diagnostic:" << endl;
+  cout << " -debug Debug log level" << endl;
+  cout << " -error Error log level" << endl;
+  cout << " -time time-profile" << endl;
+  cout << " -trace Trace log level" << endl;
+  cout << " -warn Warning log level" << endl;
 }
 
 bool parseArgs(int argc, char *argv[], 

@@ -1,0 +1,8 @@
+[
+  {"op":"normalize",
+    "normType":"{{normType}}",
+    "lvl":"{{lvl}}",
+    "alpha":"{{alpha}}",
+    "beta":"{{beta}}"
+  }
+]

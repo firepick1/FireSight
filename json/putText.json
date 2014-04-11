@@ -1,3 +1,11 @@
 [
-  {"op":"putText", "text":"FireSight", "org":[5,194], "fontScale":5, "thickness":5, "color":[0,255,0], "fontFace":"FONT_HERSHEY_PLAIN"}
+  {"op":"putText", 
+    "text":"{{text||FireSight}}", 
+    "org":"{{org}}",
+    "fontScale":"{{fontScale}}", 
+    "thickness":"{{thickness}}", 
+    "color":"{{color}}",
+    "fontFace":"{{fontFace}}",
+    "italics":"{{italics}}"
+    }
 ]
