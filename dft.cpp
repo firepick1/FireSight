@@ -63,7 +63,7 @@ static void modelMatches(Point offset, const Mat &tmplt, const Mat &result, cons
     if (angles.size() == 1) {
       json_object_set(pRect, "angle", json_real(-angles[0]));
     } else {
-      LOGTRACE1("Omitting angles (size:%d)", angles.size());
+      LOGTRACE1("Omitting angles (size:%d)", (int) angles.size());
     }
     json_object_set(pRect, "corr", json_float(val/maxVal));
     json_array_append(pRects, pRect);

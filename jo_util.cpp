@@ -200,28 +200,21 @@ Point jo_Point(const json_t *pObj, const char *key, const Point &defaultValue, A
 
 Rect jo_Rect(const json_t *pObj, const char *key, const Rect &defaultValue, ArgMap &argMap) {
   Rect result = defaultValue;
-  json_t *pValue = jo_object(pObj, key, argMap);
-  if (pValue) {
-    if (!json_is_array(pValue)) {
-      LOGERROR1("expected JSON array for %s", key);
-    } else { 
-      switch (json_array_size(pValue)) {
-        case 4: 
-          result = Rect(
-            (size_t)json_integer_value(json_array_get(pValue, 0)),
-            (size_t)json_integer_value(json_array_get(pValue, 1)),
-            (size_t)json_integer_value(json_array_get(pValue, 2)),
-            (size_t)json_integer_value(json_array_get(pValue, 3)));
-          break;
-	case 0:
-          return defaultValue;
-        default:
-          LOGERROR1("expected JSON array with 4 integer values (i.e., x,y,width,height) for %s", key);
-          return defaultValue;
-      }
-    }
+  vector<int> vDefault;
+  vDefault.push_back(defaultValue.x);
+  vDefault.push_back(defaultValue.y);
+  vDefault.push_back(defaultValue.width);
+  vDefault.push_back(defaultValue.height);
+  vector<int> v = jo_vectori(pObj, key, vDefault, argMap);
+  if (v.size() != 4) {
+    LOGERROR1("Expected [x,y,width,height] integers for Rect: %s", key);
+  } else {
+    result.x = v[0];
+    result.y = v[1];
+    result.width = v[2];
+    result.height = v[3];
   }
-  if (pValue && logLevel >= FIRELOG_TRACE) {
+  if (logLevel >= FIRELOG_TRACE) {
     char buf[250];
     snprintf(buf, sizeof(buf), "jo_Rect(key:%s default:[%d %d %d %d]) -> [%d %d %d %d]", 
       key, 
