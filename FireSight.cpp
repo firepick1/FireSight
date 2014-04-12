@@ -20,31 +20,44 @@ typedef enum{UI_STILL, UI_VIDEO} UIMode;
 
 static void help() {
   cout << "FireSight image processing pipeline v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << endl;
+  cout << "Copyright 2014, Karl Lew" << endl;
   cout << "https://github.com/firepick1/FireSight/wiki" << endl;
-  cout << "OpenCV " CV_VERSION << endl;
-  cout << "Platform bits: " << FIRESIGHT_PLATFORM_BITS << endl;
+  cout << "OpenCV " CV_VERSION << " (" << FIRESIGHT_PLATFORM_BITS << "-bit)" << endl;
   cout << endl;
   cout << "Example:" << endl;
   cout << "   firesight -p json/pipeline0.json -i img/cam.jpg -o target/output.jpg" << endl;
   cout << "   firesight -p json/pipeline1.json " << endl;
   cout << "   firesight -p json/pipeline2.json " << endl;
   cout << endl;
-  cout << "Input:" << endl;
+  cout << "All FireSight parameters are optional." << endl;
+  cout << endl;
+  cout << "Input parameters:" << endl;
   cout << " -i input-image-file" << endl;
-  cout << " -video Video input" << endl;
+  cout << "    File path of pipeline input image" << endl;
+  cout << " -video " << endl;
+  cout << "    Use video for pipeline input" << endl;
   cout << endl;
-  cout << "Transformation:" << endl;
-  cout << " -Dvar=value Pipeline parameter" << endl;
+  cout << "Transformation parameters:" << endl;
+  cout << " -Dvar=value" << endl;
+  cout << "    Define pipeline parameter value" << endl;
   cout << " -ji JSON-model-indent" << endl;
+  cout << "    Specify 0 for compact JSON output of model" << endl;
   cout << " -o output-image-file" << endl;
+  cout << "    File for saving pipeline image " << endl;
   cout << " -p JSON-pipeline-file" << endl;
+  cout << "    JSON file for piepline specification. If omitted, input and output images must be specified." << endl;
   cout << endl;
-  cout << "Diagnostic:" << endl;
-  cout << " -debug Debug log level" << endl;
-  cout << " -error Error log level" << endl;
-  cout << " -time time-profile" << endl;
-  cout << " -trace Trace log level" << endl;
-  cout << " -warn Warning log level" << endl;
+  cout << "Diagnostic parameters:" << endl;
+  cout << " -debug " << endl;
+  cout << "    Start logging at DEBUG log level" << endl;
+  cout << " -error " << endl;
+  cout << "    Start logging at ERROR log level" << endl;
+  cout << " -time " << endl;
+  cout << "    Time multiple executions of pipeline iterations and return average" << endl;
+  cout << " -trace " << endl;
+  cout << "    Start logging at TRACE log level" << endl;
+  cout << " -warn " << endl;
+  cout << "    Start logging at WARN log level" << endl;
 }
 
 bool parseArgs(int argc, char *argv[], 

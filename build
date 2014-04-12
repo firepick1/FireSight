@@ -3,6 +3,12 @@
 if [ `uname -o` == "Solaris" ]; then
   echo SOLARIS
   pkgin update
+  if [ "$(type -p install-sh)" == "" ]; then
+    echo "++++++++++++++++++ INSTALLING INSTALL-SH ++++++++++++"
+    pkgin -y install install-sh
+  else
+    echo INSTALL-SH OK
+  fi
 fi
 
 if [ "$(type -p gcc)" == "" ]; then
@@ -22,13 +28,6 @@ if [ "$(type -p cmake)" == "" ]; then
   fi
 else
   echo CMAKE OK
-fi
-
-if [ "$(type -p install-sh)" == "" ]; then
-  echo "++++++++++++++++++ INSTALLING INSTALL-SH ++++++++++++"
-  pkgin -y install install-sh
-else
-  echo INSTALL-SH OK
 fi
 
 if [ "$(type -p libtool)" == "" ]; then
