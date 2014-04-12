@@ -567,8 +567,10 @@ bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Mod
 bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model) {
   int x = jo_int(pStage, "x", 0, model.argMap);
   int y = jo_int(pStage, "y", 0, model.argMap);
-  int width = jo_int(pStage, "width", model.image.cols, model.argMap);
-  int height = jo_int(pStage, "height", model.image.rows, model.argMap);
+  int defaultWidth = model.image.cols ? model.image.cols : 64;
+  int defaultHeight = model.image.rows ? model.image.rows : 64;
+  int width = jo_int(pStage, "width", defaultWidth, model.argMap);
+  int height = jo_int(pStage, "height", defaultHeight, model.argMap);
   int thickness = jo_int(pStage, "thickness", 1, model.argMap);
   int lineType = jo_int(pStage, "lineType", 8, model.argMap);
   Scalar color = jo_Scalar(pStage, "color", Scalar::all(0), model.argMap);
@@ -822,49 +824,6 @@ bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
 
   return stageOK("apply_cout(%s) %s", errMsg, pStage, pStageModel);
 }
-
-bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model) {
-  double lvl = jo_float(pStage, "lvl", -1, model.argMap);
-  double alpha = 1;
-  double beta = 0;
-  string normTypeStr = jo_string(pStage, "normType", "NORM_L2", model.argMap);
-  int normType  = NORM_L2;
-  const char *errMsg = NULL;
-
-  if (normTypeStr.compare("NORM_L2") == 0) {
-    normType = NORM_L2;
-    if (lvl >= 0) {
-      alpha = sqrt((double) model.image.cols * (double) model.image.rows * lvl * lvl);
-    }
-  } else if (normTypeStr.compare("NORM_L1") == 0) {
-    normType = NORM_L1;
-    if (lvl >= 0) {
-      alpha = (double) model.image.cols * (double) model.image.rows * lvl;
-    }
-  } else if (normTypeStr.compare("NORM_MINMAX") == 0) {
-    normType = NORM_MINMAX;
-    if (lvl >= 0) {
-      alpha = lvl;
-    }
-  } else if (normTypeStr.compare("NORM_INF") == 0) {
-    normType = NORM_INF;
-    if (lvl >= 0) {
-      alpha = lvl;
-    }
-  } else {
-    errMsg = "Unknown normType";
-  }
-
-  alpha = jo_float(pStage, "alpha", alpha, model.argMap);
-  beta = jo_float(pStage, "beta", alpha, model.argMap);
-
-  if (!errMsg) {
-    normalize(model.image, model.image, alpha, beta, normType);
-  }
-
-  return stageOK("apply_normalize(%s) %s", errMsg, pStage, pStageModel);
-}
-
 
 bool Pipeline::apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);

@@ -1,7 +1,8 @@
 [
   {"op":"normalize",
     "normType":"{{normType}}",
-    "lvl":"{{lvl}}",
+    "domain":"{{domain}}",
+    "range":"{{range}}",
     "alpha":"{{alpha}}",
     "beta":"{{beta}}"
   }

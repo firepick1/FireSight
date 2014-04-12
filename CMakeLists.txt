@@ -4,7 +4,7 @@ project( firesight )
 
 SET(PROJECT_VERSION_MAJOR 0)
 SET(PROJECT_VERSION_MINOR 9)
-set(PROJECT_VERSION_PATCH 4)
+set(PROJECT_VERSION_PATCH 5)
 set(PROJECT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 
 IF(WIN32)
@@ -75,6 +75,7 @@ file(GLOB FIRESIGHT_LIB_FILES
 	MatUtil.cpp
 	Model.cpp 
 	MSER.cpp 
+	normalize.cpp
 	Pipeline.cpp 
 	proto.cpp 
 	warpRing.cpp

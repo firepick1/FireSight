@@ -67,6 +67,18 @@ suffix=""
 test/test-one duck.png putText "$suffix" -Dtext="Quirky Duck" "-Dcolor=[64,0,0]"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
+suffix=""
+test/test-one abc.png normalize "$suffix" 
+if [ $? -ne 0 ] ; then exit 1 ; fi
+test/test-one abc.png normalize "-l1$suffix" -DnormType="NORM_L1"
+if [ $? -ne 0 ] ; then exit 1 ; fi
+test/test-one abc.png normalize "-l2$suffix" -DnormType="NORM_L2" -Ddomain=[20,52]
+if [ $? -ne 0 ] ; then exit 1 ; fi
+test/test-one abc.png normalize "-inf$suffix" -DnormType="NORM_INF" 
+if [ $? -ne 0 ] ; then exit 1 ; fi
+test/test-one abc.png normalize "-minmax$suffix" -DnormType="NORM_MINMAX" 
+if [ $? -ne 0 ] ; then exit 1 ; fi
+
 echo "-------------------------------------------------"
 echo "BLISS AND HAPPINESS. FireSight TESTS ALL PASS!!!"
 echo "-------------------------------------------------"
