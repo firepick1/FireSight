@@ -102,17 +102,6 @@ string jo_object_dump(json_t *pObj, ArgMap &argMap) {
 
 json_t *jo_object(const json_t *pObj, const char *key, ArgMap &argMap) {
   json_t *pVal = json_object_get(pObj, key);
-  if (pVal) {
-    if (json_is_string(pVal)) {
-      string result = jo_parse(json_string_value(pVal), "", argMap);
-      json_error_t error;
-      pVal = json_loads(result.c_str(), JSON_DECODE_ANY, &error);
-      if (!pVal) {
-	LOGERROR1("Could not parse JSON: %s", result.c_str());
-	throw error;
-      }
-    }
-  }
 
   return pVal;
 }
@@ -246,7 +235,7 @@ Rect jo_Rect(const json_t *pObj, const char *key, const Rect &defaultValue, ArgM
 template<typename T>
 const vector<T> jo_vector(const json_t *pObj, const char *key, const vector<T> &defaultValue, ArgMap &argMap) {
   vector<T> result;
-  json_t *pVector = jo_object(pObj, key, argMap);
+  json_t *pVector = jo_object(pObj, key, argMap); 
   json_t *pParsedVector = NULL;
   if (pVector) {
     if (json_is_string(pVector)) {

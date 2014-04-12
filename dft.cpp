@@ -62,6 +62,8 @@ static void modelMatches(Point offset, const Mat &tmplt, const Mat &result, cons
     json_object_set(pRect, "height", json_real(tmplt.rows));
     if (angles.size() == 1) {
       json_object_set(pRect, "angle", json_real(-angles[0]));
+    } else {
+      LOGTRACE1("Omitting angles (size:%d)", angles.size());
     }
     json_object_set(pRect, "corr", json_float(val/maxVal));
     json_array_append(pRects, pRect);
@@ -80,11 +82,13 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
   float corr = jo_float(pStage, "corr", 0.85f);
   string outputStr = jo_string(pStage, "output", "current", model.argMap);
   string borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
-  const char *angleKey = "angles";
-  json_t *pAngles = jo_object(pStage, angleKey, model.argMap);
-  if (!pAngles) {
-    angleKey = "angle";
-    pAngles = jo_object(pStage, angleKey, model.argMap);
+  vector<float> angles = jo_vectorf(pStage, "angles", vector<float>(), model.argMap);
+  if (angles.size() == 0) {
+    angles = jo_vectorf(pStage, "angle", vector<float>(), model.argMap);
+  }
+  if (angles.size() == 0) {
+    float angle = jo_float(pStage, "angle", 0, model.argMap);
+    angles.push_back(angle);
   }
   const char *errMsg = NULL;
   int flags = INTER_LINEAR;
@@ -94,7 +98,6 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
   bool isOutputCurrent = outputStr.compare("current") == 0;
   bool isOutputInput = outputStr.compare("input") == 0;
   bool isOutputCorr = outputStr.compare("corr") == 0;
-  vector<float> angles;
 
   if (tmpltPath.empty()) {
     errMsg = "Expected template path for imread";
@@ -111,29 +114,6 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
       }
     } else {
       errMsg = "imread failed";
-    }
-  }
-
-  if (!errMsg) {
-    if (!pAngles) {
-      angles.push_back(0);
-    } else if (json_is_string(pAngles)) {
-      float angle = (float) atof(json_string_value(pAngles));
-      angles.push_back(angle);
-    } else if (json_is_number(pAngles)) {
-      angles.push_back((float) json_number_value(pAngles));
-    } else if (json_is_array(pAngles)) {
-      size_t index;
-      json_t *pAngle;
-      json_array_foreach(pAngles, index, pAngle) {
-        if (json_is_number(pAngle)) {
-          angles.push_back((float) json_number_value(pAngle));
-        } else {
-          errMsg = "Expected numeric angle";
-        }
-      }
-    } else {
-      errMsg = "Expected numeric angle or JSON array of angles";
     }
   }
 
@@ -179,7 +159,7 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
 
   Mat warpedTmplt;
   if (!errMsg) {
-    if (pAngles) {
+    if (angles.size() > 0) {
       matWarpRing(tmplt, warpedTmplt, angles);
     } else {
       warpedTmplt = tmplt;

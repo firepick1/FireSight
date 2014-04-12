@@ -342,15 +342,17 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
   Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
   int thickness = jo_int(pStage, "thickness", 2, model.argMap);
   string rectsModelName = jo_string(pStage, "model", "", model.argMap);
-  json_t *pRectsModel = jo_object(model.getJson(false), rectsModelName.c_str(), model.argMap);
+  json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName.c_str());
 
-  if (!json_is_object(pRectsModel)) {
+  if (rectsModelName.empty()) {
     errMsg = "Expected name of stage model with rects";
+  } else if (!json_is_object(pRectsModel)) {
+    errMsg = "Named stage is not in model";
   }
 
   json_t *pRects = NULL;
   if (!errMsg) {
-    pRects = jo_object(pRectsModel, "rects", model.argMap);
+    pRects = json_object_get(pRectsModel, "rects");
     if (!json_is_array(pRects)) {
       errMsg = "Expected array of rects";
     }
