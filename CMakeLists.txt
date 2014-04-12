@@ -64,6 +64,7 @@ link_directories( ${BUILD_TARGET_DIR} /usr/local/lib )
 
 file(GLOB FIRESIGHT_LIB_FILES
 	bgSub.cpp
+	calcOffset.cpp
 	calcHist.cpp
 	dft.cpp 
 	FireLog.cpp 

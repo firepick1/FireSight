@@ -60,7 +60,9 @@ bool parseArgs(int argc, char *argv[],
   }
 
   for (int i = 1; i < argc; i++) {
-    if (strcmp("-p",argv[i]) == 0) {
+    if (argv[i][0] == 0) {
+      // empty argument
+    } else if (strcmp("-p",argv[i]) == 0) {
       if (i+1>=argc) {
         LOGERROR("expected pipeline path after -p");
         exit(-1);

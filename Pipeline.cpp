@@ -29,6 +29,7 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
     char *pStageJson = json_dumps(pStage, JSON_COMPACT|JSON_PRESERVE_ORDER);
     LOGERROR2(fmt, pStageJson, errMsg);
     free(pStageJson);
+    json_object_set(pStageModel, "error", json_string(errMsg));
     return false;
   }
 
@@ -92,16 +93,16 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 
 bool Pipeline::apply_putText(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
-  string text = jo_string(pStage, "text", "FireSight");
+  string text = jo_string(pStage, "text", "FireSight", model.argMap);
   Scalar color = jo_Scalar(pStage, "color", Scalar(0,255,0), model.argMap);
   string fontFaceName = jo_string(pStage, "fontFace", "FONT_HERSHEY_PLAIN", model.argMap);
   int thickness = jo_int(pStage, "thickness", 1, model.argMap);
   int fontFace = FONT_HERSHEY_PLAIN;
   bool italic = jo_bool(pStage, "italic", false, model.argMap);
-  double fontScale = jo_double(pStage, "fontScale", 1);
-  Point org = jo_Point(pStage, "org", Point(5,-6));
+  double fontScale = jo_double(pStage, "fontScale", 1, model.argMap);
+  Point org = jo_Point(pStage, "org", Point(5,-6), model.argMap);
   if (org.y < 0) {
-    org.y = model.image.rows - org.y;
+    org.y = model.image.rows + org.y;
   }
   const char *errMsg = NULL;
 

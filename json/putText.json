@@ -6,6 +6,6 @@
     "thickness":"{{thickness}}", 
     "color":"{{color}}",
     "fontFace":"{{fontFace}}",
-    "italics":"{{italics}}"
+    "italic":"{{italic}}"
     }
 ]

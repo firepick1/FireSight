@@ -108,7 +108,7 @@ json_t *jo_object(const json_t *pObj, const char *key, ArgMap &argMap) {
 
 bool jo_bool(const json_t *pObj, const char *key, bool defaultValue, ArgMap &argMap) {
   json_t *pValue = json_object_get(pObj, key);
-  bool result = defaultValue;;
+  bool result = defaultValue;
   if (json_is_boolean(pValue)) {
     result = json_is_true(pValue);
   } else if (json_is_string(pValue)) {
@@ -172,24 +172,17 @@ string jo_string(const json_t *pObj, const char *key, const char *defaultValue, 
 
 Point jo_Point(const json_t *pObj, const char *key, const Point &defaultValue, ArgMap &argMap) {
   Point result = defaultValue;
-  json_t *pValue = jo_object(pObj, key, argMap);
-  if (pValue) {
-    if (!json_is_array(pValue)) {
-      LOGERROR1("expected JSON array for %s", key);
-    } else { 
-      switch (json_array_size(pValue)) {
-        case 2: 
-          result = Point(
-            (size_t)json_integer_value(json_array_get(pValue, 0)),
-            (size_t)json_integer_value(json_array_get(pValue, 1)));
-          break;
-        default:
-          LOGERROR1("expected JSON array with 2 integer values for %s", key);
-          return defaultValue;
-      }
-    }
+  vector<int> vDefault;
+  vDefault.push_back(defaultValue.x);
+  vDefault.push_back(defaultValue.y);
+  vector<int> v = jo_vectori(pObj, key, vDefault, argMap);
+  if (v.size() == 2) {
+    result.x = v[0];
+    result.y = v[1];
+  } else {
+    LOGERROR1("Expected [x,y] integers for Point: %s", key);
   }
-  if (pValue && logLevel >= FIRELOG_TRACE) {
+  if (logLevel >= FIRELOG_TRACE) {
     char buf[250];
     snprintf(buf, sizeof(buf), "jo_Point(key:%s default:[%d %d]) -> [%d %d]", 
       key, defaultValue.x, defaultValue.y, result.x, result.y);
@@ -228,7 +221,7 @@ Rect jo_Rect(const json_t *pObj, const char *key, const Rect &defaultValue, ArgM
 template<typename T>
 const vector<T> jo_vector(const json_t *pObj, const char *key, const vector<T> &defaultValue, ArgMap &argMap) {
   vector<T> result;
-  json_t *pVector = jo_object(pObj, key, argMap); 
+  json_t *pVector = json_object_get(pObj, key);
   json_t *pParsedVector = NULL;
   if (pVector) {
     if (json_is_string(pVector)) {
@@ -242,10 +235,14 @@ const vector<T> jo_vector(const json_t *pObj, const char *key, const vector<T> &
 	  LOGERROR("Could not parse JSON string as vector");
 	}
       }
-    }
-    if (json_is_number(pVector)) {
+    } else if (json_is_number(pVector)) {
       result.push_back(json_number_value(pVector));
     } else if (json_is_array(pVector)) {
+      // standard use case
+    } else { 
+      LOGERROR1("expected JSON array for %s", key);
+    } 
+    if (json_is_array(pVector)) {
       int index;
       json_t *pValue;
       json_array_foreach(pVector, index, pValue) {
@@ -255,8 +252,6 @@ const vector<T> jo_vector(const json_t *pObj, const char *key, const vector<T> &
 	  LOGERROR("Expected vector of numbers");
 	}
       }
-    } else { 
-      LOGERROR1("expected JSON array for %s", key);
     }
   }
   if (pParsedVector) {

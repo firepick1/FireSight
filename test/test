@@ -63,6 +63,10 @@ if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one mog2.png bgsub "-absdiff$suffix" "-DbgImg=img/pcb.png" "-Dmethod=absdiff" "-Dthresh=32"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
+suffix=""
+test/test-one duck.png putText "$suffix" -Dtext="Quirky Duck" "-Dcolor=[64,0,0]"
+if [ $? -ne 0 ] ; then exit 1 ; fi
+
 echo "-------------------------------------------------"
 echo "BLISS AND HAPPINESS. FireSight TESTS ALL PASS!!!"
 echo "-------------------------------------------------"
