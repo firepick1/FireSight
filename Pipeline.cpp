@@ -25,7 +25,7 @@ StageData::~StageData() {
 }
 
 bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
-  if (errMsg) {
+  if (errMsg && *errMsg) {
     char *pStageJson = json_dumps(pStage, JSON_COMPACT|JSON_PRESERVE_ORDER);
     LOGERROR2(fmt, pStageJson, errMsg);
     free(pStageJson);
