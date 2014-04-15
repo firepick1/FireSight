@@ -1,8 +1,13 @@
 #! /bin/bash
 
+installPrefix=/usr
+
 if [ `uname -o` == "Solaris" ]; then
   echo SOLARIS
   pkgin update
+  crle -l /usr/local/lib -u
+  ln -s -f /usr/local/bin/firesight /opt/local/bin/firesight
+  installPrefix=/usr/local
   if [ "$(type -p install-sh)" == "" ]; then
     echo "++++++++++++++++++ INSTALLING INSTALL-SH ++++++++++++"
     pkgin -y install install-sh
@@ -93,9 +98,9 @@ fi
 
 echo creating makefiles
 if [ "$SUDO_USER" == "" ]; then
-  cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr "$@" .
+  cmake -DCMAKE_INSTALL_PREFIX:PATH=$installPrefix "$@" .
 else
-  sudo -u $SUDO_USER cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr "$@" .
+  sudo -u $SUDO_USER cmake -DCMAKE_INSTALL_PREFIX:PATH=$installPrefix "$@" .
 fi
 echo building and installing FireSight...
 make install
