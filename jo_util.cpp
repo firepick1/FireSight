@@ -222,17 +222,22 @@ template<typename T>
 const vector<T> jo_vector(const json_t *pObj, const char *key, const vector<T> &defaultValue, ArgMap &argMap) {
   vector<T> result;
   json_t *pVector = json_object_get(pObj, key);
-  json_t *pParsedVector = NULL;
+  json_t *pParsedObj = NULL;
   if (pVector) {
     if (json_is_string(pVector)) {
       string vectorStr = jo_parse(json_string_value(pVector), "", argMap);
       if (!vectorStr.empty()) {
 	json_error_t jerr;
-	pParsedVector = json_loads(vectorStr.c_str(), 0, &jerr);
-	if (pParsedVector) {
-	  pVector = pParsedVector;
+	pParsedObj = json_loads(vectorStr.c_str(), JSON_DECODE_ANY, &jerr);
+	if (json_is_array(pParsedObj)) {
+	  pVector = pParsedObj;
+	} else if (json_is_number(pParsedObj)) {
+	  double value = json_number_value(pParsedObj);
+	  for (int i=0; i < defaultValue.size(); i++) {
+	    result.push_back(value);
+	  }
 	} else {
-	  LOGERROR("Could not parse JSON string as vector");
+	  LOGERROR1("Could not parse JSON string as vector: %s", vectorStr.c_str());
 	}
       }
     } else if (json_is_number(pVector)) {
@@ -254,8 +259,8 @@ const vector<T> jo_vector(const json_t *pObj, const char *key, const vector<T> &
       }
     }
   }
-  if (pParsedVector) {
-    json_decref(pParsedVector);
+  if (pParsedObj) {
+    json_decref(pParsedObj);
   }
   if (result.size() == 0) {
     result = defaultValue;

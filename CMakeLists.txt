@@ -4,7 +4,7 @@ project( firesight )
 
 SET(PROJECT_VERSION_MAJOR 0)
 SET(PROJECT_VERSION_MINOR 9)
-set(PROJECT_VERSION_PATCH 5)
+set(PROJECT_VERSION_PATCH 6)
 set(PROJECT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 
 IF(WIN32)
@@ -59,8 +59,9 @@ else(OpenCV_LIBS)
   MESSAGE("find_package(OpenCV) failed => OpenCV_LIBS is not defined")
 endif(OpenCV_LIBS)
 
-include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${JANSSON_INCLUDE_DIRS} /usr/local/include )
-link_directories( ${BUILD_TARGET_DIR} /usr/local/lib )
+message("CMAKE_PREFIX_PATH:${CMAKE_PREFIX_PATH}")
+include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${JANSSON_INCLUDE_DIRS} /usr/include /usr/local/include )
+link_directories( ${BUILD_TARGET_DIR} /usr/lib /usr/local/lib )
 
 file(GLOB FIRESIGHT_LIB_FILES
   bgSub.cpp

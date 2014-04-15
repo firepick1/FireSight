@@ -23,9 +23,9 @@ bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model
   double beta = 0;
   string normTypeStr = jo_string(pStage, "normType", "NORM_L2", model.argMap);
   int normType;
-  const char *errMsg = NULL;
+  string errMsg;
 
-  if (!errMsg) {
+  if (errMsg.empty()) {
     if (model.image.depth() == CV_8U) {
       if (domain.size() == 0) {
 	domain.push_back(0);
@@ -38,7 +38,7 @@ bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model
       }
     } 
   }
-  if (!errMsg && domain.size() > 0) {
+  if (errMsg.empty() && domain.size() > 0) {
     if (model.image.depth() == CV_8U) {
       if (domain[1] != 255) {
 	threshold(model.image, model.image, domain[1], domain[1], THRESH_TRUNC);
@@ -51,7 +51,7 @@ bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model
     }
   }
 
-  if (!errMsg) {
+  if (errMsg.empty()) {
     if (model.image.depth() == CV_8U) {
       if (range.size() == 0) {
 	range.push_back(0);
@@ -65,7 +65,7 @@ bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model
     }
   }
 
-  if (!errMsg) {
+  if (errMsg.empty()) {
     if (normTypeStr.compare("NORM_L2") == 0) {
       normType = NORM_L2;
       if (model.image.depth() == CV_8U) {
@@ -88,23 +88,24 @@ bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model
 	beta = range[1];
       }
     } else {
-      errMsg = "Unknown normType";
+      errMsg = "Unknown normType: ";
+      errMsg = errMsg + normTypeStr;
     }
   }
 
-  if (!errMsg && normType != NORM_MINMAX) {
+  if (errMsg.empty() && normType != NORM_MINMAX) {
     if (range[0] != 0) {
       errMsg = "Range minimum can only be non-zero for NORM_MINMAX";
     }
   }
 
-  if (!errMsg) {
+  if (errMsg.empty()) {
     alpha = jo_float(pStage, "alpha", alpha, model.argMap);
     beta = jo_float(pStage, "beta", beta, model.argMap);
 
     normalize(model.image, model.image, alpha, beta, normType);
   }
 
-  return stageOK("apply_normalize(%s) %s", errMsg, pStage, pStageModel);
+  return stageOK("apply_normalize(%s) %s", errMsg.c_str(), pStage, pStageModel);
 }
 
