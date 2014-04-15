@@ -14,7 +14,7 @@ IF(WIN32)
   IF(NOT DEFINED CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_WARNINGS)
     SET(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_WARNINGS ON)
   ENDIF()
-  SET(JANSSON_DIR "${CMAKE_SOURCE_DIR}/jansson/msvc" CACHE STRING "Jansson directory")
+  SET(JANSSON_DIR "${CMAKE_SOURCE_DIR}/jansson/msvc" CACHE STRING "Jansson directory") 
   SET(JANSSON_INCLUDE_DIRS "${JANSSON_DIR}/include")
   SET(JANSSON_LIB "${JANSSON_DIR}/lib/Debug/jansson_d.lib")
   SET(JANSSON_DLL "${JANSSON_DIR}/bin/Debug/jansson_d.dll")
@@ -60,6 +60,7 @@ else(OpenCV_LIBS)
 endif(OpenCV_LIBS)
 
 message("CMAKE_PREFIX_PATH:${CMAKE_PREFIX_PATH}")
+
 include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${JANSSON_INCLUDE_DIRS} /usr/include /usr/local/include )
 link_directories( ${BUILD_TARGET_DIR} /usr/lib /usr/local/lib )
 
@@ -147,7 +148,7 @@ set(FIRESIGHT_INSTALL_BIN_DIR       bin CACHE PATH "Installation directory for e
 set(FIRESIGHT_INSTALL_INCLUDE_DIR   include CACHE PATH "Installation directory for header files")
 
 
-INSTALL(TARGETS _firesight DESTINATION lib)
-INSTALL(TARGETS firesight DESTINATION bin)
-INSTALL(FILES FireLog.h FireSight.hpp DESTINATION include)
+INSTALL(TARGETS _firesight DESTINATION ${FIRESIGHT_INSTALL_LIB_DIR})
+INSTALL(TARGETS firesight DESTINATION ${FIRESIGHT_INSTALL_BIN_DIR})
+INSTALL(FILES FireLog.h FireSight.hpp DESTINATION ${FIRESIGHT_INSTALL_INCLUDE_DIR})
 
