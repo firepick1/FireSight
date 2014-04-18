@@ -2,10 +2,10 @@
 
 if [ `target/firesight -opencv` == "2.3" ]; then
   echo "OpenCV Test version: 2.3"
-  ocvtest = "-cv2.3"
+  ocvtest="-cv2.3"
 else
   echo "OpenCV Test version: current"
-  ocvtest = ""
+  ocvtest=""
 fi
 
 echo ========== TEST lib_firesight.so =============
@@ -61,6 +61,7 @@ test/test-one headcam0a.png calcOffset "-0a$suffix" -Dtemplate=img/headcam0.png
 if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one headcam2.png calcOffset "-1BGR$suffix" -Dtemplate=img/headcam0.png -Dchannels=[0,1,2]
 if [ $? -ne 0 ] ; then exit 1 ; fi
+suffix=""
 test/test-one headcam1.png calcOffset "-1roi$suffix" -Dtemplate=img/headcam0.png -Droi=[380,75,35,35]
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
