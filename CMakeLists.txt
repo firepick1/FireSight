@@ -42,7 +42,9 @@ SET(LIBRARY_OUTPUT_PATH "${BUILD_TARGET_DIR}")
 SET(EXECUTABLE_OUTPUT_PATH "${BUILD_TARGET_DIR}")
 SET(RUNTIME_OUTPUT_NAME firesight)
 
-include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${JANSSON_INCLUDE_DIRS} /usr/include )
+include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${JANSSON_INCLUDE_DIRS} )
+include_directories( /usr/local/include )
+include_directories( /usr/include )
 
 include (InstallRequiredSystemLibraries)
 SET(CPACK_RESOURCE_FILE_LICENSE  
