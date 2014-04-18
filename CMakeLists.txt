@@ -34,6 +34,16 @@ ENDIF(WIN32)
 SET(COMPILE_DEFINITIONS -Werror)
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64")
 
+get_property(dirs DIRECTORY . PROPERTY INCLUDE_DIRECTORIES)
+message("INCLUDE_DIRECTORIES:${dirs}")
+
+SET(BUILD_TARGET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/target" CACHE STRING "Put all binary output in target")
+SET(LIBRARY_OUTPUT_PATH "${BUILD_TARGET_DIR}")
+SET(EXECUTABLE_OUTPUT_PATH "${BUILD_TARGET_DIR}")
+SET(RUNTIME_OUTPUT_NAME firesight)
+
+include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${JANSSON_INCLUDE_DIRS} /usr/include )
+
 include (InstallRequiredSystemLibraries)
 SET(CPACK_RESOURCE_FILE_LICENSE  
      "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
@@ -42,10 +52,11 @@ SET(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 SET(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 include (CPack)
 
-SET(BUILD_TARGET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/target" CACHE STRING "Put all binary output in target")
-SET(LIBRARY_OUTPUT_PATH "${BUILD_TARGET_DIR}")
-SET(EXECUTABLE_OUTPUT_PATH "${BUILD_TARGET_DIR}")
-SET(RUNTIME_OUTPUT_NAME firesight)
+get_property(dirs DIRECTORY . PROPERTY INCLUDE_DIRECTORIES)
+message("INCLUDE_DIRECTORIES:")
+foreach(dir ${dirs})
+  message(STATUS "  dir='${dir}'")
+endforeach()
 
 configure_file (
   "${PROJECT_SOURCE_DIR}/version.h.in"
@@ -61,7 +72,7 @@ endif(OpenCV_LIBS)
 
 message("CMAKE_PREFIX_PATH:${CMAKE_PREFIX_PATH}")
 
-include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${JANSSON_INCLUDE_DIRS} /usr/include /usr/local/include )
+
 link_directories( ${BUILD_TARGET_DIR} /usr/lib /usr/local/lib )
 
 file(GLOB FIRESIGHT_LIB_FILES
@@ -129,6 +140,7 @@ add_executable(test
   test/test_matMaxima.cpp 
   test/test_jo_util.cpp
   test/test.cpp)
+
 add_dependencies(test _firesight)
 target_link_libraries(test ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS} )
 if(WIN32)
