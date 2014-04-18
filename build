@@ -70,18 +70,6 @@ if [ ! -e /usr/local/include/jansson.h ] ; then
   popd
 fi
 
-if [ "$(type -p apt-get)" == "" ] || [ `uname -o` == "Solaris" ]; then
-  echo "apt-get: UNAVAILABLE"
-else
-  echo "apt-get: Installing openexr for libIlmImf.so.6"
-  apt-get -y install openexr
-  apt-get -y install libavcodec-dev
-  apt-get -y install libavformat-dev
-  apt-get -y install libswscale-dev
-  apt-get -y install libdc1394-22
-  apt-get -y install libz-dev
-fi
-
 if [ -e /usr/lib/libopencv_core.so ]; then
   echo "OpenCV found in /usr/lib:"
   ls /usr/lib/libopencv_core.so.*
@@ -92,6 +80,18 @@ else
   echo "++++++++++++++++++ INSTALLING OPENCV C++ LIBRARIES ++++++++++++"
   #if [ `uname -o` == "Solaris" ]; then
   #  pkgin -y install opencv
+    if [ "$(type -p apt-get)" == "" ] || [ `uname -o` == "Solaris" ]; then
+      echo "apt-get: UNAVAILABLE"
+    else
+      echo "apt-get: Installing openexr for libIlmImf.so.6"
+      apt-get -y install openexr
+      apt-get -y install libavcodec-dev
+      apt-get -y install libavformat-dev
+      apt-get -y install libswscale-dev
+      apt-get -y install libdc1394-22
+      apt-get -y install libz-dev
+    fi
+
     if [ ! -e opencv ] ; then
       git clone https://github.com/firepick1/opencv -b 2.4
     fi
