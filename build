@@ -70,7 +70,7 @@ if [ ! -e /usr/local/include/jansson.h ] ; then
   popd
 fi
 
-if [ "$(type -p apt-get)" == "" ]; then
+if [ "$(type -p apt-get)" == "" ] || [ `uname -o` == "Solaris" ]; then
   echo "apt-get: UNAVAILABLE"
 else
   echo "apt-get: Installing openexr for libIlmImf.so.6"
