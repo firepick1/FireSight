@@ -13,6 +13,9 @@ then
   echo diff -b target/samePSNR.json test/samePSNR.json
   echo target/firesight.exe -i img/$2$3.png -p json/PSNR.json -Dthreshold=50 -Dpath=target/$2$3.png 
   echo FAILED: PSNR detected a difference between: target/$2$3.png img/$2$3.png
+  echo "#! /bin/bash" > target/diff.sh
+  chmod +x target/diff.sh
+  echo "target/firesight -i target/$2$3.png -p json/diff.json -Dimg=img/$2$3.png -o ~/Downloads/diff.png -ji 0" >> target/diff.sh
   exit 1
 fi
 echo "verifying JSON output..."

@@ -1,0 +1,5 @@
+[
+  {"op":"absdiff", "path":"{{img}}"},
+  {"op":"calcHist"},
+  {"op":"normalize", "domain":"{{domain}}"}
+]

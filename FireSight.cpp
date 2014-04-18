@@ -45,9 +45,11 @@ static void help() {
   cout << " -o output-image-file" << endl;
   cout << "    File for saving pipeline image " << endl;
   cout << " -p JSON-pipeline-file" << endl;
-  cout << "    JSON file for piepline specification. If omitted, input and output images must be specified." << endl;
+  cout << "    JSON pipeline specification file. If omitted, input and output images must be specified." << endl;
   cout << endl;
   cout << "Diagnostic parameters:" << endl;
+  cout << " -opencv " << endl;
+  cout << "    OpenCV version for FireSight test compatibility" << endl;
   cout << " -debug " << endl;
   cout << "    Start logging at DEBUG log level" << endl;
   cout << " -error " << endl;
@@ -75,6 +77,9 @@ bool parseArgs(int argc, char *argv[],
   for (int i = 1; i < argc; i++) {
     if (argv[i][0] == 0) {
       // empty argument
+    } else if (strcmp("-opencv",argv[i]) == 0) {
+      cout << CV_MAJOR_VERSION << "." << CV_MINOR_VERSION << endl;
+      exit(0);
     } else if (strcmp("-p",argv[i]) == 0) {
       if (i+1>=argc) {
         LOGERROR("expected pipeline path after -p");
