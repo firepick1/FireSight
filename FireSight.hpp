@@ -104,8 +104,8 @@ namespace firesight {
       ArgMap argMap;
   } Model;
 
-   typedef class CLASS_DECLSPEC Pipeline {
-    private:
+  typedef class CLASS_DECLSPEC Pipeline {
+    protected:
       bool processModel(Model &model);
       bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
       KeyPoint _regionKeypoint(const vector<Point> &region);
@@ -179,10 +179,6 @@ namespace firesight {
        * @return pointer to jansson root node of JSON object that has a field for each recognized stage model. E.g., {s1:{...}, s2:{...}, ... , sN:{...}}
        */
       json_t *process(Mat &mat, ArgMap &argMap);
-
-      /** (DEPRECATED: should be private) */ KeyPoint regionKeypoint(const vector<Point> &region);
-      /** (DEPRECATED: should be private) */ void eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
-      /** (DEPRECATED: should be private) */ void covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
 
   } Pipeline;
 
