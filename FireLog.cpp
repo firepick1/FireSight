@@ -56,7 +56,7 @@ const char * firelog_lastMessage(int level) {
   return "";
 }
 
-void firelog_show_thread_id(bool show) {
+void firelog_show_thread_id(int show) {
   logTID = show;
 }
 

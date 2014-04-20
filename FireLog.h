@@ -5,7 +5,11 @@ extern "C" {
 #endif
 
 #include <stdio.h>
+#ifdef _MSC_VER
 #include "winjunk.hpp"
+#else
+#define CLASS_DECLSPEC
+#endif
 
 #define FIRELOG_ERROR 0
 #define FIRELOG_WARN 1
@@ -99,7 +103,7 @@ CLASS_DECLSPEC const char * firelog_lastMessage(int level);
  * Include thread id on each line logged
  * @param show thread id if true
  */
-void firelog_show_thread_id(bool show);
+void firelog_show_thread_id(int show);
 
 /**
  * (INTERNAL)
