@@ -1,5 +1,32 @@
 #! /bin/bash
 
+cv="install"
+
+function help() {
+  echo "Build FireSight (non-Windows)"
+  echo 
+  echo "EXAMPLES:"
+  echo "  sudo ./build"
+  echo
+  echo "OPTIONS:"
+  echo "  -h"
+  echo "  --help"
+  echo "     Print this help text"
+  echo "  -c install"
+  echo "     Install pre-built OpenCV package if available (fast, simple). This is default."
+  echo "  -c make"
+  echo "     Rebuild  OpenCV from latest source code (latest code, time-consuming)"
+}
+
+while getopts "c:" flag
+do
+  case "$flag" in
+    c) cv="$OPTARG";;
+
+    *) help ; exit 0;;
+  esac
+done
+
 if [ "$SUDO_USER" == "" ]; then
   echo "This script must be run with sudo command from a non-root user"
   exit -1
@@ -70,18 +97,33 @@ if [ ! -e /usr/local/include/jansson.h ] ; then
   popd
 fi
 
-if [ -e /usr/lib/libopencv_core.so ]; then
-  echo "OpenCV found in /usr/lib:"
-  ls /usr/lib/libopencv_core.so.*
+if [ -e /usr/local/lib/libopencv_core.so.3.* ]; then
+  echo "FireSight does not yet work with OpenCV 3. Please use OpenCV 2.4.9 or earlier"
+  exit -1
 elif [ -e /usr/local/lib/libopencv_core.so ]; then
   echo "OpenCV found in /usr/local/lib:"
   ls /usr/local/lib/libopencv_core.so.*
-else
+elif [ -e /usr/lib/libopencv_core.so ]; then
+  echo "OpenCV found in /usr/lib:"
+  ls /usr/lib/libopencv_core.so.*
+elif [ "$cv" == "install" ]; then
   echo "++++++++++++++++++ INSTALLING OPENCV C++ LIBRARIES ++++++++++++"
-  #if [ `uname -o` == "Solaris" ]; then
-  #  pkgin -y install opencv
-    if [ "$(type -p apt-get)" == "" ] || [ `uname -o` == "Solaris" ]; then
+  if [ `uname -o` == "Solaris" ]; then
+    pkgin -y install opencv
+  elif [ "$(type -p apt-get)" == "" ]; then
       echo "apt-get: UNAVAILABLE"
+      echo "Try this to install OpenCV:"
+      echo "  sudo ./build -c make"
+      exit -1
+  else
+    apt-get -y install libopencv-dev
+  fi
+else
+  echo "++++++++++++++++++ BUILDING  OPENCV C++ LIBRARIES ++++++++++++"
+  #if [ `uname -o` == "Solaris" ]; then
+    if [ "$(type -p apt-get)" != "" ] [ `uname -o` == "Solaris" ]; then
+      echo "apt-get: UNAVAILABLE"
+      echo "(assuming OpenCV prerequisites are already on your system)..."
     else
       echo "apt-get: Installing openexr for libIlmImf.so.6"
       apt-get -y install openexr
@@ -104,9 +146,6 @@ else
         ..
       make install
     popd
-  #else
-  #  apt-get -y install libopencv-dev
-  #fi
 fi
 
 if [ -e CMakeFiles ] ; then 
