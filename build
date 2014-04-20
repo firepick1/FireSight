@@ -98,7 +98,8 @@ if [ ! -e /usr/local/include/jansson.h ] ; then
 fi
 
 if [ -e /usr/local/lib/libopencv_core.so.3.* ]; then
-  echo "FireSight does not yet work with OpenCV 3. Please use OpenCV 2.4.9 or earlier"
+  ls /usr/local/lib/libopencv_core.so.*
+  echo "ERROR: FireSight does not yet work with OpenCV 3. Please use OpenCV 2.4.9 or earlier"
   exit -1
 elif [ -e /usr/local/lib/libopencv_core.so ]; then
   echo "OpenCV found in /usr/local/lib:"
