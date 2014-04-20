@@ -4,7 +4,11 @@
 #include "opencv2/features2d/features2d.hpp"
 #include <vector>
 #include <map>
+#ifdef _MSC_VER
 #include "winjunk.hpp"
+#else
+#define CLASS_DECLSPEC
+#endif
 #include "jansson.h"
 
 using namespace cv;
