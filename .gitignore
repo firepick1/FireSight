@@ -1,4 +1,5 @@
 *.log
+**a.out
 cmake_install.cmake
 CMakeCache.txt
 CMakeFiles/*
