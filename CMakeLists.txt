@@ -89,6 +89,7 @@ file(GLOB FIRESIGHT_LIB_FILES
   MatchedRegion.cpp 
   MatUtil.cpp
   Model.cpp 
+  morph.cpp
   MSER.cpp 
   normalize.cpp
   Pipeline.cpp 

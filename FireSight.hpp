@@ -115,6 +115,7 @@ namespace firesight {
       KeyPoint _regionKeypoint(const vector<Point> &region);
       void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
       void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
+      bool morph(json_t *pStage, json_t *pStageModel, Model &model, String mop, const char * fmt) ;
 
       bool apply_absdiff(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_backgroundSubtractor(json_t *pStage, json_t *pStageModel, Model &model);
@@ -132,6 +133,7 @@ namespace firesight {
       bool apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model);
+      bool apply_morph(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_erode(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_imread(json_t *pStage, json_t *pStageModel, Model &model);

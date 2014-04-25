@@ -450,36 +450,6 @@ bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &m
   return stageOK("apply_drawKeypoints(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_dilate(json_t *pStage, json_t *pStageModel, Model &model) {
-  validateImage(model.image);
-  const char *errMsg = NULL;
-  int kwidth = jo_int(pStage, "ksize.width", 3, model.argMap);
-  int kheight = jo_int(pStage, "ksize.height", 3, model.argMap);
-  int shape = jo_shape(pStage, "shape", errMsg);
-
-  if (!errMsg) {
-    Mat structuringElement = getStructuringElement(shape, Size(kwidth, kheight));
-    dilate(model.image, model.image, structuringElement);
-  }
-
-  return stageOK("apply_dilate(%s) %s", errMsg, pStage, pStageModel);
-}
-
-bool Pipeline::apply_erode(json_t *pStage, json_t *pStageModel, Model &model) {
-  validateImage(model.image);
-  const char *errMsg = NULL;
-  int kwidth = jo_int(pStage, "ksize.width", 3, model.argMap);
-  int kheight = jo_int(pStage, "ksize.height", 3, model.argMap);
-  int shape = jo_shape(pStage, "shape", errMsg);
-
-  if (!errMsg) {
-    Mat structuringElement = getStructuringElement(shape, Size(kwidth, kheight));
-    erode(model.image, model.image, structuringElement);
-  }
-
-  return stageOK("apply_erode(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *errMsg = NULL;
 
@@ -1152,6 +1122,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_drawRects(pStage, pStageModel, model);
   } else if (strcmp(pOp, "equalizeHist")==0) {
     ok = apply_equalizeHist(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "morph")==0) {
+    ok = apply_morph(pStage, pStageModel, model);
   } else if (strcmp(pOp, "erode")==0) {
     ok = apply_erode(pStage, pStageModel, model);
   } else if (strcmp(pOp, "HoleRecognizer")==0) {
