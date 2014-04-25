@@ -20,9 +20,16 @@ bool Pipeline::morph(json_t *pStage, json_t *pStageModel, Model &model, String m
   validateImage(model.image);
   const char *errMsg = NULL;
   int morphOp = MORPH_OPEN;
-  int kwidth = jo_int(pStage, "ksize.width", 3, model.argMap);
+  vector<int> ksize = jo_vectori(pStage, "ksize", vector<int>(2,3), model.argMap);
+  if (ksize.size() == 1) {
+    ksize.push_back(ksize[0]);
+  }
+  if (ksize.size() > 2) {
+    errMsg = "Expected JSON [width,height] array for ksize";
+  }
+  int kwidth = jo_int(pStage, "ksize.width", ksize[0], model.argMap);
   kwidth = jo_int(pStage, "kwidth", kwidth, model.argMap);
-  int kheight = jo_int(pStage, "ksize.height", 3, model.argMap);
+  int kheight = jo_int(pStage, "ksize.height", ksize[1], model.argMap);
   kheight = jo_int(pStage, "kheight", kheight, model.argMap);
   String shapeStr = jo_string(pStage, "shape", "MORPH_ELLIPSE", model.argMap);
   int shape = MORPH_ELLIPSE;

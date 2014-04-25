@@ -1,7 +1,6 @@
 [
   {"op":"morph",
-    "kwidth":"{{{kwidth||3}}",
-    "kheight":"{{kheight||3}}",
-    "mop":"{{mop||MORPH_OPEN}}",
-    "shape":"MORPH_ELLIPSE"}
+    "ksize":"{{ksize}}",
+    "mop":"{{mop}}",
+    "shape":"{{shape}}"}
 ]

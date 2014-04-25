@@ -133,13 +133,14 @@ namespace firesight {
       bool apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_morph(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_erode(json_t *pStage, json_t *pStageModel, Model &model);
+      bool apply_FireSight(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_imread(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_Mat(json_t *pStage, json_t *pStageModel, Model &model);
+      bool apply_morph(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_MSER(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_normalize(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_proto(json_t *pStage, json_t *pStageModel, Model &model);

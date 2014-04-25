@@ -45,6 +45,20 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
   return true;
 }
 
+bool Pipeline::apply_FireSight(json_t *pStage, json_t *pStageModel, Model &model) {
+  json_t *pFireSight = json_object();
+  const char *errMsg = NULL;
+  char version[100];
+  snprintf(version, sizeof(version), "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+  json_object_set(pFireSight, "version", json_string(version));
+  json_object_set(pFireSight, "url", json_string("https://github.com/firepick1/FireSight"));
+  snprintf(version, sizeof(version), "%d.%d.%d", CV_MAJOR_VERSION, CV_MINOR_VERSION, CV_SUBMINOR_VERSION);
+  json_object_set(pFireSight, "opencv", json_string(version));
+  json_object_set(pStageModel, "FireSight", pFireSight);
+
+  return stageOK("apply_FireSight(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
   const char *errMsg = NULL;
@@ -1004,13 +1018,6 @@ json_t *Pipeline::process(Mat &workingImage, ArgMap &argMap) {
   Model model(argMap);
   json_t *pModelJson = model.getJson(true);
 
-  json_t *pFireSight = json_object();
-  char version[100];
-  snprintf(version, sizeof(version), "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-  json_object_set(pFireSight, "version", json_string(version));
-  json_object_set(pFireSight, "url", json_string("https://github.com/firepick1/FireSight"));
-  json_object_set(pModelJson, "FireSight", pFireSight);
-
   model.image = workingImage;
   model.imageMap["input"] = model.image.clone();
   bool ok = processModel(model);
@@ -1122,10 +1129,10 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_drawRects(pStage, pStageModel, model);
   } else if (strcmp(pOp, "equalizeHist")==0) {
     ok = apply_equalizeHist(pStage, pStageModel, model);
-  } else if (strcmp(pOp, "morph")==0) {
-    ok = apply_morph(pStage, pStageModel, model);
   } else if (strcmp(pOp, "erode")==0) {
     ok = apply_erode(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "FireSight")==0) {
+    ok = apply_FireSight(pStage, pStageModel, model);
   } else if (strcmp(pOp, "HoleRecognizer")==0) {
     ok = apply_HoleRecognizer(pStage, pStageModel, model);
   } else if (strcmp(pOp, "imread")==0) {
@@ -1136,6 +1143,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_Mat(pStage, pStageModel, model);
   } else if (strcmp(pOp, "matchTemplate")==0) {
     ok = apply_matchTemplate(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "morph")==0) {
+    ok = apply_morph(pStage, pStageModel, model);
   } else if (strcmp(pOp, "MSER")==0) {
     ok = apply_MSER(pStage, pStageModel, model);
   } else if (strcmp(pOp, "normalize")==0) {
