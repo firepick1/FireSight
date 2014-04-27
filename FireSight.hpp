@@ -140,6 +140,7 @@ namespace firesight {
       bool apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_Mat(json_t *pStage, json_t *pStageModel, Model &model);
+      bool apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_morph(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_MSER(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_normalize(json_t *pStage, json_t *pStageModel, Model &model);

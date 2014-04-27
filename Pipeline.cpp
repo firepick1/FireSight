@@ -59,6 +59,57 @@ bool Pipeline::apply_FireSight(json_t *pStage, json_t *pStageModel, Model &model
   return stageOK("apply_FireSight(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &model) {
+  validateImage(model.image);
+  const char *errMsg = NULL;
+  vector<Point>  points;
+  int channel = jo_int(pStage, "channel", 0, model.argMap);
+  int minVal = jo_int(pStage, "min", 1, model.argMap);
+  int maxVal = jo_int(pStage, "max", 255, model.argMap);
+  int rows = model.image.rows;
+  int cols = model.image.cols;
+  json_t *pRects = json_array();
+  json_object_set(pStageModel, "rects", pRects);
+
+  const int channels = model.image.channels();
+  switch(channels) {
+    case 1: {
+      for (int iRow = 0; iRow < rows; iRow++) {
+        for (int iCol = 0; iCol < cols; iCol++) {
+	   uchar val = model.image.at<uchar>(iRow, iCol);
+	   if (minVal <= val && val <= maxVal) {
+	     points.push_back(Point(iCol, iRow));
+	   }
+	}
+      }
+    }
+    case 3: {
+      Mat_<Vec3b> image3b = model.image;
+      for (int iRow = 0; iRow < rows; iRow++) {
+        for (int iCol = 0; iCol < cols; iCol++) {
+	   uchar val = image3b(iRow, iCol)[channel];
+	   if (minVal <= val && val <= maxVal) {
+	     points.push_back(Point(iCol, iRow));
+	   }
+	}
+      }
+    }
+  } 
+
+  if (points.size() > 0) {
+    RotatedRect rect = minAreaRect(points);
+    json_t *pRect = json_object();
+    json_object_set(pRect, "x", json_real(rect.center.x));
+    json_object_set(pRect, "y", json_real(rect.center.y));
+    json_object_set(pRect, "width", json_real(rect.size.width));
+    json_object_set(pRect, "height", json_real(rect.size.height));
+    json_object_set(pRect, "angle", json_real(rect.angle));
+    json_array_append(pRects, pRect);
+  }
+
+  return stageOK("apply_minAreaRect(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
   const char *errMsg = NULL;
@@ -913,6 +964,7 @@ bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model
   validateImage(model.image);
   string typeStr = jo_string(pStage, "type", "THRESH_BINARY", model.argMap);
   float maxval = jo_float(pStage, "maxval", 255, model.argMap);
+  String otsu = jo_string(pStage, "thresh", "", model.argMap);
   float thresh = jo_float(pStage, "thresh", 128, model.argMap);
   bool gray = jo_bool(pStage, "gray", true, model.argMap);
   int type;
@@ -932,9 +984,12 @@ bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model
     errMsg = "Expected threshold type (e.g., THRESH_BINARY)";
   }
   if (!errMsg) {
+    if (otsu.compare("OTSU") == 0) {
+     type |= THRESH_OTSU;
+    }
     if (gray && model.image.channels() > 1) {
       cvtColor(model.image, model.image, CV_BGR2GRAY);
-    }	
+    }  
     threshold(model.image, model.image, thresh, maxval, type);
   }
 
@@ -1054,7 +1109,7 @@ bool Pipeline::processModel(Model &model) {
     if (logLevel >= FIRELOG_DEBUG) {
       string stageDump = jo_object_dump(pStage, model.argMap);
       snprintf(debugBuf,sizeof(debugBuf), "process() %s %s", 
-	matInfo(model.image).c_str(), stageDump.c_str());
+  matInfo(model.image).c_str(), stageDump.c_str());
     }
     if (strncmp(pOp.c_str(), "nop", 3)==0) {
       LOGDEBUG1("%s (NO ACTION TAKEN)", debugBuf);
@@ -1088,7 +1143,7 @@ bool Pipeline::processModel(Model &model) {
 
   float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000;
   LOGDEBUG3("Pipeline::processModel(stages:%d) -> %s %.1fms", 
-  	(int)json_array_size(pPipeline), matInfo(model.image).c_str(), msElapsed);
+    (int)json_array_size(pPipeline), matInfo(model.image).c_str(), msElapsed);
 
   return ok;
 }
@@ -1143,6 +1198,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_Mat(pStage, pStageModel, model);
   } else if (strcmp(pOp, "matchTemplate")==0) {
     ok = apply_matchTemplate(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "minAreaRect")==0) {
+    ok = apply_minAreaRect(pStage, pStageModel, model);
   } else if (strcmp(pOp, "morph")==0) {
     ok = apply_morph(pStage, pStageModel, model);
   } else if (strcmp(pOp, "MSER")==0) {

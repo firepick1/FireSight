@@ -33,6 +33,8 @@ bool Pipeline::morph(json_t *pStage, json_t *pStageModel, Model &model, String m
   kheight = jo_int(pStage, "kheight", kheight, model.argMap);
   String shapeStr = jo_string(pStage, "shape", "MORPH_ELLIPSE", model.argMap);
   int shape = MORPH_ELLIPSE;
+  int iterations = jo_int(pStage, "iterations", 1, model.argMap);
+  Point anchor(-1,-1);
 
   if (!errMsg) {
     if (mop.compare("MORPH_ERODE") == 0) {
@@ -76,7 +78,7 @@ bool Pipeline::morph(json_t *pStage, json_t *pStageModel, Model &model, String m
 	dilate(model.image, model.image, structuringElement);
 	break;
       default:
-	morphologyEx(model.image, model.image, morphOp, structuringElement);
+	morphologyEx(model.image, model.image, morphOp, structuringElement, anchor, iterations);
 	break;
     }
   }
