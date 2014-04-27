@@ -5,5 +5,5 @@
     "max":"{{max}}",
     "channel":"{{channel}}"
   },
-  {"op":"drawRects", "model":"singleBlob", "color":[255,0,255]}
+  {"op":"drawRects", "model":"singleBlob", "color":"{{color}}"}
 ]
