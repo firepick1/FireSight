@@ -3,6 +3,9 @@
 function help() {
   echo "abc options:"
   echo "  -b base intensity"
+  echo "  -biasB blue pixel bias"
+  echo "  -biasG green pixel bias"
+  echo "  -biasR red pixel bias"
   echo "  -d domain"
   echo "  -f fill color [B,G,R]"
   echo "  -h height"
@@ -28,12 +31,14 @@ scale=2
 thickness=2
 base=20
 y=-10
+colorBias=0
 
-while getopts "a:o:p:d:x:f:w:h:s:b:y:a:" flag
+while getopts "a:c:o:p:d:x:f:w:h:s:b:y:a:" flag
 do
   case "$flag" in
     a) args="$OPTARG";;
     b) base="$OPTARG";;
+    c) colorBias="$OPTARG";;
     d) domain="$OPTARG";;
     f) fill="$OPTARG";;
     h) height="$OPTARG";;
@@ -52,6 +57,7 @@ done
 abc=$outdir/$prefix.png
 
 echo "Creating test image:"
+echo "  colorBias  : $colorBiasB"
 echo "  Directory  : $outdir"
 echo "  Exclamation: $bang"
 echo "  Fill       : $fill"
@@ -67,15 +73,15 @@ textOpts="-DfontScale=$scale -Ditalic=true -Dthickness=$thickness -ji 0"
 echo $textOpts
 
 target/firesight -p json/rectangle.json -o $abc -Dwidth=$width -Dheight=$height -Dcolor=[0,0,0] -Dfill=$fill
-target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[10,$y] -Dtext=A -Dcolor=[$((base+0)),$((base+0)),$((base+0))] $textOpts
-target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[30,$y] -Dtext=B -Dcolor=[$((base+4)),$((base+4)),$((base+4))] $textOpts
-target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[50,$y] -Dtext=C -Dcolor=[$((base+8)),$((base+8)),$((base+8))] $textOpts
-target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[70,$y] -Dtext=D -Dcolor=[$((base+12)),$((base+12)),$((base+12))] $textOpts
-target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[90,$y] -Dtext=E -Dcolor=[$((base+16)),$((base+16)),$((base+16))] $textOpts
-target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[110,$y] -Dtext=F -Dcolor=[$((base+20)),$((base+20)),$((base+20))] $textOpts
-target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[130,$y] -Dtext=G -Dcolor=[$((base+24)),$((base+24)),$((base+24))] $textOpts
-target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[150,$y] -Dtext=H -Dcolor=[$((base+28)),$((base+28)),$((base+28))] $textOpts
-target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[170,$y] -Dtext=I -Dcolor=[$((base+32)),$((base+32)),$((base+32))] $textOpts
+target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[10,$y] -Dtext=A -Dcolor=[$((base+0+colorBias)),$((base+0)),$((base+0))] $textOpts
+target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[30,$y] -Dtext=B -Dcolor=[$((base+4)),$((base+4+colorBias)),$((base+4))] $textOpts
+target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[50,$y] -Dtext=C -Dcolor=[$((base+8)),$((base+8)),$((base+8+colorBias))] $textOpts
+target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[70,$y] -Dtext=D -Dcolor=[$((base+12+colorBias)),$((base+12)),$((base+12))] $textOpts
+target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[90,$y] -Dtext=E -Dcolor=[$((base+16)),$((base+16+colorBias)),$((base+16))] $textOpts
+target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[110,$y] -Dtext=F -Dcolor=[$((base+20)),$((base+20)),$((base+20+colorBias))] $textOpts
+target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[130,$y] -Dtext=G -Dcolor=[$((base+24+colorBias)),$((base+24)),$((base+24))] $textOpts
+target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[150,$y] -Dtext=H -Dcolor=[$((base+28)),$((base+28+colorBias)),$((base+28))] $textOpts
+target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[170,$y] -Dtext=I -Dcolor=[$((base+32)),$((base+32)),$((base+32+colorBias))] $textOpts
 target/firesight -i $abc -p json/putText.json -o $abc -Dorg=[185,$y] -Dtext=! -Dcolor=$bang $textOpts
 
 target/firesight -i $abc -p json/normalize.json -o $outdir/$prefix-inf.png -DnormType=NORM_INF -ji 0 $args 

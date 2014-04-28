@@ -1,12 +1,15 @@
 [
+  {"op":"threshold", 
+    "type":"{{type}}", 
+    "thresh":"{{thresh}}", 
+    "maxval":"{{maxval}}"}, 
   {"op":"minAreaRect",
     "name":"singleBlob",
     "min":"{{min}}",
     "max":"{{max}}",
-    "channel":"{{channel}}"
-  },
+    "channel":"{{channel}}"},
   {"op":"drawRects", 
     "model":"singleBlob", 
     "thickness":"{{thickness}}",
-    "color":"{{color}}"}
+    "color":"{{color||[255,0,255]}}"}
 ]

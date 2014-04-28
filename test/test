@@ -55,9 +55,9 @@ test/test-one pcb.png absdiff "$suffix" "-Dimg=img/mog2.png" -ji 0
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 suffix=""
-test/test-one absdiff.png threshold "64$suffix" "-Dthresh=64" 
+test/test-one part1-0.png threshold "-otsu$suffix" 
 if [ $? -ne 0 ] ; then exit 1 ; fi
-test/test-one absdiff.png threshold "64-color$suffix" "-Dthresh=64" "-Dgray=false"
+test/test-one absdiff.png threshold "64$suffix" "-Dthresh=64" 
 if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one absdiff.png threshold "64-inv$suffix" "-Dthresh=64" "-Dtype=THRESH_BINARY_INV"
 if [ $? -ne 0 ] ; then exit 1 ; fi
@@ -97,6 +97,12 @@ if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one abc.png normalize "-inf$suffix" -DnormType="NORM_INF" 
 if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one abc.png normalize "-minmax$suffix" -DnormType="NORM_MINMAX" 
+if [ $? -ne 0 ] ; then exit 1 ; fi
+
+suffix=""
+test/test-one abc-color.png minAreaRect "-abc$suffix" -Dchannel=1 -Dmin=128 -Dthickness=1
+if [ $? -ne 0 ] ; then exit 1 ; fi
+test/test-one part1-0.png minAreaRect-thresh "$suffix" 
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 echo "-------------------------------------------------"

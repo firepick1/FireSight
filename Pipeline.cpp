@@ -72,6 +72,7 @@ bool Pipeline::apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &mod
   json_object_set(pStageModel, "rects", pRects);
 
   const int channels = model.image.channels();
+  LOGTRACE1("apply_minAreaRect() channels:%d", channels);
   switch(channels) {
     case 1: {
       for (int iRow = 0; iRow < rows; iRow++) {
@@ -82,6 +83,7 @@ bool Pipeline::apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &mod
 	   }
 	}
       }
+      break;
     }
     case 3: {
       Mat_<Vec3b> image3b = model.image;
@@ -93,9 +95,12 @@ bool Pipeline::apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &mod
 	   }
 	}
       }
+      break;
     }
   } 
 
+  LOGTRACE1("apply_minAreaRect() points found: %d", (int) points.size());
+  json_object_set(pStageModel, "points", json_integer(points.size()));
   if (points.size() > 0) {
     RotatedRect rect = minAreaRect(points);
     json_t *pRect = json_object();
@@ -964,9 +969,8 @@ bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model
   validateImage(model.image);
   string typeStr = jo_string(pStage, "type", "THRESH_BINARY", model.argMap);
   float maxval = jo_float(pStage, "maxval", 255, model.argMap);
-  String otsu = jo_string(pStage, "thresh", "", model.argMap);
+  String otsu = jo_string(pStage, "thresh", "OTSU", model.argMap);
   float thresh = jo_float(pStage, "thresh", 128, model.argMap);
-  bool gray = jo_bool(pStage, "gray", true, model.argMap);
   int type;
   const char *errMsg = NULL;
 
@@ -987,8 +991,8 @@ bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model
     if (otsu.compare("OTSU") == 0) {
      type |= THRESH_OTSU;
     }
-    if (gray && model.image.channels() > 1) {
-      cvtColor(model.image, model.image, CV_BGR2GRAY);
+    if (model.image.channels() > 1) {
+      cvtColor(model.image, model.image, CV_BGR2GRAY, 0);
     }  
     threshold(model.image, model.image, thresh, maxval, type);
   }
