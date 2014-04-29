@@ -989,6 +989,9 @@ bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model
   } else {
     errMsg = "Expected threshold type (e.g., THRESH_BINARY)";
   }
+  if (!gray && isOtsu) {
+    errMsg = "Otsu's method cannot be used with color images. Specify a thresh value for color images.";
+  }
   if (!errMsg) {
     if (isOtsu) {
      type |= THRESH_OTSU;
