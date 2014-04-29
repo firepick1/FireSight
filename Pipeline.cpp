@@ -970,6 +970,7 @@ bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model
   string typeStr = jo_string(pStage, "type", "THRESH_BINARY", model.argMap);
   float maxval = jo_float(pStage, "maxval", 255, model.argMap);
   String otsu = jo_string(pStage, "thresh", "OTSU", model.argMap);
+  bool isOtsu = otsu.compare("OTSU") == 0;
   float thresh = jo_float(pStage, "thresh", 128, model.argMap);
   bool gray = jo_bool(pStage, "gray", true, model.argMap);
   int type;
@@ -989,10 +990,11 @@ bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model
     errMsg = "Expected threshold type (e.g., THRESH_BINARY)";
   }
   if (!errMsg) {
-    if (otsu.compare("OTSU") == 0) {
+    if (isOtsu) {
      type |= THRESH_OTSU;
     }
-    if (gray && model.image.channels() > 1) {
+    if ((isOtsu || gray) && model.image.channels() > 1) {
+      LOGTRACE("apply_threshold() converting image to grayscale");
       cvtColor(model.image, model.image, CV_BGR2GRAY, 0);
     }  
     threshold(model.image, model.image, thresh, maxval, type);
