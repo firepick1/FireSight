@@ -971,6 +971,7 @@ bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model
   float maxval = jo_float(pStage, "maxval", 255, model.argMap);
   String otsu = jo_string(pStage, "thresh", "OTSU", model.argMap);
   float thresh = jo_float(pStage, "thresh", 128, model.argMap);
+  bool gray = jo_bool(pStage, "gray", true, model.argMap);
   int type;
   const char *errMsg = NULL;
 
@@ -991,7 +992,7 @@ bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model
     if (otsu.compare("OTSU") == 0) {
      type |= THRESH_OTSU;
     }
-    if (model.image.channels() > 1) {
+    if (gray && model.image.channels() > 1) {
       cvtColor(model.image, model.image, CV_BGR2GRAY, 0);
     }  
     threshold(model.image, model.image, thresh, maxval, type);
