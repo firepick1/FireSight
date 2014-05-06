@@ -78,7 +78,7 @@ extern CLASS_DECLSPEC FILE *logFile;
  * @param level logging level
  * @return 0 for success
  */
-CLASS_DECLSPEC int firelog_init(const char *path, int level = FIRELOG_WARN);
+CLASS_DECLSPEC int firelog_init(const char *path, int level);
 
 /**
  * Release resources allocated by firelog_init().
