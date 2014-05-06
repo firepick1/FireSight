@@ -164,12 +164,15 @@ namespace firesight {
       json_t *pPipeline;
 
     public: 
+      enum DefinitionType { PATH, JSON };
+
       /**
        * Construct an image processing pipeline described by the given JSON array
        * that specifies a sequence of named processing stages.
-       * @param pJson null terminated JSON string
+       * @param pDefinition null terminated JSON string or file path
+       * @param indicates whether definition is JSON string or file path
        */
-      Pipeline(const char * pJson);
+      Pipeline(const char * pDefinition=NULL, DefinitionType defType=JSON );
 
       /**
        * Construct an image processing pipeline described by the given JSON array

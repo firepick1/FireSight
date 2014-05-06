@@ -1,5 +1,6 @@
 #include <string.h>
 #include <math.h>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include "FireLog.h"
@@ -1037,9 +1038,29 @@ bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &
   return stageOK("apply_HoleRecognizer(%s) %s", errMsg, pStage, pStageModel);
 }
 
-Pipeline::Pipeline(const char *pJson) {
+Pipeline::Pipeline(const char *pDefinition, DefinitionType defType) {
   json_error_t jerr;
-  pPipeline = json_loads(pJson, 0, &jerr);
+  string pipelineString = pDefinition;
+  if (defType == PATH) {
+    if (pDefinition && *pDefinition) {
+      ifstream ifs(pDefinition);
+      stringstream pipelineStream;
+      pipelineStream << ifs.rdbuf();
+      pipelineString = pipelineStream.str();
+      if (pipelineString.size() < 10) {
+	char msg[255];
+	snprintf(msg, sizeof(msg), "Pipeline::Pipeline(%s, PATH) no JSON pipeline definition", pDefinition);
+	LOGERROR(msg);
+	throw msg;
+      } else {
+	LOGTRACE1("Pipeline::Pipeline(%s, PATH)", pDefinition);
+      }
+    } else {
+      pipelineString = "[{\"op\":\"nop\"}]";
+      LOGTRACE2("Pipeline::Pipeline(%s, PATH) => %s", pDefinition, pipelineString.c_str());
+    }
+  }
+  pPipeline = json_loads(pipelineString.c_str(), 0, &jerr);
 
   if (!pPipeline) {
     LOGERROR3("Pipeline::process cannot parse json: %s src:%s line:%d", jerr.text, jerr.source, jerr.line);

@@ -63,9 +63,8 @@ static void help() {
 }
 
 bool parseArgs(int argc, char *argv[], 
-  string &pipelineString, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap, bool &isTime, int &jsonIndent) 
+  string &pipelinePath, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap, bool &isTime, int &jsonIndent) 
 {
-  char *pipelinePath = NULL;
   uimode = UI_STILL;
   isTime = false;
   firelog_level(FIRELOG_INFO);
@@ -86,7 +85,7 @@ bool parseArgs(int argc, char *argv[],
         exit(-1);
       }
       pipelinePath = argv[++i];
-      LOGTRACE1("parseArgs(-p) \"%s\" is JSON pipeline path", pipelinePath);
+      LOGTRACE1("parseArgs(-p) \"%s\" is JSON pipeline path", pipelinePath.c_str());
     } else if (strcmp("-ji",argv[i]) == 0) {
       if (i+1>=argc) {
         LOGERROR("expected JSON indent after -ji");
@@ -140,28 +139,14 @@ bool parseArgs(int argc, char *argv[],
       return false;
     }
   }
-  if (pipelinePath) {
-    LOGTRACE1("Reading pipeline: %s", pipelinePath);
-    ifstream ifs(pipelinePath);
-    stringstream pipelineStream;
-    pipelineStream << ifs.rdbuf();
-    pipelineString = pipelineStream.str();
-  } else {
-    pipelineString = "[{\"op\":\"nop\"}]";
-  }
-  const char *pJsonPipeline = pipelineString.c_str();
-  if (strlen(pJsonPipeline) < 10) {
-    LOGERROR1("Invalid pipeline path: %s", pipelinePath);
-    exit(-1);
-  }
   return true;
 }
 
 /**
  * Single image example of FireSight lib_firesight library use
  */
-static int uiStill(const char * pJsonPipeline, Mat &image, ArgMap &argMap, bool isTime, int jsonIndent) {
-  Pipeline pipeline(pJsonPipeline);
+static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool isTime, int jsonIndent) {
+  Pipeline pipeline(pipelinePath, Pipeline::PATH);
   
   json_t *pModel = pipeline.process(image, argMap);
 
@@ -197,7 +182,7 @@ static int uiStill(const char * pJsonPipeline, Mat &image, ArgMap &argMap, bool 
 /**
  * Video capture example of FireSight lib_firesight library use
  */
-static int uiVideo(const char * pJsonPipeline, ArgMap &argMap) {
+static int uiVideo(const char * pipelinePath, ArgMap &argMap) {
   VideoCapture cap(0); // open the default camera
   if(!cap.isOpened()) {  // check if we succeeded
     LOGERROR("Could not open camera");
@@ -206,7 +191,7 @@ static int uiVideo(const char * pJsonPipeline, ArgMap &argMap) {
 
   namedWindow("image",1);
 
-  Pipeline pipeline(pJsonPipeline);
+  Pipeline pipeline(pipelinePath, Pipeline::PATH);
 
   for(;;) {
     Mat frame;
@@ -228,13 +213,13 @@ static int uiVideo(const char * pJsonPipeline, ArgMap &argMap) {
 int main(int argc, char *argv[])
 {
   UIMode uimode;
-  string pipelineString;
+  string pipelinePath;
   char * imagePath = NULL;
   char * outputPath = NULL;
   ArgMap argMap;
   bool isTime;
   int jsonIndent = 2;
-  bool argsOk = parseArgs(argc, argv, pipelineString, imagePath, outputPath, uimode, argMap, isTime, jsonIndent);
+  bool argsOk = parseArgs(argc, argv, pipelinePath, imagePath, outputPath, uimode, argMap, isTime, jsonIndent);
   if (!argsOk) {
     help();
     exit(-1);
@@ -252,14 +237,12 @@ int main(int argc, char *argv[])
     LOGDEBUG("No image specified.");
   }
 
-  const char *pJsonPipeline = pipelineString.c_str();
-
   switch (uimode) {
     case UI_STILL: 
-      uiStill(pJsonPipeline, image, argMap, isTime, jsonIndent);
+      uiStill(pipelinePath.c_str(), image, argMap, isTime, jsonIndent);
       break;
     case UI_VIDEO: 
-      uiVideo(pJsonPipeline, argMap); 
+      uiVideo(pipelinePath.c_str(), argMap); 
       break;
     default: 
       LOGERROR("Unknown UI mode");
