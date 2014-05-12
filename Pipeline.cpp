@@ -1007,6 +1007,71 @@ bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model
   return stageOK("apply_threshold(%s) %s", errMsg, pStage, pStageModel);
 }
 
+
+bool Pipeline::apply_transparent(json_t *pStage, json_t *pStageModel, Model &model) {
+  validateImage(model.image);
+  Rect roi = jo_Rect(pStage, "roi", Rect(0, 0, model.image.cols, model.image.rows), model.argMap);
+  float alphafg = jo_float(pStage, "alphafg", 1, model.argMap);
+  float alphabg = jo_float(pStage, "alphabg", 0, model.argMap);
+  vector<int> bgcolor = jo_vectori(pStage, "bgcolor", vector<int>(), model.argMap);
+  const char *errMsg = NULL;
+
+  int fgIntensity = 255 * alphafg;
+  if (fgIntensity < 0 || 255 < fgIntensity) {
+    errMsg = "Expected 0 < alphafg < 1";
+  }
+
+  int bgIntensity = 255 * alphabg;
+  if (bgIntensity < 0 || 255 < bgIntensity) {
+    errMsg = "Expected 0 < alphabg < 1";
+  }
+
+  bool isBgColor = bgcolor.size() == 3;
+  if (bgcolor.size() != 0 && !isBgColor) {
+    errMsg = "Expected JSON [B,G,R] array for bgcolor";
+  }
+
+  int roiRowStart = max(0, roi.y);
+  int roiColStart = max(0, roi.x);
+  int roiRowEnd = min(model.image.rows, roi.y+roi.height);
+  int roiColEnd = min(model.image.cols, roi.x+roi.width);
+
+  if (roiRowEnd <= 0 || model.image.rows <= roiRowStart ||
+      roiColEnd <= 0 || model.image.cols <= roiColStart) {
+    errMsg = "Region of interest is not in image";
+  }
+
+  if (!errMsg) {
+    Mat imageAlpha;
+    cvtColor(model.image, imageAlpha, CV_BGR2BGRA, 0);
+    LOGTRACE1("apply_alpha() imageAlpha %s", matInfo(imageAlpha).c_str());
+
+    int rows = imageAlpha.rows;
+    int cols = imageAlpha.cols;
+    int bgBlue = bgcolor[0];
+    int bgGreen = bgcolor[1];
+    int bgRed = bgcolor[2];
+    for (int r=roiRowStart; r < roiRowEnd; r++) {
+      for (int c=roiColStart; c < roiColEnd; c++) {
+	if (isBgColor) {
+	  if ( bgBlue == imageAlpha.at<Vec4b>(r,c)[0] &&
+	       bgGreen == imageAlpha.at<Vec4b>(r,c)[1] &&
+	       bgRed == imageAlpha.at<Vec4b>(r,c)[2]) {
+	    imageAlpha.at<Vec4b>(r,c)[3] = bgIntensity;
+	  } else {
+	    imageAlpha.at<Vec4b>(r,c)[3] = fgIntensity;
+	  }
+	} else {
+	  imageAlpha.at<Vec4b>(r,c)[3] = fgIntensity;
+	}
+      }
+    }
+    model.image = imageAlpha;
+  }
+
+  return stageOK("apply_alpha(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
   float diamMin = jo_float(pStage, "diamMin", 0, model.argMap);
@@ -1253,6 +1318,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_split(pStage, pStageModel, model);
   } else if (strcmp(pOp, "stageImage")==0) {
     ok = apply_stageImage(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "transparent")==0) {
+    ok = apply_transparent(pStage, pStageModel, model);
   } else if (strcmp(pOp, "threshold")==0) {
     ok = apply_threshold(pStage, pStageModel, model);
   } else if (strcmp(pOp, "warpAffine")==0) {

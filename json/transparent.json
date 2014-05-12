@@ -1,0 +1,7 @@
+[
+  {"op":"transparent", 
+    "roi":"{{roi}}",
+    "alphafg":"{{alphafg}}", 
+    "alphabg":"{{alphabg}}",
+    "bgcolor":"{{bgcolor}}"}
+]
