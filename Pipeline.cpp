@@ -227,7 +227,7 @@ bool Pipeline::apply_resize(json_t *pStage, json_t *pStageModel, Model &model) {
 }
 
 bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model) {
-  string stageStr = jo_string(pStage, "stage", "", model.argMap);
+  string stageStr = jo_string(pStage, "stage", "input", model.argMap);
   const char *errMsg = NULL;
 
   if (stageStr.empty()) {
