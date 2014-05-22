@@ -111,6 +111,10 @@ suffix=""
 test/test-one FireREST.png transparent "$suffix" -Dalphabg=0.7 -Dalphafg=.3 -Dbgcolor=[255,255,255] -Droi=[50,10,100,46]
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
+suffix=""
+test/test-one duck.png model "$suffix" 
+if [ $? -ne 0 ] ; then exit 1 ; fi
+
 echo "-------------------------------------------------"
 echo "BLISS AND HAPPINESS. FireSight TESTS ALL PASS!!!"
 echo "-------------------------------------------------"
