@@ -1,0 +1,14 @@
+[
+  {"op":"model", 
+	  "name":"rects",
+		"model": {
+			"rects":[
+				{ "x":100, "y":100, "width":100, "height":100, "angle":0, "color":[255,0,0] },
+				{ "x":100, "y":100, "width":100, "height":100, "angle":10, "color":[255,128,128] },
+				{ "x":100, "y":100, "width":100, "height":100, "angle":20, "color":[255,196,196] },
+				{ "x":100, "y":100, "width":100, "height":100, "angle":30 }
+			]
+		}
+	},
+	{"op":"drawRects", "model":"rects", "color":[0,255,255]}
+]

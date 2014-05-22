@@ -46,6 +46,26 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
   return true;
 }
 
+bool Pipeline::apply_model(json_t *pStage, json_t *pStageModel, Model &model) {
+	json_t *pModel = json_object_get(pStage, "model");
+  const char *errMsg = NULL;
+
+	if (!errMsg) {
+		if (!json_is_object(pModel)) {
+			errMsg = "Expected JSON object for stage model";
+		}
+	}
+	if (!errMsg && pModel) {
+		const char * pKey;
+		json_t *pValue;
+		json_object_foreach(pModel, pKey, pValue) {
+			json_object_set(pStageModel, pKey, pValue);
+		}
+	}
+
+  return stageOK("apply_model(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_FireSight(json_t *pStage, json_t *pStageModel, Model &model) {
   json_t *pFireSight = json_object();
   const char *errMsg = NULL;
@@ -417,7 +437,7 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
   json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName.c_str());
 
   if (rectsModelName.empty()) {
-    errMsg = "Expected name of stage model with rects";
+    errMsg = "model: expected name of stage with rects";
   } else if (!json_is_object(pRectsModel)) {
     errMsg = "Named stage is not in model";
   }
@@ -449,23 +469,25 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
       int width = jo_int(pRect, "width", -1, model.argMap);
       int height = jo_int(pRect, "height", -1, model.argMap);
       float angle = jo_float(pRect, "angle", FLT_MAX, model.argMap);
+			Scalar rectColor = color;
       if (changeColor) {
         red = (index & 1) ? 0 : 255;
         green = (index & 2) ? 128 : 192;
         blue = (index & 1) ? 255 : 0;
-        color = Scalar(blue, green, red);
+        rectColor = Scalar(blue, green, red);
       }
+			rectColor = jo_Scalar(pRect, "color", rectColor, model.argMap);
       if (x == SHRT_MAX || y == SHRT_MAX || width == SHRT_MAX || height == SHRT_MAX) {
         LOGERROR("apply_drawRects() x, y, width, height are required values");
         break;
       }
       if (angle == FLT_MAX) {
-        circle(model.image, Point(x,y), (int)(0.5+min(width,height)/2.0), color, thickness);
+        circle(model.image, Point(x,y), (int)(0.5+min(width,height)/2.0), rectColor, thickness);
       } else {
         RotatedRect rect(Point(x,y), Size(width, height), angle);
         rect.points(vertices);
         for (int i = 0; i < 4; i++) {
-          line(model.image, vertices[i], vertices[(i+1)%4], color, thickness);
+          line(model.image, vertices[i], vertices[(i+1)%4], rectColor, thickness);
         }
       }
     }
@@ -1205,7 +1227,7 @@ bool Pipeline::processModel(Model &model) {
     if (logLevel >= FIRELOG_DEBUG) {
       string stageDump = jo_object_dump(pStage, model.argMap);
       snprintf(debugBuf,sizeof(debugBuf), "process() %s %s", 
-  matInfo(model.image).c_str(), stageDump.c_str());
+				matInfo(model.image).c_str(), stageDump.c_str());
     }
     if (strncmp(pOp.c_str(), "nop", 3)==0) {
       LOGDEBUG1("%s (NO ACTION TAKEN)", debugBuf);
@@ -1296,6 +1318,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_matchTemplate(pStage, pStageModel, model);
   } else if (strcmp(pOp, "minAreaRect")==0) {
     ok = apply_minAreaRect(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "model")==0) {
+    ok = apply_model(pStage, pStageModel, model);
   } else if (strcmp(pOp, "morph")==0) {
     ok = apply_morph(pStage, pStageModel, model);
   } else if (strcmp(pOp, "MSER")==0) {
