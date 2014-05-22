@@ -14,7 +14,7 @@ using namespace std;
 using namespace firesight;
 
 namespace firesight {
- typedef class CLASS_DECLSPEC TestPipeline : public Pipeline {
+ typedef class TestPipeline : public Pipeline {
    public:
       KeyPoint regionKeypoint(const vector<Point> &region) {
 	return _regionKeypoint(region);
@@ -22,6 +22,7 @@ namespace firesight {
 
       TestPipeline(const char * pJson) : Pipeline(pJson) {
       }
+
   } TestPipeline;
 }
 

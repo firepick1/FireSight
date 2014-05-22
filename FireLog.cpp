@@ -4,7 +4,12 @@
 
 #include <errno.h>
 #include <time.h>
-#include <sys/time.h>
+#ifdef WIN32
+  #include <Winsock2.h>
+  #include <Windows.h>
+#else
+  #include <sys/time.h>
+#endif
 #include <string.h>
 
 #ifdef LOG_THREAD_ID
@@ -92,13 +97,23 @@ int firelog_level(int newLevel) {
 }
 
 void firelog(const char *msg, int level) {
+#ifdef WIN32
+ SYSTEMTIME st;
+ GetSystemTime(&st);
+ int now_hour = st.wHour;
+ int now_min = st.wMinute;
+ int now_sec = st.wSecond;
+ int now_ms =  st.wMilliseconds;
+#else
   timeval tp;
   gettimeofday(&tp, 0);
   time_t curtime = tp.tv_sec;
   struct tm *pLocalNow = localtime(&curtime);
-
-  //time_t now = time(NULL);
-  //struct tm *pLocalNow = localtime(&now);
+  int now_hour = pLocalNow->tm_hour;
+  int now_min = pLocalNow->tm_min;
+  int now_sec = pLocalNow->tm_sec;
+  int now_ms = tp.tv_usec/1000;
+#endif
   int tid = 0;
 #ifdef LOG_THREAD_ID
   tid = syscall(SYS_gettid);
@@ -113,13 +128,12 @@ void firelog(const char *msg, int level) {
     case FIRELOG_TRACE: levelStr = " T "; break;
   }
 
-  int ms = tp.tv_usec/1000;
   if (logTID) {
     snprintf(lastMessage[level], LOGMAX, "%02d:%02d:%02d.%03d %d %s %s", 
-        pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec, ms, tid, levelStr, msg);
+        now_hour, now_min, now_sec, now_ms, tid, levelStr, msg);
   } else {
     snprintf(lastMessage[level], LOGMAX, "%02d:%02d:%02d.%03d %s %s", 
-        pLocalNow->tm_hour, pLocalNow->tm_min, pLocalNow->tm_sec, ms, levelStr, msg);
+        now_hour, now_min, now_sec, now_ms, levelStr, msg);
   }
 
   if (logFile) {
