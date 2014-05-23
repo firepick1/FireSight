@@ -16,6 +16,7 @@ using namespace firesight;
 bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
   string tmpltPath = jo_string(pStage, "template", "", model.argMap);
+  Scalar offsetColor = jo_Scalar(pStage, "offset-color", Scalar::all(-1), model.argMap);
   int xtol = jo_int(pStage, "xtol", 32, model.argMap);
   int ytol = jo_int(pStage, "ytol", 32, model.argMap);
   vector<int> channels = jo_vectori(pStage, "channels", vector<int>(), model.argMap);
@@ -56,9 +57,9 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
       errMsg = "Template and pipeline image must have same number of channels";
     } else {
       for (int iChannel = 0; iChannel < channels.size(); iChannel++) {
-	if (channels[iChannel] < 0 || model.image.channels() <= channels[iChannel]) {
-	  errMsg = "Referenced channel is not in image";
-	}
+				if (channels[iChannel] < 0 || model.image.channels() <= channels[iChannel]) {
+					errMsg = "Referenced channel is not in image";
+				}
       }
     }
   }
@@ -70,11 +71,11 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
     if (channels.size() == 0) {
       channels.push_back(0);
       if (model.image.channels() == 1) {
-	imagePlanes[0] = model.image;
-	tmpltPlanes[0] = tmplt;
+				imagePlanes[0] = model.image;
+				tmpltPlanes[0] = tmplt;
       } else {
-	cvtColor(model.image, imagePlanes[0], CV_BGR2GRAY);
-	cvtColor(tmplt, tmpltPlanes[0], CV_BGR2GRAY);
+				cvtColor(model.image, imagePlanes[0], CV_BGR2GRAY);
+				cvtColor(tmplt, tmpltPlanes[0], CV_BGR2GRAY);
       }
     } else if (model.image.channels() == 1) {
       imagePlanes[0] = model.image;
@@ -84,8 +85,11 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
       split(tmplt, tmpltPlanes);
     }
 
+    json_t *pRects = json_array();
     json_t *pChannels = json_object();
     json_object_set(pStageModel, "channels", pChannels);
+    json_object_set(pStageModel, "rects", pRects);
+
     for (int iChannel=0; iChannel<channels.size(); iChannel++) {
       int channel = channels[iChannel];
       Mat imageSource(imagePlanes[channel], roiScan);
@@ -93,7 +97,7 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
 
       matchTemplate(imageSource, tmpltSource, result, method);
       LOGTRACE4("apply_calcOffset() matchTemplate(%s,%s,%s,CV_TM_CCOEFF_NORMED) channel:%d", 
-	matInfo(imageSource).c_str(), matInfo(tmpltSource).c_str(), matInfo(result).c_str(), channel);
+				matInfo(imageSource).c_str(), matInfo(tmpltSource).c_str(), matInfo(result).c_str(), channel);
 
       vector<Point> matches;
       float maxVal = *max_element(result.begin<float>(),result.end<float>());
@@ -102,37 +106,49 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
       matMaxima(result, matches, rangeMin, rangeMax);
 
       if (logLevel >= FIRELOG_TRACE) {
-	for (size_t iMatch=0; iMatch<matches.size(); iMatch++) {
-	  int mx = matches[iMatch].x;
-	  int my = matches[iMatch].y;
-	  float val = result.at<float>(my,mx);
-	  if (val < minval) {
-	    LOGTRACE4("apply_calcOffset() ignoring (%d,%d) val:%g corr:%g", mx, my, val, val/maxVal);
-	  } else {
-	    LOGTRACE4("apply_calcOffset() matched (%d,%d) val:%g corr:%g", mx, my, val, val/maxVal);
-	  }
-	}
+				for (size_t iMatch=0; iMatch<matches.size(); iMatch++) {
+					int mx = matches[iMatch].x;
+					int my = matches[iMatch].y;
+					float val = result.at<float>(my,mx);
+					if (val < minval) {
+						LOGTRACE4("apply_calcOffset() ignoring (%d,%d) val:%g corr:%g", mx, my, val, val/maxVal);
+					} else {
+						LOGTRACE4("apply_calcOffset() matched (%d,%d) val:%g corr:%g", mx, my, val, val/maxVal);
+					}
+				}
       }
       json_t *pMatches = json_object();
       char key[10];
       snprintf(key, sizeof(key), "%d", channel);
       json_object_set(pChannels, key, pMatches);
-      if (matches.size() == 1) {
-	  int mx = matches[0].x;
-	  int my = matches[0].y;
-	  float val = result.at<float>(my,mx);
-	  if (minval <= val) {
-	    int dx = xtol - mx;
-	    int dy = ytol - my;
-	    json_object_set(pMatches, "dx", json_integer(dx));
-	    json_object_set(pMatches, "dy", json_integer(dy));
-	    json_object_set(pMatches, "match", json_float(val));
-	  }
-      }
+			if (matches.size() == 1) {
+				int mx = matches[0].x;
+				int my = matches[0].y;
+				float val = result.at<float>(my,mx);
+				if (minval <= val) {
+					int dx = xtol - mx;
+					int dy = ytol - my;
+					json_object_set(pMatches, "dx", json_integer(dx));
+					json_object_set(pMatches, "dy", json_integer(dy));
+					json_object_set(pMatches, "match", json_float(val));
+					if (offsetColor[0] >= 0) {
+						json_t *pOffsetRect = json_object();
+						json_array_append(pRects, pOffsetRect);
+						json_object_set(pOffsetRect, "x", json_integer(roiScan.x+roiScan.width/2 + dx));
+						json_object_set(pOffsetRect, "y", json_integer(roiScan.y+roiScan.height/2 + dx));
+						json_object_set(pOffsetRect, "width", json_integer(roiScan.width));
+						json_object_set(pOffsetRect, "height", json_integer(roiScan.height));
+						json_object_set(pOffsetRect, "angle", json_integer(0));
+						json_t *pColor = json_array();
+						json_array_append(pColor, json_integer(offsetColor[0]));
+						json_array_append(pColor, json_integer(offsetColor[1]));
+						json_array_append(pColor, json_integer(offsetColor[2]));
+						json_object_set(pOffsetRect, "color", pColor);
+				  }
+				}
+			}
     }
 
-    json_t *pRects = json_array();
-    json_object_set(pStageModel, "rects", pRects);
     json_t *pRect = json_object();
     json_array_append(pRects, pRect);
     json_object_set(pRect, "x", json_integer(roi.x+roi.width/2));
@@ -140,6 +156,7 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
     json_object_set(pRect, "width", json_integer(roi.width));
     json_object_set(pRect, "height", json_integer(roi.height));
     json_object_set(pRect, "angle", json_integer(0));
+
     pRect = json_object();
     json_array_append(pRects, pRect);
     json_object_set(pRect, "x", json_integer(roiScan.x+roiScan.width/2));
