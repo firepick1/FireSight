@@ -1070,9 +1070,9 @@ bool Pipeline::apply_transparent(json_t *pStage, json_t *pStageModel, Model &mod
 
     int rows = imageAlpha.rows;
     int cols = imageAlpha.cols;
-    int bgBlue = bgcolor[0];
-    int bgGreen = bgcolor[1];
-    int bgRed = bgcolor[2];
+    int bgBlue = isBgColor ? bgcolor[0] : 255;
+    int bgGreen = isBgColor ? bgcolor[1] : 255;
+    int bgRed = isBgColor ? bgcolor[2] : 255;
     for (int r=roiRowStart; r < roiRowEnd; r++) {
       for (int c=roiColStart; c < roiColEnd; c++) {
 	if (isBgColor) {
