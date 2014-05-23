@@ -6,6 +6,7 @@
     "xtol":"{{xtol||32}}",
     "ytol":"{{ytol||32}}",
     "channels":"{{channels||[]}}", 
+    "offset-color":"{{offset-color}}", 
     "template":"{{template}}"
   },
   {"op":"drawRects", "model":"calcOffset-stage", "color":[32,255,32]}
