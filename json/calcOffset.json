@@ -1,11 +1,11 @@
 [
   {"op":"calcOffset", 
     "name":"calcOffset-stage", 
-    "minval":"{{minval||0.7}}",
-    "roi":"{{roi||[]}}",
-    "xtol":"{{xtol||32}}",
-    "ytol":"{{ytol||32}}",
-    "channels":"{{channels||[]}}", 
+    "minval":"{{minval}}",
+    "roi":"{{roi}}",
+    "xtol":"{{xtol}}",
+    "ytol":"{{ytol}}",
+    "channels":"{{channels}}", 
     "offset-color":"{{offset-color}}", 
     "template":"{{template}}"
   },

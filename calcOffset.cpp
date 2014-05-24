@@ -92,19 +92,12 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
 
     json_t *pRect = json_object();
     json_array_append(pRects, pRect);
-    json_object_set(pRect, "x", json_integer(roi.x+roi.width/2));
-    json_object_set(pRect, "y", json_integer(roi.y+roi.height/2));
-    json_object_set(pRect, "width", json_integer(roi.width));
-    json_object_set(pRect, "height", json_integer(roi.height));
-    json_object_set(pRect, "angle", json_integer(0));
-
-    pRect = json_object();
-    json_array_append(pRects, pRect);
     json_object_set(pRect, "x", json_integer(roiScan.x+roiScan.width/2));
     json_object_set(pRect, "y", json_integer(roiScan.y+roiScan.height/2));
     json_object_set(pRect, "width", json_integer(roiScan.width));
     json_object_set(pRect, "height", json_integer(roiScan.height));
     json_object_set(pRect, "angle", json_integer(0));
+    json_t *pOffsetColor = NULL;
 
     for (int iChannel=0; iChannel<channels.size(); iChannel++) {
       int channel = channels[iChannel];
@@ -155,14 +148,26 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
 	    json_object_set(pOffsetRect, "width", json_integer(roi.width));
 	    json_object_set(pOffsetRect, "height", json_integer(roi.height));
 	    json_object_set(pOffsetRect, "angle", json_integer(0));
-	    json_t *pColor = json_array();
-	    json_array_append(pColor, json_integer(offsetColor[0]));
-	    json_array_append(pColor, json_integer(offsetColor[1]));
-	    json_array_append(pColor, json_integer(offsetColor[2]));
-	    json_object_set(pOffsetRect, "color", pColor);
+	    if (!pOffsetColor) {
+	      pOffsetColor = json_array();
+	      json_array_append(pOffsetColor, json_integer(offsetColor[0]));
+	      json_array_append(pOffsetColor, json_integer(offsetColor[1]));
+	      json_array_append(pOffsetColor, json_integer(offsetColor[2]));
+	    }
 	  }
 	}
       }
+    }
+
+    json_t *pRoiRect = json_object();
+    json_array_append(pRects, pRoiRect);
+    json_object_set(pRoiRect, "x", json_integer(roi.x+roi.width/2));
+    json_object_set(pRoiRect, "y", json_integer(roi.y+roi.height/2));
+    json_object_set(pRoiRect, "width", json_integer(roi.width));
+    json_object_set(pRoiRect, "height", json_integer(roi.height));
+    json_object_set(pRoiRect, "angle", json_integer(0));
+    if (pOffsetColor) {
+      json_object_set(pRoiRect, "color", pOffsetColor);
     }
 
     normalize(result, result, 0, 255, NORM_MINMAX);

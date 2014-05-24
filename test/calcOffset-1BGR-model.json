@@ -21,15 +21,15 @@
       {
         "x":400,
         "y":100,
-        "width":736,
-        "height":136,
+        "width":800,
+        "height":200,
         "angle":0
       },
       {
         "x":400,
         "y":100,
-        "width":800,
-        "height":200,
+        "width":736,
+        "height":136,
         "angle":0
       }
     ]
