@@ -47,21 +47,21 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
 }
 
 bool Pipeline::apply_model(json_t *pStage, json_t *pStageModel, Model &model) {
-	json_t *pModel = json_object_get(pStage, "model");
+  json_t *pModel = json_object_get(pStage, "model");
   const char *errMsg = NULL;
 
-	if (!errMsg) {
-		if (!json_is_object(pModel)) {
-			errMsg = "Expected JSON object for stage model";
-		}
-	}
-	if (!errMsg && pModel) {
-		const char * pKey;
-		json_t *pValue;
-		json_object_foreach(pModel, pKey, pValue) {
-			json_object_set(pStageModel, pKey, pValue);
-		}
-	}
+  if (!errMsg) {
+    if (!json_is_object(pModel)) {
+      errMsg = "Expected JSON object for stage model";
+    }
+  }
+  if (!errMsg && pModel) {
+    const char * pKey;
+    json_t *pValue;
+    json_object_foreach(pModel, pKey, pValue) {
+      json_object_set(pStageModel, pKey, pValue);
+    }
+  }
 
   return stageOK("apply_model(%s) %s", errMsg, pStage, pStageModel);
 }
@@ -98,11 +98,11 @@ bool Pipeline::apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &mod
     case 1: {
       for (int iRow = 0; iRow < rows; iRow++) {
         for (int iCol = 0; iCol < cols; iCol++) {
-	   uchar val = model.image.at<uchar>(iRow, iCol);
-	   if (minVal <= val && val <= maxVal) {
-	     points.push_back(Point(iCol, iRow));
-	   }
-	}
+     uchar val = model.image.at<uchar>(iRow, iCol);
+     if (minVal <= val && val <= maxVal) {
+       points.push_back(Point(iCol, iRow));
+     }
+  }
       }
       break;
     }
@@ -110,11 +110,11 @@ bool Pipeline::apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &mod
       Mat_<Vec3b> image3b = model.image;
       for (int iRow = 0; iRow < rows; iRow++) {
         for (int iCol = 0; iCol < cols; iCol++) {
-	   uchar val = image3b(iRow, iCol)[channel];
-	   if (minVal <= val && val <= maxVal) {
-	     points.push_back(Point(iCol, iRow));
-	   }
-	}
+     uchar val = image3b(iRow, iCol)[channel];
+     if (minVal <= val && val <= maxVal) {
+       points.push_back(Point(iCol, iRow));
+     }
+  }
       }
       break;
     }
@@ -469,14 +469,14 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
       int width = jo_int(pRect, "width", -1, model.argMap);
       int height = jo_int(pRect, "height", -1, model.argMap);
       float angle = jo_float(pRect, "angle", FLT_MAX, model.argMap);
-			Scalar rectColor = color;
+      Scalar rectColor = color;
       if (changeColor) {
         red = (index & 1) ? 0 : 255;
         green = (index & 2) ? 128 : 192;
         blue = (index & 1) ? 255 : 0;
         rectColor = Scalar(blue, green, red);
       }
-			rectColor = jo_Scalar(pRect, "color", rectColor, model.argMap);
+      rectColor = jo_Scalar(pRect, "color", rectColor, model.argMap);
       if (x == SHRT_MAX || y == SHRT_MAX || width == SHRT_MAX || height == SHRT_MAX) {
         LOGERROR("apply_drawRects() x, y, width, height are required values");
         break;
@@ -1075,17 +1075,17 @@ bool Pipeline::apply_transparent(json_t *pStage, json_t *pStageModel, Model &mod
     int bgRed = isBgColor ? bgcolor[2] : 255;
     for (int r=roiRowStart; r < roiRowEnd; r++) {
       for (int c=roiColStart; c < roiColEnd; c++) {
-	if (isBgColor) {
-	  if ( bgBlue == imageAlpha.at<Vec4b>(r,c)[0] &&
-	       bgGreen == imageAlpha.at<Vec4b>(r,c)[1] &&
-	       bgRed == imageAlpha.at<Vec4b>(r,c)[2]) {
-	    imageAlpha.at<Vec4b>(r,c)[3] = bgIntensity;
-	  } else {
-	    imageAlpha.at<Vec4b>(r,c)[3] = fgIntensity;
-	  }
-	} else {
-	  imageAlpha.at<Vec4b>(r,c)[3] = fgIntensity;
-	}
+  if (isBgColor) {
+    if ( bgBlue == imageAlpha.at<Vec4b>(r,c)[0] &&
+         bgGreen == imageAlpha.at<Vec4b>(r,c)[1] &&
+         bgRed == imageAlpha.at<Vec4b>(r,c)[2]) {
+      imageAlpha.at<Vec4b>(r,c)[3] = bgIntensity;
+    } else {
+      imageAlpha.at<Vec4b>(r,c)[3] = fgIntensity;
+    }
+  } else {
+    imageAlpha.at<Vec4b>(r,c)[3] = fgIntensity;
+  }
       }
     }
     model.image = imageAlpha;
@@ -1135,12 +1135,12 @@ Pipeline::Pipeline(const char *pDefinition, DefinitionType defType) {
       pipelineStream << ifs.rdbuf();
       pipelineString = pipelineStream.str();
       if (pipelineString.size() < 10) {
-	char msg[255];
-	snprintf(msg, sizeof(msg), "Pipeline::Pipeline(%s, PATH) no JSON pipeline definition", pDefinition);
-	LOGERROR(msg);
-	throw msg;
+  char msg[255];
+  snprintf(msg, sizeof(msg), "Pipeline::Pipeline(%s, PATH) no JSON pipeline definition", pDefinition);
+  LOGERROR(msg);
+  throw msg;
       } else {
-	LOGTRACE1("Pipeline::Pipeline(%s, PATH)", pDefinition);
+  LOGTRACE1("Pipeline::Pipeline(%s, PATH)", pDefinition);
       }
     } else {
       pipelineString = "[{\"op\":\"nop\"}]";
@@ -1227,7 +1227,7 @@ bool Pipeline::processModel(Model &model) {
     if (logLevel >= FIRELOG_DEBUG) {
       string stageDump = jo_object_dump(pStage, model.argMap);
       snprintf(debugBuf,sizeof(debugBuf), "process() %s %s", 
-				matInfo(model.image).c_str(), stageDump.c_str());
+        matInfo(model.image).c_str(), stageDump.c_str());
     }
     if (strncmp(pOp.c_str(), "nop", 3)==0) {
       LOGDEBUG1("%s (NO ACTION TAKEN)", debugBuf);

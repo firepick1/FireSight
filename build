@@ -88,11 +88,12 @@ if [ ! -e /usr/local/include/jansson.h ] ; then
   else 
     apt-get -y install dh-autoreconf
   fi
-  git clone git://github.com/akheron/jansson jannson
+  sudo -u $SUDO_USER git clone git://github.com/akheron/jansson jannson
   pushd jannson
-  autoreconf -i
-  ./configure
-  cmake .
+  sudo -u $SUDO_USER autoreconf -i
+  sudo -u $SUDO_USER ./configure
+  sudo -u $SUDO_USER cmake .
+  sudo -u $SUDO_USER make 
   make install
   popd
 fi
