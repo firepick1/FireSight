@@ -143,8 +143,8 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
 	  if (offsetColor[0] >= 0 && (dx || dy)) {
 	    json_t *pOffsetRect = json_object();
 	    json_array_append(pRects, pOffsetRect);
-	    json_object_set(pOffsetRect, "x", json_integer(roi.x+roi.width/2+dx));
-	    json_object_set(pOffsetRect, "y", json_integer(roi.y+roi.height/2+dy));
+	    json_object_set(pOffsetRect, "x", json_integer(roi.x+roi.width/2-dx));
+	    json_object_set(pOffsetRect, "y", json_integer(roi.y+roi.height/2-dy));
 	    json_object_set(pOffsetRect, "width", json_integer(roi.width));
 	    json_object_set(pOffsetRect, "height", json_integer(roi.height));
 	    json_object_set(pOffsetRect, "angle", json_integer(0));
