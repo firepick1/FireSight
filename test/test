@@ -73,9 +73,9 @@ test/test-one headcam1.png calcOffset "-1$suffix" -Dtemplate=img/headcam0.png
 if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one headcam0a.png calcOffset "-0a$suffix" -Dtemplate=img/headcam0.png
 if [ $? -ne 0 ] ; then exit 1 ; fi
-test/test-one headcam0.png calcOffset "-offset-color0$suffix" -Dtemplate=img/headcam0.png -Dchannels=[0,1,2] -Doffset-color=[255,0,255]
+test/test-one headcam0.png calcOffset "-offsetColor0$suffix" -Dtemplate=img/headcam0.png -Dchannels=[0,1,2] -DoffsetColor=[255,0,255]
 if [ $? -ne 0 ] ; then exit 1 ; fi
-test/test-one headcam1.png calcOffset "-offset-color1$suffix" -Dtemplate=img/headcam0.png -Dchannels=[0,1,2] -Doffset-color=[255,0,255]
+test/test-one headcam1.png calcOffset "-offsetColor1$suffix" -Dtemplate=img/headcam0.png -Dchannels=[0,1,2] -DoffsetColor=[255,0,255]
 if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one headcam2.png calcOffset "-1BGR$suffix" -Dtemplate=img/headcam0.png -Dchannels=[0,1,2]
 if [ $? -ne 0 ] ; then exit 1 ; fi

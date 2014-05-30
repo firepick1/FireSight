@@ -16,7 +16,8 @@ using namespace firesight;
 bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
   string tmpltPath = jo_string(pStage, "template", "", model.argMap);
-  Scalar offsetColor = jo_Scalar(pStage, "offset-color", Scalar::all(-1), model.argMap);
+  Scalar offsetColor(32,32,255); 
+  offsetColor = jo_Scalar(pStage, "offsetColor", offsetColor, model.argMap);
   int xtol = jo_int(pStage, "xtol", 32, model.argMap);
   int ytol = jo_int(pStage, "ytol", 32, model.argMap);
   vector<int> channels = jo_vectori(pStage, "channels", vector<int>(), model.argMap);
@@ -140,7 +141,7 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
 	  json_object_set(pMatches, "dx", json_integer(dx));
 	  json_object_set(pMatches, "dy", json_integer(dy));
 	  json_object_set(pMatches, "match", json_float(val));
-	  if (offsetColor[0] >= 0 && (dx || dy)) {
+	  if (dx || dy) {
 	    json_t *pOffsetRect = json_object();
 	    json_array_append(pRects, pOffsetRect);
 	    json_object_set(pOffsetRect, "x", json_integer(roi.x+roi.width/2-dx));
