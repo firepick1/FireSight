@@ -66,7 +66,8 @@ void HoughCircle::scan(Mat &image, vector<Circle> &circles) {
     //HoughCircles(matGray, vec3f_circles, CV_HOUGH_GRADIENT, 1, 1, 200, 100, 0, 0);
     HoughCircles(matGray, vec3f_circles, CV_HOUGH_GRADIENT, 1, 10, 80, 30, 5, 25);
     for (size_t i = 0; i < vec3f_circles.size(); i++) {
-        circles.push_back(Circle(vec3f_circles[i][0], vec3f_circles[i][1], vec3f_circles[i][2]));
+        if ((2*vec3f_circles[i][2] <= maxDiam) && (2*vec3f_circles[i][2] >= minDiam))
+            circles.push_back(Circle(vec3f_circles[i][0], vec3f_circles[i][1], vec3f_circles[i][2]));
     }
 
 	LOGTRACE1("HoughCircle::scan() -> found %d circles", (int) circles.size());
