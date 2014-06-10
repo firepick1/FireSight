@@ -75,6 +75,41 @@ namespace firesight {
 
   } MSER_holes;
 
+    typedef struct Circle {
+        float x;
+        float y;
+        float radius;
+
+        Circle(float x, float y, float radius);
+        string asJson();
+        json_t *as_json_t();
+    } Circle;
+
+  typedef class HoughCircle {
+#define CIRCLE_SHOW_NONE 0 /* do not show circles */
+#define CIRCLE_SHOW_ALL 1  /* show all circles */
+    public:
+      HoughCircle(int minDiameter, int maxDiameter);
+
+      /**
+       * Update the working image to show detected circles.
+       * Image must have at least three channels representing RGB values.
+       * @param show matched regions. Default is CIRCLE_SHOW_NONE
+       */
+      void setShowCircles(int show);
+
+      void scan(Mat &matRGB, vector<Circle> &circles);
+
+    private:
+      int _showCircles;
+      int minDiam;
+      int maxDiam;
+      vector<Circle> circles;
+
+      void show(Mat & image, vector<Circle> circles);
+
+  } HoughCircle;
+
   typedef class StageData {
     public:
       StageData(string stageName);
@@ -136,6 +171,7 @@ namespace firesight {
       bool apply_erode(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_FireSight(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model);
+      bool apply_HoughCircles(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_imread(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
