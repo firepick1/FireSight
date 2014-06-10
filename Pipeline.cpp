@@ -1135,12 +1135,12 @@ Pipeline::Pipeline(const char *pDefinition, DefinitionType defType) {
       pipelineStream << ifs.rdbuf();
       pipelineString = pipelineStream.str();
       if (pipelineString.size() < 10) {
-  char msg[255];
-  snprintf(msg, sizeof(msg), "Pipeline::Pipeline(%s, PATH) no JSON pipeline definition", pDefinition);
-  LOGERROR(msg);
-  throw msg;
+	char msg[255];
+	snprintf(msg, sizeof(msg), "Pipeline::Pipeline(%s, PATH) no JSON pipeline definition", pDefinition);
+	LOGERROR(msg);
+	throw msg;
       } else {
-  LOGTRACE1("Pipeline::Pipeline(%s, PATH)", pDefinition);
+	LOGTRACE1("Pipeline::Pipeline(%s, PATH)", pDefinition);
       }
     } else {
       pipelineString = "[{\"op\":\"nop\"}]";
