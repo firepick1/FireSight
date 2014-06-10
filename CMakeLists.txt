@@ -86,6 +86,7 @@ file(GLOB FIRESIGHT_LIB_FILES
   FireLog.cpp 
   generated_code.cpp
   HoleRecognizer.cpp 
+  HoughCircle.cpp
   jo_util.cpp 
   MatchedRegion.cpp 
   MatUtil.cpp

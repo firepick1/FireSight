@@ -1125,6 +1125,37 @@ bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &
   return stageOK("apply_HoleRecognizer(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_HoughCircles(json_t *pStage, json_t *pStageModel, Model &model) {
+  validateImage(model.image);
+  int diamMin = jo_int(pStage, "diamMin", 0, model.argMap);
+  int diamMax = jo_int(pStage, "diamMax", 0, model.argMap);
+  int showCircles = jo_int(pStage, "show", 0, model.argMap);
+  const char *errMsg = NULL;
+
+  if (diamMin <= 0 || diamMax <= 0 || diamMin > diamMax) {
+    errMsg = "expected: 0 < diamMin < diamMax ";
+  } else if (showCircles < 0) {
+    errMsg = "expected: 0 < showCircles ";
+  } else if (logLevel >= FIRELOG_TRACE) {
+    char *pStageJson = json_dumps(pStage, 0);
+    LOGTRACE1("apply_HoughCircles(%s)", pStageJson);
+    free(pStageJson);
+  }
+  if (!errMsg) {
+    vector<Circle> circles;
+    HoughCircle hough_c(diamMin, diamMax);
+    hough_c.setShowCircles(showCircles);
+    hough_c.scan(model.image, circles);
+    json_t *circles_json = json_array();
+    json_object_set(pStageModel, "circles", circles_json);
+    for (size_t i = 0; i < circles.size(); i++) {
+      json_array_append(circles_json, circles[i].as_json_t());
+    }
+  }
+
+  return stageOK("apply_HoughCircles(%s) %s", errMsg, pStage, pStageModel);
+}
+
 Pipeline::Pipeline(const char *pDefinition, DefinitionType defType) {
   json_error_t jerr;
   string pipelineString = pDefinition;
@@ -1308,6 +1339,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_FireSight(pStage, pStageModel, model);
   } else if (strcmp(pOp, "HoleRecognizer")==0) {
     ok = apply_HoleRecognizer(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "HoughCircles")==0) {
+    ok = apply_HoughCircles(pStage, pStageModel, model);
   } else if (strcmp(pOp, "imread")==0) {
     ok = apply_imread(pStage, pStageModel, model);
   } else if (strcmp(pOp, "imwrite")==0) {
