@@ -8,6 +8,7 @@
   #include <Winsock2.h>
   #include <Windows.h>
 #else
+  #define LOG_THREAD_ID
   #include <sys/time.h>
 #endif
 #include <string.h>
@@ -18,6 +19,9 @@
 #endif
 #include <unistd.h>
 #include <sys/syscall.h>
+static bool logTID = 1;
+#else
+static bool logTID = 0;
 #endif
 
 #define LOGMAX 255
@@ -26,7 +30,6 @@ using namespace std;
 
 FILE *logFile = NULL;
 int logLevel = FIRELOG_WARN;
-static bool logTID = 0;
 static char lastMessage[5][LOGMAX+1];
 
 
