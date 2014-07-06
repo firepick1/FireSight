@@ -1,0 +1,5 @@
+[
+  {"op":"cvtColor", "code":"CV_BGR2GRAY"},
+  {"op":"matchTemplate", "angle":"{{angle||[]}}", "name":"fiducial", "corr":"{{corr||0.95}}", "template":"{{template}}"},
+  {"op":"drawRects", "model":"fiducial", "color":[255,0,255]}
+]

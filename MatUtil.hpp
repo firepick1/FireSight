@@ -10,7 +10,7 @@
 
 CLASS_DECLSPEC std::string matInfo(const cv::Mat &m);
 
-CLASS_DECLSPEC cv::Mat matRotateSize(cv::Size sizeIn, cv::Point2f center, float angle, float &minx, float &maxx, float &miny, float &maxy);
+CLASS_DECLSPEC cv::Mat matRotateSize(cv::Size sizeIn, cv::Point2f center, float angle, float &minx, float &maxx, float &miny, float &maxy, float scale);
 
 CLASS_DECLSPEC void matRing(const cv::Mat &image, cv::Mat &result);
 
