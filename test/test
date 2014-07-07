@@ -23,6 +23,12 @@ echo "Machine platform is:" `uname -m`
 echo "Test suffix is:$suffix64"
 
 suffix=""
+test/test-one fiducial-cam1.jpg match-fiducial "-cam1$suffix" -Dtemplate=img/bwwb.jpg 
+if [ $? -ne 0 ] ; then exit 1 ; fi
+test/test-one fiducial-cam2.jpg match-fiducial "-cam2$suffix" -Dtemplate=img/bwwb.jpg
+if [ $? -ne 0 ] ; then exit 1 ; fi
+
+suffix=""
 test/test-one w.png morph "-open-3$suffix" -Dmop=MORPH_OPEN -Dksize=3
 if [ $? -ne 0 ]; then exit 1; fi
 test/test-one w.png morph "-close-3$suffix" -Dmop=MORPH_CLOSE -Dksize=3

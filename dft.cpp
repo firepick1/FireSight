@@ -78,8 +78,8 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
   validateImage(model.image);
   string methodStr = jo_string(pStage, "method", "CV_TM_CCOEFF_NORMED", model.argMap);
   string tmpltPath = jo_string(pStage, "template", "", model.argMap);
-  float thresh = jo_float(pStage, "thresh", 0.7f);
-  float corr = jo_float(pStage, "corr", 0.85f);
+  float threshold = jo_float(pStage, "threshold", 0.7f, model.argMap);
+  float corr = jo_float(pStage, "corr", 0.85f, model.argMap);
   string outputStr = jo_string(pStage, "output", "current", model.argMap);
   string borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
   vector<float> angles = jo_vectorf(pStage, "angles", vector<float>(), model.argMap);
@@ -182,7 +182,7 @@ bool Pipeline::apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &m
       float rangeMax = corr * maxVal;
       matMinima(result, matches, rangeMin, rangeMax);
     } else {
-      float rangeMin = corr * maxVal;
+      float rangeMin = max(threshold, corr * maxVal);
       float rangeMax = maxVal;
       matMaxima(result, matches, rangeMin, rangeMax);
     }
