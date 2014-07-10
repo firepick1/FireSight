@@ -568,7 +568,7 @@ bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageMode
     const char *errMsg = NULL;
     // input parameters
     double thr1 = jo_double(pStage, "threshold1", 0.4, model.argMap);
-    double thr2 = jo_double(pStage, "threshold1", 0.05, model.argMap);
+    double thr2 = jo_double(pStage, "threshold2", 0.05, model.argMap);
     double confidence = jo_double(pStage, "confidence", (1.0-1e-12), model.argMap);
     double separation = jo_double(pStage, "separation", 4.0, model.argMap); // separation [mm]
 
