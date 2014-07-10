@@ -488,70 +488,66 @@ double _RANSAC_pattern(XY * x, size_t nx, XY C) {
 
 vector<XY> RANSAC_2D(unsigned int NSAMPL, vector<XY> coords, double thr, double confidence, double(*err_fun)(XY *, size_t, XY)) {
 
-        double bsupp = -1;
-        vector<double> berr;
-        vector<XY> binl;
-        unsigned int max_iterations = 1000;
-        if (coords.size() < NSAMPL)
-            return binl; //errMsg = "Not enough detected circles, at least 2 needed";
+    double bsupp = -1;
+    vector<double> berr;
+    vector<XY> binl;
+    unsigned int max_iterations = 1000;
+    if (coords.size() < NSAMPL)
+        return binl; //errMsg = "Not enough detected circles, at least 2 needed";
 
-        for (unsigned int it = 0; it < max_iterations; it++) {
-            int idx0, idx1;
-            vector<double> err;
-            vector<XY> inl;
-            double supp = 0;
+    for (unsigned int it = 0; it < max_iterations; it++) {
+        int idx0, idx1;
+        vector<double> err;
+        vector<XY> inl;
+        double supp = 0;
 
-            XY * sampl = (XY *) malloc(sizeof(XY) * NSAMPL);
-            int * sampl_id = (int *) malloc(sizeof(int) * NSAMPL);
-            for (unsigned int ni = 0; ni < NSAMPL; ni++) {
-                bool rerun;
-                do {
-                    rerun = false;
-                    sampl_id[ni] = rand() % coords.size();
-                    for (unsigned int oi = 0; oi < ni; oi++) {
-                        if (sampl_id[ni] == sampl_id[oi]) {
-                            rerun = true;
-                            break;
-                        }
+        XY * sampl = (XY *) malloc(sizeof(XY) * NSAMPL);
+        int * sampl_id = (int *) malloc(sizeof(int) * NSAMPL);
+        for (unsigned int ni = 0; ni < NSAMPL; ni++) {
+            bool rerun;
+            do {
+                rerun = false;
+                sampl_id[ni] = rand() % coords.size();
+                for (unsigned int oi = 0; oi < ni; oi++) {
+                    if (sampl_id[ni] == sampl_id[oi]) {
+                        rerun = true;
+                        break;
                     }
-                } while (rerun);
-                sampl[ni] = coords[sampl_id[ni]];
-            }
-
-
-            for (size_t cid = 0; cid < coords.size(); cid++) {
-                double e;
-
-                XY C = coords[cid];
-
-                e = err_fun(sampl, NSAMPL, C);
-
-                err.push_back(e);
-
-                if (e < thr) {
-                    inl.push_back(C);
-                    supp += (1-e*e);
                 }
-            }
-            free(sampl);
-            free(sampl_id);
-            // support - approximation of ML estimator
-            supp /= thr * thr * coords.size();
-
-            if (supp > bsupp) {
-                bsupp = supp;
-                binl = inl;
-                berr = err;
-
-                // update max_iterations
-                max_iterations = nsamples_RANSAC(inl.size(), coords.size(), NSAMPL, confidence);
-            }
-
-
+            } while (rerun);
+            sampl[ni] = coords[sampl_id[ni]];
         }
-        printf("#inl: %lu\n", binl.size());
-        /* end of the RANSAC */
 
+
+        for (size_t cid = 0; cid < coords.size(); cid++) {
+            double e;
+
+            XY C = coords[cid];
+
+            e = err_fun(sampl, NSAMPL, C);
+
+            err.push_back(e);
+
+            if (e < thr) {
+                inl.push_back(C);
+                supp += (1-e*e);
+            }
+        }
+        free(sampl);
+        free(sampl_id);
+
+        // support - approximation of ML estimator
+        supp /= thr * thr * coords.size();
+
+        if (supp > bsupp) {
+            bsupp = supp;
+            binl = inl;
+            berr = err;
+
+            // update max_iterations
+            max_iterations = nsamples_RANSAC(inl.size(), coords.size(), NSAMPL, confidence);
+        }
+    }
 }
 
 void least_squares(vector<XY> xy, double * a, double * b) {
@@ -574,9 +570,9 @@ bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageMode
 
     const char *errMsg = NULL;
     // input parameters
-    double thr1 = jo_double(pStage, "threshold1", 0.8, model.argMap);
+    double thr1 = jo_double(pStage, "threshold1", 0.4, model.argMap);
     double thr2 = jo_double(pStage, "threshold1", 0.05, model.argMap);
-    double confidence = jo_double(pStage, "confidence", 0.9999999, model.argMap);
+    double confidence = jo_double(pStage, "confidence", (1.0-1e-12), model.argMap);
     double separation = jo_double(pStage, "separation", 4.0, model.argMap); // separation [mm]
 
     string circlesModelName = jo_string(pStage, "model", "", model.argMap);
@@ -596,60 +592,79 @@ bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageMode
         }
     }
 
-    if (!errMsg) {
-        size_t index;
-        json_t *pCircle;
+    try {
+        if (!errMsg) {
+            size_t index;
+            json_t *pCircle;
 
-        vector<XY> coords;
+            vector<XY> coords;
 
-        json_array_foreach(pCircles, index, pCircle) {
-            double x = jo_double(pCircle, "x", DBL_MAX, model.argMap);
-            double y = jo_double(pCircle, "y", DBL_MAX, model.argMap);
-            //double r = jo_double(pCircle, "radius", DBL_MAX, model.argMap);
+            json_array_foreach(pCircles, index, pCircle) {
+                double x = jo_double(pCircle, "x", DBL_MAX, model.argMap);
+                double y = jo_double(pCircle, "y", DBL_MAX, model.argMap);
+                //double r = jo_double(pCircle, "radius", DBL_MAX, model.argMap);
 
-            if (x == DBL_MAX || y == DBL_MAX) {
-                LOGERROR("apply_points2resolution_RANSAC() x, y are required values (skipping)");
-                continue;
+                if (x == DBL_MAX || y == DBL_MAX) {
+                    LOGERROR("apply_points2resolution_RANSAC() x, y are required values (skipping)");
+                    continue;
+                }
+
+                XY xy;
+                xy.x = x;
+                xy.y = y;
+                coords.push_back(xy);
+//                printf("x:%f, y:%f\n", x, y);
             }
 
-            XY xy;
-            xy.x = x;
-            xy.y = y;
-            coords.push_back(xy);
-            printf("x:%f, y:%f\n", x, y);
+            // fit line through circle centers
+            vector<XY> binl = RANSAC_2D(2, coords, thr1, confidence, _RANSAC_line);
+
+            if (binl.size() < 2) {
+                errMsg = "Not enough points after RANSAC line (at least 2 required)";
+                throw runtime_error("Not enough points after RANSAC line");
+            }
+
+            // fit a line through the inliers
+            double a, b;
+            least_squares(binl, &a, &b);
+//            printf("y = %f x +%f\n", a, b);
+
+            // run another RANSAC to get the pattern in the circle centers forming the line
+            binl = RANSAC_2D(2, binl, thr2, confidence, _RANSAC_pattern);
+
+            if (binl.size() < 2) {
+                errMsg = "Not enough points after RANSAC pattern (at least 2 required)";
+                throw runtime_error("Not enough points after RANSAC pattern");
+            }
+
+            // sort the inliers
+            if (abs(a) > 1)
+                sort(binl.begin(), binl.end(), compare_XY_by_y);
+            else
+                sort(binl.begin(), binl.end(), compare_XY_by_x);
+
+            // compute distance of neighbours (inter_d)
+            vector<double> inter_d;
+            for (size_t i = 1; i < binl.size(); i++)
+                inter_d.push_back(sqrt(
+                            (binl[i].x - binl[i-1].x)*(binl[i].x - binl[i-1].x) + 
+                            (binl[i].y - binl[i-1].y)*(binl[i].y - binl[i-1].y)));
+
+            // get the median (d0) of the distances
+            sort(inter_d.begin(), inter_d.end());
+            double d0;
+            if (inter_d.size() % 2 == 0)
+                d0 = (inter_d[inter_d.size() / 2] + inter_d[inter_d.size() / 2 - 1])/2;
+            else
+                d0 = inter_d[inter_d.size() / 2];
+
+            double resolution = d0 / separation;
+
+//            printf("The resolution is :%f px/mm\n", resolution);
+
+            json_object_set(pStageModel, "resolution", json_real(resolution));
         }
-
-        // fit line through circle centers
-        vector<XY> binl = RANSAC_2D(2, coords, thr1, confidence, _RANSAC_line);
-
-        // fit a line through the inliers
-        double a, b;
-        least_squares(binl, &a, &b);
-        printf("y = %f x +%f\n", a, b);
-
-        // run another RANSAC to get the pattern in the circle centers forming the line
-        binl = RANSAC_2D(2, binl, thr2, confidence, _RANSAC_pattern);
-        for (size_t i = 0; i < binl.size(); i++) {
-            printf("x:%f, y:%f\n", binl[i].x, binl[i].y);
-        }
-
-        // sort the inliers
-        if (abs(a) > 1)
-            sort(binl.begin(), binl.end(), compare_XY_by_y);
-        else
-            sort(binl.begin(), binl.end(), compare_XY_by_x);
-
-
-
-
-//        vector<XY> circles;
-//        json_t *circles_json = json_array();
-//        json_object_set(pStageModel, "circles", circles_json);
-//        for (size_t i = 0; i < circles.size(); i++) {
-//            json_array_append(circles_json, circles[i].as_json_t());
-//        }
-
-    }
+    } catch (exception &e) { }
     return stageOK("apply_points2resolution_RANSAC(%s) %s", errMsg, pStage, pStageModel);
 }
 

@@ -52,19 +52,19 @@ void HoughCircle::setShowCircles(int show) {
 }
 
 void HoughCircle::scan(Mat &image, vector<Circle> &circles) {
-	Mat matGray;
-
-    cv::bilateralFilter(image, matGray, 15, 1000, 1000);
+	Mat matGray, matFiltered;
 
 	if (image.channels() == 1) {
 		matGray = image;
 	} else {
 		cvtColor(image, matGray, CV_RGB2GRAY);
 	}
+
+    cv::bilateralFilter(matGray, matFiltered, 15, 1000, 1000);
 	
 	vector<Vec3f> vec3f_circles;
-    //HoughCircles(matGray, vec3f_circles, CV_HOUGH_GRADIENT, 1, 1, 200, 100, 0, 0);
-    HoughCircles(matGray, vec3f_circles, CV_HOUGH_GRADIENT, 1, 10, 80, 30, 5, 25);
+    HoughCircles(matGray, vec3f_circles, CV_HOUGH_GRADIENT, 1, 10, 80, 10, 5, 25);
+//    HoughCircles(matGray, vec3f_circles, CV_HOUGH_GRADIENT, 1, 10, 80, 30, 5, 25);
     for (size_t i = 0; i < vec3f_circles.size(); i++) {
         if ((2*vec3f_circles[i][2] <= maxDiam) && (2*vec3f_circles[i][2] >= minDiam))
             circles.push_back(Circle(vec3f_circles[i][0], vec3f_circles[i][1], vec3f_circles[i][2]));
