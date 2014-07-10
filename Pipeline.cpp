@@ -429,6 +429,79 @@ bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model)
   return stageOK("apply_cvtColor(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model) {
+
+    char *errMsg = NULL;
+    // input parameters
+    double thr1 = jo_double(pStage, "threshold1", 0.4, model.argMap);
+    double thr2 = jo_double(pStage, "threshold2", 0.05, model.argMap);
+    double confidence = jo_double(pStage, "confidence", (1.0-1e-12), model.argMap);
+    double separation = jo_double(pStage, "separation", 4.0, model.argMap); // separation [mm]
+
+    string pointsModelName = jo_string(pStage, "model", "", model.argMap);
+    json_t *pPointsModel = json_object_get(model.getJson(false), pointsModelName.c_str());
+
+    try {
+        if (pointsModelName.empty()) {
+            throw runtime_error("model: expected name of stage with points");
+        } else if (!json_is_object(pPointsModel)) {
+            throw runtime_error("Named stage is not in model");
+        }
+
+        json_t *pPoints = NULL;
+        do {
+            pPoints = json_object_get(pPointsModel, "circles");
+            if (json_is_array(pPoints))
+                break;
+
+            pPoints = json_object_get(pPointsModel, "points");
+            if (json_is_array(pPoints))
+                break;
+            
+            throw runtime_error("Expected array of points (circles, ...)");
+        } while (0);
+
+        size_t index;
+        json_t *pPoint;
+
+        vector<XY> coords;
+
+        json_array_foreach(pPoints, index, pPoint) {
+            double x = jo_double(pPoint, "x", DBL_MAX, model.argMap);
+            double y = jo_double(pPoint, "y", DBL_MAX, model.argMap);
+            //double r = jo_double(pCircle, "radius", DBL_MAX, model.argMap);
+
+            if (x == DBL_MAX || y == DBL_MAX) {
+                LOGERROR("apply_points2resolution_RANSAC() x, y are required values (skipping)");
+                continue;
+            }
+
+            XY xy;
+            xy.x = x;
+            xy.y = y;
+            coords.push_back(xy);
+        }
+
+        Pt2Res pt2res;
+
+        double resolution;
+        
+        try {
+            resolution = pt2res.getResolution(thr1, thr2, confidence, separation, coords);
+            json_object_set(pStageModel, "resolution", json_real(resolution));
+        } catch (runtime_error &e) {
+            errMsg = (char *) malloc(sizeof(char) * (strlen(e.what()) + 1));
+            strcpy(errMsg, e.what());
+        }
+
+    } catch (exception &e) {
+        errMsg = (char *) malloc(sizeof(char) * (strlen(e.what()) + 1));
+        strcpy(errMsg, e.what());
+    }
+
+    return stageOK("apply_points2resolution_RANSAC(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *errMsg = NULL;
   Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
@@ -1375,6 +1448,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_HoleRecognizer(pStage, pStageModel, model);
   } else if (strcmp(pOp, "HoughCircles")==0) {
     ok = apply_HoughCircles(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "points2resolution_RANSAC")==0) {
+    ok = apply_points2resolution_RANSAC(pStage, pStageModel, model);
   } else if (strcmp(pOp, "imread")==0) {
     ok = apply_imread(pStage, pStageModel, model);
   } else if (strcmp(pOp, "imwrite")==0) {

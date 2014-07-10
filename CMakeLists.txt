@@ -95,6 +95,7 @@ file(GLOB FIRESIGHT_LIB_FILES
   MSER.cpp 
   normalize.cpp
   Pipeline.cpp 
+  Pt2Res_RANSAC.cpp
   proto.cpp 
   warpRing.cpp
   )
