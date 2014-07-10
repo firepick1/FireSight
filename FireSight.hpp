@@ -110,6 +110,28 @@ namespace firesight {
 
   } HoughCircle;
 
+  typedef struct XY {
+      double x, y;
+      XY(): x(0), y(0) {}
+      XY(double x_, double y_): x(x_), y(y_) {}
+  } XY;
+
+  typedef class Pt2Res {
+      public:
+
+          Pt2Res() {}
+          double getResolution(double thr1, double thr2, double confidence, double separation, vector<XY> coords);
+      private:
+          static bool compare_XY_by_x(XY a, XY b);
+          static bool compare_XY_by_y(XY a, XY b);
+          int nsamples_RANSAC(size_t ninl, size_t xlen, unsigned int NSAMPL, double confidence);
+          static double _RANSAC_line(XY * x, size_t nx, XY C);
+          static double _RANSAC_pattern(XY * x, size_t nx, XY C);
+          vector<XY> RANSAC_2D(unsigned int NSAMPL, vector<XY> coords, double thr, double confidence, double(*err_fun)(XY *, size_t, XY));
+          void least_squares(vector<XY> xy, double * a, double * b);
+
+  } Pt2Res;
+
   typedef class StageData {
     public:
       StageData(string stageName);
