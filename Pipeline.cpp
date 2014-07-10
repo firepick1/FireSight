@@ -429,6 +429,207 @@ bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model)
   return stageOK("apply_cvtColor(%s) %s", errMsg, pStage, pStageModel);
 }
 
+typedef struct XY XY;
+struct XY {
+    double x, y;
+    XY(): x(0), y(0) {}
+    XY(double x_, double y_): x(x_), y(y_) {}
+};
+
+int nsamples_RANSAC(size_t ninl, size_t xlen, unsigned int NSAMPL, double confidence) {
+    // q = \prod_{i=0}^{NSAMPL-1} (ninl-i)/(xlen-i)
+    double q = 1;
+    int nsamples;
+    for (unsigned int i = 0; i < NSAMPL - 1; i++)
+        q *= (double) (ninl-i)/(xlen-i);
+
+    if (q < 1e-10)
+        return INT_MAX;
+
+     nsamples = (int) log(1-confidence) / log(1-q);
+     if (nsamples < 1)
+         nsamples = 1;
+
+     return nsamples;
+}
+
+double _RANSAC_line(XY * x, size_t nx, XY C) {
+    assert(nx == 2);
+
+    XY u(x[1].x - x[0].x, x[1].y - x[0].y);
+    double norm_u = sqrt(u.x*u.x + u.y*u.y);
+    XY p(x[1].x - C.x, x[1].y - C.y);
+    double e = abs(u.x*p.y - u.y*p.x) / norm_u;
+
+    return e;
+}
+
+double _RANSAC_pattern(XY * x, size_t nx, XY C) {
+    assert(nx == 2);
+
+    XY u(x[1].x - x[0].x, x[1].y - x[0].y);
+    // squared distance from x[0] to x[1]
+    double usq = u.x*u.x + u.y*u.y;
+    // vector from x[0] to C determines the unit vector
+    XY Ap(C.x - x[0].x, C.y - x[0].y);
+    // projection of C onto the line parametrized as x[0] + t (x[1] - x[0])
+    double t = (Ap.x * u.x + Ap.y * u.y) / usq;
+
+    return abs(t-round(t));
+}
+
+vector<XY> RANSAC_2D(unsigned int NSAMPL, vector<XY> coords, double thr, double confidence, double(*err_fun)(XY *, size_t, XY)) {
+
+        double bsupp = -1;
+        vector<double> berr;
+        vector<XY> binl;
+        unsigned int max_iterations = 1000;
+        if (coords.size() < NSAMPL)
+            return binl; //errMsg = "Not enough detected circles, at least 2 needed";
+
+        for (unsigned int it = 0; it < max_iterations; it++) {
+            int idx0, idx1;
+            vector<double> err;
+            vector<XY> inl;
+            double supp = 0;
+
+            XY * sampl = (XY *) malloc(sizeof(XY) * NSAMPL);
+            int * sampl_id = (int *) malloc(sizeof(int) * NSAMPL);
+            for (unsigned int ni = 0; ni < NSAMPL; ni++) {
+                bool rerun;
+                do {
+                    rerun = false;
+                    sampl_id[ni] = rand() % coords.size();
+                    for (unsigned int oi = 0; oi < ni; oi++) {
+                        if (sampl_id[ni] == sampl_id[oi]) {
+                            rerun = true;
+                            break;
+                        }
+                    }
+                } while (rerun);
+                sampl[ni] = coords[sampl_id[ni]];
+            }
+
+
+            for (size_t cid = 0; cid < coords.size(); cid++) {
+                double e;
+
+                XY C = coords[cid];
+
+                e = err_fun(sampl, NSAMPL, C);
+
+                err.push_back(e);
+
+                if (e < thr) {
+                    inl.push_back(C);
+                    supp += (1-e*e);
+                }
+            }
+            free(sampl);
+            free(sampl_id);
+            // support - approximation of ML estimator
+            supp /= thr * thr * coords.size();
+
+            if (supp > bsupp) {
+                bsupp = supp;
+                binl = inl;
+                berr = err;
+
+                // update max_iterations
+                max_iterations = nsamples_RANSAC(inl.size(), coords.size(), NSAMPL, confidence);
+            }
+
+
+        }
+        printf("#inl: %lu\n", binl.size());
+        /* end of the RANSAC */
+
+}
+
+void least_squares(vector<XY> xy, double * a, double * b) {
+    double SUMx = 0, SUMy = 0, SUMxy = 0, SUMxx = 0;
+
+    for (size_t i = 0; i < xy.size(); i++) {
+        SUMx = SUMx + xy[i].x;
+        SUMy = SUMy + xy[i].y;
+        SUMxy = SUMxy + xy[i].x*xy[i].y;
+        SUMxx = SUMxx + xy[i].x*xy[i].x;
+    }
+    *a = ( SUMx*SUMy - xy.size()*SUMxy ) / ( SUMx*SUMx - xy.size()*SUMxx );
+    *b = ( SUMy - (*a)*SUMx ) / xy.size();
+}
+
+bool Pipeline::apply_circles2line_RANSAC(json_t *pStage, json_t *pStageModel, Model &model) {
+    const char *errMsg = NULL;
+    // input parameters
+    double thr = jo_double(pStage, "threshold", 0.8, model.argMap);
+    double confidence = jo_double(pStage, "confidence", 0.9999999, model.argMap);
+
+    string circlesModelName = jo_string(pStage, "model", "", model.argMap);
+    json_t *pCirclesModel = json_object_get(model.getJson(false), circlesModelName.c_str());
+
+    if (circlesModelName.empty()) {
+        errMsg = "model: expected name of stage with circles";
+    } else if (!json_is_object(pCirclesModel)) {
+        errMsg = "Named stage is not in model";
+    }
+
+    json_t *pCircles = NULL;
+    if (!errMsg) {
+        pCircles = json_object_get(pCirclesModel, "circles");
+        if (!json_is_array(pCircles)) {
+            errMsg = "Expected array of circles";
+        }
+    }
+
+    if (!errMsg) {
+        size_t index;
+        json_t *pCircle;
+
+        vector<XY> coords;
+
+        json_array_foreach(pCircles, index, pCircle) {
+            double x = jo_double(pCircle, "x", DBL_MAX, model.argMap);
+            double y = jo_double(pCircle, "y", DBL_MAX, model.argMap);
+            //double r = jo_double(pCircle, "radius", DBL_MAX, model.argMap);
+
+            if (x == DBL_MAX || y == DBL_MAX) {
+                LOGERROR("apply_circles2line_RANSAC() x, y are required values (skipping)");
+                continue;
+            }
+
+            XY xy;
+            xy.x = x;
+            xy.y = y;
+            coords.push_back(xy);
+            printf("x:%f, y:%f\n", x, y);
+        }
+
+        // fit line through circle centers
+        vector<XY> binl = RANSAC_2D(2, coords, thr, confidence, _RANSAC_line);
+
+        // fit a line through the inliers
+        double a, b;
+        least_squares(binl, &a, &b);
+        printf("y = %f x +%f\n", a, b);
+
+        // run another RANSAC to get the pattern in the circle centers forming the line
+        binl = RANSAC_2D(2, binl, 0.05, confidence, _RANSAC_pattern);
+        for (size_t i = 0; i < binl.size(); i++) {
+            printf("x:%f, y:%f\n", binl[i].x, binl[i].y);
+        }
+
+//        vector<XY> circles;
+//        json_t *circles_json = json_array();
+//        json_object_set(pStageModel, "circles", circles_json);
+//        for (size_t i = 0; i < circles.size(); i++) {
+//            json_array_append(circles_json, circles[i].as_json_t());
+//        }
+
+    }
+    return stageOK("apply_circles2line_RANSAC(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *errMsg = NULL;
   Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
@@ -1341,6 +1542,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_HoleRecognizer(pStage, pStageModel, model);
   } else if (strcmp(pOp, "HoughCircles")==0) {
     ok = apply_HoughCircles(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "circles2line_RANSAC")==0) {
+    ok = apply_circles2line_RANSAC(pStage, pStageModel, model);
   } else if (strcmp(pOp, "imread")==0) {
     ok = apply_imread(pStage, pStageModel, model);
   } else if (strcmp(pOp, "imwrite")==0) {
