@@ -14,8 +14,6 @@ using namespace cv;
 using namespace std;
 using namespace firesight;
 
-const float PI = 3.141592653589793f;
-
 Circle::Circle(float x, float y, float radius) {
     this->x = x;
     this->y = y;
