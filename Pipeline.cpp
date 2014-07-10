@@ -436,6 +436,14 @@ struct XY {
     XY(double x_, double y_): x(x_), y(y_) {}
 };
 
+bool compare_XY_by_x(XY a, XY b) {
+    return a.x < b.x;
+}
+
+bool compare_XY_by_y(XY a, XY b) {
+    return a.y < b.y;
+}
+
 int nsamples_RANSAC(size_t ninl, size_t xlen, unsigned int NSAMPL, double confidence) {
     // q = \prod_{i=0}^{NSAMPL-1} (ninl-i)/(xlen-i)
     double q = 1;
@@ -559,11 +567,17 @@ void least_squares(vector<XY> xy, double * a, double * b) {
     *b = ( SUMy - (*a)*SUMx ) / xy.size();
 }
 
-bool Pipeline::apply_circles2line_RANSAC(json_t *pStage, json_t *pStageModel, Model &model) {
+/*
+ * TODO change to accept the data in 'circles' and other types; it only requires x and y coordinates
+ */
+bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model) {
+
     const char *errMsg = NULL;
     // input parameters
-    double thr = jo_double(pStage, "threshold", 0.8, model.argMap);
+    double thr1 = jo_double(pStage, "threshold1", 0.8, model.argMap);
+    double thr2 = jo_double(pStage, "threshold1", 0.05, model.argMap);
     double confidence = jo_double(pStage, "confidence", 0.9999999, model.argMap);
+    double separation = jo_double(pStage, "separation", 4.0, model.argMap); // separation [mm]
 
     string circlesModelName = jo_string(pStage, "model", "", model.argMap);
     json_t *pCirclesModel = json_object_get(model.getJson(false), circlesModelName.c_str());
@@ -594,7 +608,7 @@ bool Pipeline::apply_circles2line_RANSAC(json_t *pStage, json_t *pStageModel, Mo
             //double r = jo_double(pCircle, "radius", DBL_MAX, model.argMap);
 
             if (x == DBL_MAX || y == DBL_MAX) {
-                LOGERROR("apply_circles2line_RANSAC() x, y are required values (skipping)");
+                LOGERROR("apply_points2resolution_RANSAC() x, y are required values (skipping)");
                 continue;
             }
 
@@ -606,7 +620,7 @@ bool Pipeline::apply_circles2line_RANSAC(json_t *pStage, json_t *pStageModel, Mo
         }
 
         // fit line through circle centers
-        vector<XY> binl = RANSAC_2D(2, coords, thr, confidence, _RANSAC_line);
+        vector<XY> binl = RANSAC_2D(2, coords, thr1, confidence, _RANSAC_line);
 
         // fit a line through the inliers
         double a, b;
@@ -614,10 +628,19 @@ bool Pipeline::apply_circles2line_RANSAC(json_t *pStage, json_t *pStageModel, Mo
         printf("y = %f x +%f\n", a, b);
 
         // run another RANSAC to get the pattern in the circle centers forming the line
-        binl = RANSAC_2D(2, binl, 0.05, confidence, _RANSAC_pattern);
+        binl = RANSAC_2D(2, binl, thr2, confidence, _RANSAC_pattern);
         for (size_t i = 0; i < binl.size(); i++) {
             printf("x:%f, y:%f\n", binl[i].x, binl[i].y);
         }
+
+        // sort the inliers
+        if (abs(a) > 1)
+            sort(binl.begin(), binl.end(), compare_XY_by_y);
+        else
+            sort(binl.begin(), binl.end(), compare_XY_by_x);
+
+
+
 
 //        vector<XY> circles;
 //        json_t *circles_json = json_array();
@@ -627,7 +650,7 @@ bool Pipeline::apply_circles2line_RANSAC(json_t *pStage, json_t *pStageModel, Mo
 //        }
 
     }
-    return stageOK("apply_circles2line_RANSAC(%s) %s", errMsg, pStage, pStageModel);
+    return stageOK("apply_points2resolution_RANSAC(%s) %s", errMsg, pStage, pStageModel);
 }
 
 bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model) {
@@ -1576,8 +1599,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_HoleRecognizer(pStage, pStageModel, model);
   } else if (strcmp(pOp, "HoughCircles")==0) {
     ok = apply_HoughCircles(pStage, pStageModel, model);
-  } else if (strcmp(pOp, "circles2line_RANSAC")==0) {
-    ok = apply_circles2line_RANSAC(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "points2resolution_RANSAC")==0) {
+    ok = apply_points2resolution_RANSAC(pStage, pStageModel, model);
   } else if (strcmp(pOp, "imread")==0) {
     ok = apply_imread(pStage, pStageModel, model);
   } else if (strcmp(pOp, "imwrite")==0) {

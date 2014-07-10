@@ -173,7 +173,7 @@ namespace firesight {
       bool apply_FireSight(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_HoughCircles(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_circles2line_RANSAC(json_t *pStage, json_t *pStageModel, Model &model);
+      bool apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_imread(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);

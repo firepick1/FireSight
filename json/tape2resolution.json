@@ -1,5 +1,5 @@
 [
   {"op":"HoughCircles", "name":"circles", "diamMin":1.0, "diamMax":40.0, "show":1},
-  {"op":"circles2line_RANSAC", "name":"c2l_R", "model":"circles"}
+  {"op":"points2resolution_RANSAC", "name":"c2l_R", "model":"circles", "separation":4.0}
 ]
 
