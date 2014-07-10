@@ -1,0 +1,5 @@
+[
+  {"op":"rectangle", "width":"64", "height":"64", "fill":[255,255,255], "thickness":0},
+  {"op":"rectangle", "x":0, "y":"31", "width":"64", "height":"2", "fill":[0,0,0], "thickness":0},
+  {"op":"rectangle", "x":"31", "y":0, "width":"2", "height":"64", "fill":[0,0,0], "thickness":0}
+]

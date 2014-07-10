@@ -1,0 +1,8 @@
+[
+  {"op":"rectangle", "width":150, "height":150, "fill":[255,255,255], "color":[255,255,255]},
+  {"op":"rectangle", "x":25, "y":25, "width":50, "height":50, "fill":[0,0,0]},
+  {"op":"rectangle", "x":75, "y":75, "width":50, "height":50, "fill":[0,0,0]},
+  {"op":"circle", "center":[75,75], "color":[255,255,255], "radius":66, "thickness":32},
+  {"op":"circle", "center":[75,75], "color":[0,0,0], "radius":50, "thickness":2},
+  {"op":"warpAffine", "scale":"{{scale}}" }
+]

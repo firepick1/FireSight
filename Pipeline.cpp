@@ -828,6 +828,38 @@ bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Mod
   return stageOK("apply_SimpleBlobDetector(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_circle(json_t *pStage, json_t *pStageModel, Model &model) {
+  validateImage(model.image);
+  Point center = jo_Point(pStage, "center", Point(0,0), model.argMap);
+  int radius = jo_int(pStage, "radius", 0, model.argMap);
+  Scalar color = jo_Scalar(pStage, "color", Scalar::all(0), model.argMap);
+  int thickness = jo_int(pStage, "thickness", 1, model.argMap);
+  int lineType = jo_int(pStage, "lineType", 8, model.argMap);
+  Scalar fill = jo_Scalar(pStage, "fill", Scalar::all(-1), model.argMap);
+  int shift = jo_int(pStage, "shift", 0, model.argMap);
+  string errMsg;
+
+  if (shift < 0) {
+    errMsg = "Expected shift>=0";
+  }
+
+  if (errMsg.empty()) {
+    if (thickness) {
+      circle(model.image, center, radius, color, thickness, lineType, shift);
+
+    }
+    if (thickness >= 0) {
+      int outThickness = thickness/2;
+      int inThickness = (int)(thickness - outThickness);
+      if (fill[0] >= 0) {
+	circle(model.image, center, radius-inThickness, fill, -1, lineType, shift);
+      }
+    }
+  }
+
+  return stageOK("apply_circle(%s) %s", errMsg.c_str(), pStage, pStageModel);
+}
+
 bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model) {
   int x = jo_int(pStage, "x", 0, model.argMap);
   int y = jo_int(pStage, "y", 0, model.argMap);
@@ -1514,6 +1546,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_calcHist(pStage, pStageModel, model);
   } else if (strcmp(pOp, "calcOffset")==0) {
     ok = apply_calcOffset(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "circle")==0) {
+    ok = apply_circle(pStage, pStageModel, model);
   } else if (strcmp(pOp, "convertTo")==0) {
     ok = apply_convertTo(pStage, pStageModel, model);
   } else if (strcmp(pOp, "cout")==0) {

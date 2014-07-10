@@ -22,8 +22,8 @@ string matInfo(const Mat &m) {
   return string(buf);
 }
 
-Mat matRotateSize(Size sizeIn, Point2f center, float angle, float &minx, float &maxx, float &miny, float &maxy) {
-  Mat transform = getRotationMatrix2D( center, angle, 1 );
+Mat matRotateSize(Size sizeIn, Point2f center, float angle, float &minx, float &maxx, float &miny, float &maxy, float scale) {
+  Mat transform = getRotationMatrix2D( center, angle, scale );
 
   transform.convertTo(transform, CV_32F);
 
@@ -60,7 +60,7 @@ void matWarpAffine(const Mat &image, Mat &result, Point2f center, float angle, f
   float maxx;
   float miny;
   float maxy;
-  Mat transform = matRotateSize(Size(image.cols,image.rows), center, angle, minx, maxx, miny, maxy);
+  Mat transform = matRotateSize(Size(image.cols,image.rows), center, angle, minx, maxx, miny, maxy, scale);
 
   transform.at<float>(0,2) += offset.x;
   transform.at<float>(1,2) += offset.y;
