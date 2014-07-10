@@ -563,9 +563,6 @@ void least_squares(vector<XY> xy, double * a, double * b) {
     *b = ( SUMy - (*a)*SUMx ) / xy.size();
 }
 
-/*
- * TODO change to accept the data in 'circles' and other types; it only requires x and y coordinates
- */
 bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model) {
 
     const char *errMsg = NULL;
@@ -575,96 +572,103 @@ bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageMode
     double confidence = jo_double(pStage, "confidence", (1.0-1e-12), model.argMap);
     double separation = jo_double(pStage, "separation", 4.0, model.argMap); // separation [mm]
 
-    string circlesModelName = jo_string(pStage, "model", "", model.argMap);
-    json_t *pCirclesModel = json_object_get(model.getJson(false), circlesModelName.c_str());
-
-    if (circlesModelName.empty()) {
-        errMsg = "model: expected name of stage with circles";
-    } else if (!json_is_object(pCirclesModel)) {
-        errMsg = "Named stage is not in model";
-    }
-
-    json_t *pCircles = NULL;
-    if (!errMsg) {
-        pCircles = json_object_get(pCirclesModel, "circles");
-        if (!json_is_array(pCircles)) {
-            errMsg = "Expected array of circles";
-        }
-    }
+    string pointsModelName = jo_string(pStage, "model", "", model.argMap);
+    json_t *pPointsModel = json_object_get(model.getJson(false), pointsModelName.c_str());
 
     try {
-        if (!errMsg) {
-            size_t index;
-            json_t *pCircle;
-
-            vector<XY> coords;
-
-            json_array_foreach(pCircles, index, pCircle) {
-                double x = jo_double(pCircle, "x", DBL_MAX, model.argMap);
-                double y = jo_double(pCircle, "y", DBL_MAX, model.argMap);
-                //double r = jo_double(pCircle, "radius", DBL_MAX, model.argMap);
-
-                if (x == DBL_MAX || y == DBL_MAX) {
-                    LOGERROR("apply_points2resolution_RANSAC() x, y are required values (skipping)");
-                    continue;
-                }
-
-                XY xy;
-                xy.x = x;
-                xy.y = y;
-                coords.push_back(xy);
-//                printf("x:%f, y:%f\n", x, y);
-            }
-
-            // fit line through circle centers
-            vector<XY> binl = RANSAC_2D(2, coords, thr1, confidence, _RANSAC_line);
-
-            if (binl.size() < 2) {
-                errMsg = "Not enough points after RANSAC line (at least 2 required)";
-                throw runtime_error("Not enough points after RANSAC line");
-            }
-
-            // fit a line through the inliers
-            double a, b;
-            least_squares(binl, &a, &b);
-//            printf("y = %f x +%f\n", a, b);
-
-            // run another RANSAC to get the pattern in the circle centers forming the line
-            binl = RANSAC_2D(2, binl, thr2, confidence, _RANSAC_pattern);
-
-            if (binl.size() < 2) {
-                errMsg = "Not enough points after RANSAC pattern (at least 2 required)";
-                throw runtime_error("Not enough points after RANSAC pattern");
-            }
-
-            // sort the inliers
-            if (abs(a) > 1)
-                sort(binl.begin(), binl.end(), compare_XY_by_y);
-            else
-                sort(binl.begin(), binl.end(), compare_XY_by_x);
-
-            // compute distance of neighbours (inter_d)
-            vector<double> inter_d;
-            for (size_t i = 1; i < binl.size(); i++)
-                inter_d.push_back(sqrt(
-                            (binl[i].x - binl[i-1].x)*(binl[i].x - binl[i-1].x) + 
-                            (binl[i].y - binl[i-1].y)*(binl[i].y - binl[i-1].y)));
-
-            // get the median (d0) of the distances
-            sort(inter_d.begin(), inter_d.end());
-            double d0;
-            if (inter_d.size() % 2 == 0)
-                d0 = (inter_d[inter_d.size() / 2] + inter_d[inter_d.size() / 2 - 1])/2;
-            else
-                d0 = inter_d[inter_d.size() / 2];
-
-            double resolution = d0 / separation;
-
-//            printf("The resolution is :%f px/mm\n", resolution);
-
-            json_object_set(pStageModel, "resolution", json_real(resolution));
+        if (pointsModelName.empty()) {
+            errMsg = "model: expected name of stage with points";
+            throw runtime_error("model: expected name of stage with points");
+        } else if (!json_is_object(pPointsModel)) {
+            errMsg = "Named stage is not in model";
+            throw runtime_error("Named stage is not in model");
         }
+
+        json_t *pPoints = NULL;
+        do {
+            pPoints = json_object_get(pPointsModel, "circles");
+            if (json_is_array(pPoints))
+                break;
+
+            pPoints = json_object_get(pPointsModel, "points");
+            if (json_is_array(pPoints))
+                break;
+            
+            errMsg = "Expected array of points";
+            throw runtime_error("Expected array of points (circles, ...)");
+        } while (0);
+
+        size_t index;
+        json_t *pPoint;
+
+        vector<XY> coords;
+
+        json_array_foreach(pPoints, index, pPoint) {
+            double x = jo_double(pPoint, "x", DBL_MAX, model.argMap);
+            double y = jo_double(pPoint, "y", DBL_MAX, model.argMap);
+            //double r = jo_double(pCircle, "radius", DBL_MAX, model.argMap);
+
+            if (x == DBL_MAX || y == DBL_MAX) {
+                LOGERROR("apply_points2resolution_RANSAC() x, y are required values (skipping)");
+                continue;
+            }
+
+            XY xy;
+            xy.x = x;
+            xy.y = y;
+            coords.push_back(xy);
+            //                printf("x:%f, y:%f\n", x, y);
+        }
+
+        // fit line through circle centers
+        vector<XY> binl = RANSAC_2D(2, coords, thr1, confidence, _RANSAC_line);
+
+        if (binl.size() < 2) {
+            errMsg = "Not enough points after RANSAC line (at least 2 required)";
+            throw runtime_error("Not enough points after RANSAC line");
+        }
+
+        // fit a line through the inliers
+        double a, b;
+        least_squares(binl, &a, &b);
+        //            printf("y = %f x +%f\n", a, b);
+
+        // run another RANSAC to get the pattern in the circle centers forming the line
+        binl = RANSAC_2D(2, binl, thr2, confidence, _RANSAC_pattern);
+
+        if (binl.size() < 2) {
+            errMsg = "Not enough points after RANSAC pattern (at least 2 required)";
+            throw runtime_error("Not enough points after RANSAC pattern");
+        }
+
+        // sort the inliers
+        if (abs(a) > 1)
+            sort(binl.begin(), binl.end(), compare_XY_by_y);
+        else
+            sort(binl.begin(), binl.end(), compare_XY_by_x);
+
+        // compute distance of neighbours (inter_d)
+        vector<double> inter_d;
+        for (size_t i = 1; i < binl.size(); i++)
+            inter_d.push_back(sqrt(
+                        (binl[i].x - binl[i-1].x)*(binl[i].x - binl[i-1].x) + 
+                        (binl[i].y - binl[i-1].y)*(binl[i].y - binl[i-1].y)));
+
+        // get the median (d0) of the distances
+        sort(inter_d.begin(), inter_d.end());
+        double d0;
+        if (inter_d.size() % 2 == 0)
+            d0 = (inter_d[inter_d.size() / 2] + inter_d[inter_d.size() / 2 - 1])/2;
+        else
+            d0 = inter_d[inter_d.size() / 2];
+
+        double resolution = d0 / separation;
+
+        //            printf("The resolution is :%f px/mm\n", resolution);
+
+        json_object_set(pStageModel, "resolution", json_real(resolution));
     } catch (exception &e) { }
+
     return stageOK("apply_points2resolution_RANSAC(%s) %s", errMsg, pStage, pStageModel);
 }
 
