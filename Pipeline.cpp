@@ -506,15 +506,17 @@ bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model)
   validateImage(model.image);
   char *errMsg = NULL;
 
+  int show = jo_int(pStage, "show", 0, model.argMap);
+
   if (logLevel >= FIRELOG_TRACE) {
     char *pStageJson = json_dumps(pStage, 0);
-    LOGTRACE1("apply_HoughCircles(%s)", pStageJson);
+    LOGTRACE1("apply_qrdecode(%s)", pStageJson);
     free(pStageJson);
   }
 
   try {
       ZbarQrDecode qr;
-      vector<QRPayload> payload = qr.scan(model.image);
+      vector<QRPayload> payload = qr.scan(model.image, show);
 
       json_t *payload_json = json_array();
       json_object_set(pStageModel, "qrdata", payload_json);

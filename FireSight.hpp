@@ -153,7 +153,7 @@ namespace firesight {
   typedef class ZbarQrDecode {
       public:
           ZbarQrDecode() {}
-          vector<QRPayload> scan(Mat &img);
+          vector<QRPayload> scan(Mat &img, int show);
   } ZbarQrDecode;
 
   typedef class StageData {
