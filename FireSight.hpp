@@ -132,6 +132,30 @@ namespace firesight {
 
   } Pt2Res;
 
+  typedef struct QRPayload {
+      double x, y;
+      string text;
+      json_t * as_json_t() {
+          json_t *pObj = json_object();
+          json_object_set(pObj, "x", json_real(x));
+          json_object_set(pObj, "y", json_real(y));
+          json_object_set(pObj, "text", json_string(text.c_str()));
+          return pObj;
+      }
+      string asJson() {
+          json_t *pObj = as_json_t();
+          char *pObjStr = json_dumps(pObj, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
+          string result(pObjStr);
+          return result;
+      }
+  } QRPayload;
+
+  typedef class ZbarQrDecode {
+      public:
+          ZbarQrDecode() {}
+          vector<QRPayload> scan(Mat &img);
+  } ZbarQrDecode;
+
   typedef class StageData {
     public:
       StageData(string stageName);
@@ -196,6 +220,7 @@ namespace firesight {
       bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_HoughCircles(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model);
+      bool apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_imread(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
