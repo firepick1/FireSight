@@ -99,6 +99,9 @@ namespace firesight {
       void setShowCircles(int show);
 
       void scan(Mat &matRGB, vector<Circle> &circles);
+      
+      void setFilterParams( int d, double sigmaColor, double sigmaSpace);
+      void setHoughParams(double dp, double minDist, double param1, double param2);
 
     private:
       int _showCircles;
@@ -107,6 +110,17 @@ namespace firesight {
       vector<Circle> circles;
 
       void show(Mat & image, vector<Circle> circles);
+
+      // bilateral filter parameters
+      int bf_d;
+      double bf_sigmaColor;
+      double bf_sigmaSpace;
+
+      // HoughCircle parameters
+      double hc_dp;
+      double hc_minDist;
+      double hc_param1;
+      double hc_param2;
 
   } HoughCircle;
 
