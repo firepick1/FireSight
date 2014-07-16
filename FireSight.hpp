@@ -132,6 +132,7 @@ namespace firesight {
 
   } Pt2Res;
 
+#ifdef LGPL2_1
   typedef struct QRPayload {
       double x, y;
       string text;
@@ -155,6 +156,7 @@ namespace firesight {
           ZbarQrDecode() {}
           vector<QRPayload> scan(Mat &img, int show);
   } ZbarQrDecode;
+#endif // LGPL2_1
 
   typedef class StageData {
     public:
@@ -220,7 +222,9 @@ namespace firesight {
       bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_HoughCircles(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model);
+#ifdef LGPL2_1
       bool apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model);
+#endif // LGPL2_1
       bool apply_imread(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
