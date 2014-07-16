@@ -7,6 +7,8 @@ SET(PROJECT_VERSION_MINOR 12)
 set(PROJECT_VERSION_PATCH 0)
 set(PROJECT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 
+OPTION(BUILD_LGPL2_1 "Build modules with LGPL2.1 license" OFF)
+
 IF(WIN32)
   MESSAGE(STATUS "Detecting WINDOWS build")
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}")
@@ -78,12 +80,9 @@ endif(OpenCV_LIBS)
 
 message("CMAKE_PREFIX_PATH:${CMAKE_PREFIX_PATH}")
 
-find_package( ZBar0 REQUIRED )
-
-
 link_directories( ${BUILD_TARGET_DIR} /usr/lib /usr/local/lib )
 
-file(GLOB FIRESIGHT_LIB_FILES
+set(FIRESIGHT_LIB_FILES
   bgSub.cpp
   calcOffset.cpp
   calcHist.cpp
@@ -103,8 +102,16 @@ file(GLOB FIRESIGHT_LIB_FILES
   Pt2Res_RANSAC.cpp
   proto.cpp 
   warpRing.cpp
-  ZbarQrDecode.cpp
   )
+
+# conditinally included sources with LGPL 2.1 license
+if(BUILD_LGPL2_1)
+    find_package( ZBar0 REQUIRED )
+
+    set(FIRESIGHT_LIB_FILES ${FIRESIGHT_LIB_FILES}
+      ZbarQrDecode.cpp
+    )
+endif(BUILD_LGPL2_1)
 
 add_library(_firesight SHARED ${FIRESIGHT_LIB_FILES})
 target_link_libraries(_firesight ${JANSSON_LIB} ${OpenCV_LIBS} )
@@ -112,6 +119,10 @@ set_target_properties(_firesight PROPERTIES
     VERSION ${PROJECT_VERSION_STRING} 
     SOVERSION ${PROJECT_VERSION_MAJOR}
     )
+if(BUILD_LGPL2_1)
+    target_link_libraries(_firesight ${ZBAR_LIBRARIES})
+    set_target_properties(_firesight PROPERTIES COMPILE_FLAGS -DLGPL2_1)
+endif(BUILD_LGPL2_1)
 if(WIN32)
   add_custom_command(TARGET _firesight PRE_LINK
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  
@@ -136,7 +147,11 @@ add_executable(gencode gencode.cpp)
 
 add_executable(firesight FireSight.cpp)
 add_dependencies(firesight _firesight)
-target_link_libraries(firesight ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS} ${ZBAR_LIBRARIES})
+target_link_libraries(firesight ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS})
+if(BUILD_LGPL2_1)
+    target_link_libraries(firesight ${ZBAR_LIBRARIES})
+    set_target_properties(firesight PROPERTIES COMPILE_FLAGS -DLGPL2_1)
+endif(BUILD_LGPL2_1)
 if(WIN32)
   add_custom_command(TARGET firesight POST_BUILD    
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  
@@ -153,8 +168,14 @@ add_executable(test
   test/test_jo_util.cpp
   test/test.cpp)
 
+add_executable(test ${TEST_SRC_FILES})
+
 add_dependencies(test _firesight)
-target_link_libraries(test ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS} ${ZBAR_LIBRARIES})
+target_link_libraries(test ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS})
+if(BUILD_LGPL2_1)
+    target_link_libraries(test ${ZBAR_LIBRARIES})
+    set_target_properties(test PROPERTIES COMPILE_FLAGS -DLGPL2_1)
+endif(BUILD_LGPL2_1)
 if(WIN32)
   add_custom_command(TARGET test POST_BUILD    
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  

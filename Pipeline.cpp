@@ -502,6 +502,7 @@ bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageMode
     return stageOK("apply_points2resolution_RANSAC(%s) %s", errMsg, pStage, pStageModel);
 }
 
+#ifdef LGPL2_1
 bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
   char *errMsg = NULL;
@@ -532,6 +533,7 @@ bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model)
 
   return stageOK("apply_qrdecode(%s) %s", errMsg, pStage, pStageModel);
 }
+#endif // LGPL2_1
 
 bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *errMsg = NULL;
@@ -1505,8 +1507,10 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_proto(pStage, pStageModel, model);
   } else if (strcmp(pOp, "putText")==0) {
     ok = apply_putText(pStage, pStageModel, model);
+#ifdef LGPL2_1
   } else if (strcmp(pOp, "qrDecode")==0) {
     ok = apply_qrdecode(pStage, pStageModel, model);
+#endif // LGPL2_1
   } else if (strcmp(pOp, "rectangle")==0) {
     ok = apply_rectangle(pStage, pStageModel, model);
   } else if (strcmp(pOp, "resize")==0) {
