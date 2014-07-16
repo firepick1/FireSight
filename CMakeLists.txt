@@ -168,8 +168,6 @@ add_executable(test
   test/test_jo_util.cpp
   test/test.cpp)
 
-add_executable(test ${TEST_SRC_FILES})
-
 add_dependencies(test _firesight)
 target_link_libraries(test ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS})
 if(BUILD_LGPL2_1)
