@@ -31,6 +31,9 @@ ELSE(WIN32)
   SET(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} -g")
 ENDIF(WIN32)
 
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+    "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+
 SET(COMPILE_DEFINITIONS -Werror)
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64")
 
@@ -75,6 +78,8 @@ endif(OpenCV_LIBS)
 
 message("CMAKE_PREFIX_PATH:${CMAKE_PREFIX_PATH}")
 
+find_package( ZBar0 REQUIRED )
+
 
 link_directories( ${BUILD_TARGET_DIR} /usr/lib /usr/local/lib )
 
@@ -98,6 +103,7 @@ file(GLOB FIRESIGHT_LIB_FILES
   Pt2Res_RANSAC.cpp
   proto.cpp 
   warpRing.cpp
+  ZbarQrDecode.cpp
   )
 
 add_library(_firesight SHARED ${FIRESIGHT_LIB_FILES})
@@ -130,7 +136,7 @@ add_executable(gencode gencode.cpp)
 
 add_executable(firesight FireSight.cpp)
 add_dependencies(firesight _firesight)
-target_link_libraries(firesight ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS} )
+target_link_libraries(firesight ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS} ${ZBAR_LIBRARIES})
 if(WIN32)
   add_custom_command(TARGET firesight POST_BUILD    
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  
@@ -148,7 +154,7 @@ add_executable(test
   test/test.cpp)
 
 add_dependencies(test _firesight)
-target_link_libraries(test ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS} )
+target_link_libraries(test ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS} ${ZBAR_LIBRARIES})
 if(WIN32)
   add_custom_command(TARGET test POST_BUILD    
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  

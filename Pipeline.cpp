@@ -502,6 +502,37 @@ bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageMode
     return stageOK("apply_points2resolution_RANSAC(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model) {
+  validateImage(model.image);
+  char *errMsg = NULL;
+
+  int show = jo_int(pStage, "show", 0, model.argMap);
+
+  if (logLevel >= FIRELOG_TRACE) {
+    char *pStageJson = json_dumps(pStage, 0);
+    LOGTRACE1("apply_qrdecode(%s)", pStageJson);
+    free(pStageJson);
+  }
+
+  try {
+      ZbarQrDecode qr;
+      vector<QRPayload> payload = qr.scan(model.image, show);
+
+      json_t *payload_json = json_array();
+      json_object_set(pStageModel, "qrdata", payload_json);
+      for (size_t i = 0; i < payload.size(); i++) {
+          json_array_append(payload_json, payload[i].as_json_t());
+      }
+
+
+  } catch (runtime_error &e) {
+      errMsg = (char *) malloc(sizeof(char) * (strlen(e.what())+1));
+      strcpy(errMsg, e.what());
+  }
+
+  return stageOK("apply_qrdecode(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *errMsg = NULL;
   Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
@@ -1474,6 +1505,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_proto(pStage, pStageModel, model);
   } else if (strcmp(pOp, "putText")==0) {
     ok = apply_putText(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "qrDecode")==0) {
+    ok = apply_qrdecode(pStage, pStageModel, model);
   } else if (strcmp(pOp, "rectangle")==0) {
     ok = apply_rectangle(pStage, pStageModel, model);
   } else if (strcmp(pOp, "resize")==0) {
