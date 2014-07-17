@@ -43,6 +43,20 @@ fi
 
 installPrefix=/usr
 
+if [ "$LGPL2_1" == "ON" ]; then
+  if [ -e /usr/lib/libzbar.s0 ]; then
+    echo "STATUS	: libzbar installed"
+  else
+    echo "INSTALL	: apt-get install libzbar0" 
+    sudo apt-get update
+    sudo apt-get install -y libzbar0 
+    if [ $? -ne 0 ]; then echo "ERROR	: Install failed"; exit -1; fi
+    echo "INSTALL	: npm install libzbar-dev" 
+    sudo apt-get install -y libzbar-dev
+    if [ $? -ne 0 ]; then echo "ERROR	: Install failed"; exit -1; fi
+  fi
+fi
+
 if [ `uname -o` == "Solaris" ]; then
   echo "OS	: SOLARIS"
   pkgin update
