@@ -1,7 +1,12 @@
 #! /bin/bash
 
+if [ "$LGPL2_1" == "" ]; then
+  LGPL2_1=OFF
+fi
+
 echo "COMMAND	: ../FireSight/build"
 echo "DATE	: `date`"
+echo "LGPL2_1	: $LGPL2_1"
 
 cv="install"
 
@@ -165,6 +170,7 @@ fi
 
 echo "STATUS	: creating makefile"
 sudo -u $SUDO_USER cmake \
+  -DBUILD_LGPL2_1=$LGPL2_1 \
   -DCMAKE_INSTALL_PREFIX:PATH=$installPrefix "$@" \
   .
 echo "STATUS	: building and installing FireSight..."
