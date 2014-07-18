@@ -27,7 +27,11 @@ vector<QRPayload> ZbarQrDecode::scan(Mat &img, int show) {
 
     // wrap image data  
     Mat img_gray;
-    cvtColor( img, img_gray, CV_BGR2GRAY );
+    if (img.channels() == 1) {
+        img_gray = img;
+    } else {
+        cvtColor(img, img_gray, CV_BGR2GRAY);
+    }
     int width = img_gray.cols;  
     int height = img_gray.rows;  
     uchar *raw = (uchar *)img_gray.data;  
