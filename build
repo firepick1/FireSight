@@ -14,7 +14,7 @@ function help() {
   echo "Build FireSight (non-Windows)"
   echo 
   echo "EXAMPLES:"
-  echo "  sudo -E ./build"
+  echo "  . ./build"
   echo
   echo "OPTIONS:"
   echo "  -h"
@@ -35,16 +35,17 @@ do
   esac
 done
 
-if [ "$SUDO_USER" == "" ]; then
-  echo "ERROR	: This script must be run with sudo command from a non-root user"
-  echo "TRY	:   sudo -E ./build"
+if [ "$SUDO_USER" != "" ]; then
+  echo "ERROR	: This script will call sudo as required and must be run by non-root user"
+  echo "TRY	:   . ./build"
+  echo "NOTE	:   ^extra period is significant"
   exit -1
 fi
 
 installPrefix=/usr
 
 if [ "$LGPL2_1" == "ON" ]; then
-  if [ -e /usr/lib/libzbar.s0 ]; then
+  if [ -e /usr/lib/libzbar.so ]; then
     echo "STATUS	: libzbar installed"
   else
     echo "INSTALL	: apt-get install libzbar0" 
@@ -59,13 +60,13 @@ fi
 
 if [ `uname -o` == "Solaris" ]; then
   echo "OS	: SOLARIS"
-  pkgin update
-  crle -l /usr/local/lib -u
-  ln -s -f /usr/local/bin/firesight /opt/local/bin/firesight
+  sudo pkgin update
+  sudo crle -l /usr/local/lib -u
+  sudo ln -s -f /usr/local/bin/firesight /opt/local/bin/firesight
   installPrefix=/usr/local
   if [ "$(type -p install-sh)" == "" ]; then
     echo "COMMAND	: pkgin -y install install-sh"
-    pkgin -y install install-sh
+    sudo pkgin -y install install-sh
   else
     echo "STATUS	: install-sh installed"
   fi
@@ -73,7 +74,7 @@ fi
 
 if [ "$(type -p gcc)" == "" ]; then
   echo "COMMAND	: pkgin -y install scmgit-base gcc47"
-  pkgin -y install scmgit-base gcc47
+  sudo pkgin -y install scmgit-base gcc47
 else
   echo "STATUS	: GCC installed"
 fi
@@ -81,11 +82,11 @@ fi
 if [ "$(type -p cmake)" == "" ]; then
   if [ `uname -o` == "Solaris" ]; then
     echo "COMMAND	: pkgin -y install gmake; pkgin -y install cmake"
-    pkgin -y install gmake
-    pkgin -y install cmake
+    sudo pkgin -y install gmake
+    sudo pkgin -y install cmake
   else
     echo "COMMAND	: apt-get -y install cmake"
-    apt-get -y install cmake
+    sudo apt-get -y install cmake
   fi
 else
   echo "STATUS	: cmake installed"
@@ -93,14 +94,14 @@ fi
 
 if [ "$(type -p libtool)" == "" ]; then
   echo "COMMAND	: pkgin -y install libtool"
-  pkgin -y install libtool
+  sudo pkgin -y install libtool
 else
   echo "STATUS	: libtool installed"
 fi
 
 if [ "$(type -p aclocal)" == "" ]; then
   echo "COMMAND	: pkgin -y install automake"
-  pkgin -y install automake
+  sudo pkgin -y install automake
 else
   echo "STATUS	: automake insalled"
 fi
@@ -108,17 +109,17 @@ fi
 if [ ! -e /usr/local/include/jansson.h ] ; then
   echo "STATUS	: installing JANNSON C Library"
   if [ `uname -o` == "Solaris" ]; then
-    pkgin -y install autoconf
+    sudo pkgin -y install autoconf
   else 
-    apt-get -y install dh-autoreconf
+    sudo apt-get -y install dh-autoreconf
   fi
-  sudo -u $SUDO_USER git clone git://github.com/akheron/jansson jannson
+  git clone git://github.com/akheron/jansson jannson
   pushd jannson
-  sudo -u $SUDO_USER autoreconf -i
-  sudo -u $SUDO_USER ./configure
-  sudo -u $SUDO_USER cmake .
-  sudo -u $SUDO_USER make 
-  make install
+  autoreconf -i
+  ./configure
+  cmake .
+  make 
+  sudo -E make install
   popd
 fi
 
@@ -142,7 +143,7 @@ elif [ "$cv" == "install" ]; then
       echo "TRY	:  sudo ./build -c make"
       exit -1
   else
-    apt-get -y install libopencv-dev
+    sudo apt-get -y install libopencv-dev
   fi
 else
   echo "STATUS	: BUILDING  OPENCV C++ LIBRARIES" 
@@ -152,44 +153,43 @@ else
       echo "ASSUME	: (assuming OpenCV prerequisites are already on your system)..."
     else
       echo "STATUS	: apt-get installing openexr for libIlmImf.so.6"
-      apt-get -y install openexr
-      apt-get -y install libavcodec-dev
-      apt-get -y install libavformat-dev
-      apt-get -y install libswscale-dev
-      apt-get -y install libdc1394-22
-      apt-get -y install libz-dev
+      sudo apt-get -y install openexr
+      sudo apt-get -y install libavcodec-dev
+      sudo apt-get -y install libavformat-dev
+      sudo apt-get -y install libswscale-dev
+      sudo apt-get -y install libdc1394-22
+      sudo apt-get -y install libz-dev
     fi
 
     if [ ! -e opencv ] ; then
-      sudo -u $SUDO_USER git clone https://github.com/firepick1/opencv -b 2.4
+      git clone https://github.com/firepick1/opencv -b 2.4
     fi
     mkdir opencv/build
     pushd opencv/build
-      sudo -u $SUDO_USER cmake \
+      cmake \
 	-D WITH_OPENEXR=OFF \
         -D CMAKE_BUILD_TYPE=DEBUG \
 	-D CMAKE_INSTALL_PREFIX=/usr/local \
         ..
-      sudo -u $SUDO_USER
-      make install
+      sudo -E make install
     popd
 fi
 
 if [ -e CMakeFiles ] ; then 
   echo "STATUS	: removing existing makefiles"
   rm -rf CMakeCache.txt CMakeFiles CMakeFiles.txt target cmake_install.cmake CPackConfig.cmake CPackSourceConfig.cmake
-  sudo -u $SUDO_USER mkdir target
+  mkdir target
 fi
 
 
 echo "STATUS	: creating makefile"
-sudo -u $SUDO_USER cmake \
+cmake \
   -DBUILD_LGPL2_1=$LGPL2_1 \
   -DCMAKE_INSTALL_PREFIX:PATH=$installPrefix "$@" \
   .
 echo "STATUS	: building and installing FireSight..."
-sudo -u $SUDO_USER make
-make install
+make
+sudo -E make install
 if [ $? -ne 0 ]; then
   echo "ERROR	: make failed"
   exit -1
