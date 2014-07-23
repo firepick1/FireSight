@@ -1,5 +1,5 @@
 [
-  {"op":"HoughCircles", "name":"circles", "diamMin":14.0, "diamMax":20.0, "show":1},
-  {"op":"points2resolution_RANSAC", "name":"p2r_RANSAC", "model":"circles", "separation":4.0}
+  {"op":"HoughCircles", "name":"circles", "diamMin":14.0, "diamMax":20.0, "bilateralfilter_d":15, "bilateralfilter_sigmaColor":1000, "bilateralfilter_sigmaSpace":1000, "houghcircles_dp":1, "houghcircles_minDist":10, "houghcircles_param1":80, "houghcircles_param2":10, "show":1},
+  {"op":"points2resolution_RANSAC", "name":"p2r_RANSAC", "model":"circles", "threshold1":1.2, "threshold2":1.2, "confidence":0.99999999999,"separation":4.0}
 ]
 

@@ -44,6 +44,18 @@ HoughCircle::HoughCircle(int minDiameter, int maxDiameter) {
 	LOGTRACE2("HoughCircle() (maxDiam:%d minDiam:%d)", maxDiam, minDiam);
 }
 
+void HoughCircle::setFilterParams(int d, double sigmaColor, double sigmaSpace) {
+    bf_d = d;
+    bf_sigmaColor = sigmaColor;
+    bf_sigmaSpace = sigmaSpace;
+}
+
+void HoughCircle::setHoughParams(double dp, double minDist, double param1, double param2) {
+    hc_dp = dp;
+    hc_minDist = minDist;
+    hc_param1 = param1;
+    hc_param2 = param2;
+}
 
 void HoughCircle::setShowCircles(int show) {
   _showCircles = show;
@@ -58,14 +70,12 @@ void HoughCircle::scan(Mat &image, vector<Circle> &circles) {
 		cvtColor(image, matGray, CV_RGB2GRAY);
 	}
 
-    cv::bilateralFilter(matGray, matFiltered, 15, 1000, 1000);
+    cv::bilateralFilter(matGray, matFiltered, bf_d, bf_sigmaColor, bf_sigmaSpace);
 	
 	vector<Vec3f> vec3f_circles;
-    HoughCircles(matGray, vec3f_circles, CV_HOUGH_GRADIENT, 1, 10, 80, 10, 5, 25);
-//    HoughCircles(matGray, vec3f_circles, CV_HOUGH_GRADIENT, 1, 10, 80, 30, 5, 25);
+    HoughCircles(matGray, vec3f_circles, CV_HOUGH_GRADIENT, hc_dp, hc_minDist, hc_param1, hc_param2, minDiam/2.0, maxDiam/2.0);
     for (size_t i = 0; i < vec3f_circles.size(); i++) {
-        if ((2*vec3f_circles[i][2] <= maxDiam) && (2*vec3f_circles[i][2] >= minDiam))
-            circles.push_back(Circle(vec3f_circles[i][0], vec3f_circles[i][1], vec3f_circles[i][2]));
+        circles.push_back(Circle(vec3f_circles[i][0], vec3f_circles[i][1], vec3f_circles[i][2]));
     }
 
 	LOGTRACE1("HoughCircle::scan() -> found %d circles", (int) circles.size());
