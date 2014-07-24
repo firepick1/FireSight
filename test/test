@@ -23,7 +23,7 @@ echo "Machine platform is:" `uname -m`
 echo "Test suffix is:$suffix64"
 
 suffix=""
-test/test-one camera0724.jpg estimate-px-per-mm "$suffix" 
+test/test-one camera0724.png estimate-px-per-mm "$suffix" 
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 suffix=""
