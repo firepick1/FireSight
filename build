@@ -136,11 +136,15 @@ elif [ "$cv" == "install" ]; then
   echo "STATUS	: INSTALLING OPENCV C++ LIBRARIES "
   if [ `uname -o` == "Solaris" ]; then
     pkgin -y install opencv
+  elif [ "$(arch)" == "armv6l" ] && [ "$(lsb_release -is)" == "Debian" ] ;then
+    echo "SYSTEM	: Raspberry Pi with Rasbian"
+    echo "COMMAND	: sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip"
+    sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip
   elif [ "$(type -p apt-get)" == "" ]; then
-      echo "ERROR	: apt-get is UNAVAILABLE"
-      echo "TRY	: Install OpenCV using following command:"
-      echo "TRY	:  sudo ./build -c make"
-      exit -1
+    echo "ERROR	: apt-get is UNAVAILABLE"
+    echo "TRY	: Install OpenCV using following command:"
+    echo "TRY	:  sudo ./build -c make"
+    exit -1
   else
     sudo apt-get -y install libopencv-dev
   fi
