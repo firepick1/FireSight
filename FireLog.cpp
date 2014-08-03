@@ -41,7 +41,7 @@ int firelog_init(const char *path, int level) {
   }
   char version[32];
   snprintf(version, sizeof(version), "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-  LOGINFO2("FireLog %s versio %s", path, version);
+  LOGINFO2("FireLog %s version %s", path, version);
   firelog_lastMessageClear();
   return 0;
 }

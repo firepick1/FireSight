@@ -20,7 +20,7 @@ typedef enum{UI_STILL, UI_VIDEO} UIMode;
 
 static void help() {
   cout << "FireSight image processing pipeline v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << endl;
-  cout << "Copyright 2014, Karl Lew" << endl;
+  cout << "Copyright 2014, Karl Lew, Simon Fojtu" << endl;
   cout << "https://github.com/firepick1/FireSight/wiki" << endl;
   cout << "OpenCV " CV_VERSION << " (" << FIRESIGHT_PLATFORM_BITS << "-bit)" << endl;
   cout << endl;
