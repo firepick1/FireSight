@@ -122,7 +122,7 @@ if [ ! -e /usr/local/include/jansson.h ] ; then
   popd
 fi
 
-if [ -e /usr/local/lib/libopencv_core.so.2.3 ]; then
+if [ -e /usr/lib/libopencv_core.so.2.3 ]; then
   echo "STATUS	: removing OpenCV 2.3 found in /usr/local/lib:"
   sudo apt-get remove libopencv_dev
 fi
@@ -131,8 +131,8 @@ if [ -e /usr/local/lib/libopencv_core.so.3.* ]; then
   ls /usr/local/lib/libopencv_core.so.*
   echo "ERROR	: FireSight does not yet work with OpenCV 3. Please use OpenCV 2.4.9 or earlier"
   exit -1
-elif [ -e /usr/lib/libopencv_core.so ]; then
-  echo "STATUS	: OpenCV found in /usr/lib:"
+elif [ -e /usr/local/lib/libopencv_core.so.2.4.8 ]; then
+  echo "STATUS	: OpenCV found in /usr/local/lib:"
   ls /usr/lib/libopencv_core.so.*
 elif [ "$cv" == "install" ]; then
   echo "STATUS	: INSTALLING OPENCV C++ LIBRARIES "
