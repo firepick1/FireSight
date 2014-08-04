@@ -123,8 +123,11 @@ if [ ! -e /usr/local/include/jansson.h ] ; then
 fi
 
 if [ -e /usr/lib/libopencv_core.so.2.3 ]; then
-  echo "STATUS	: removing OpenCV 2.3 found in /usr/local/lib:"
-  sudo apt-get remove libopencv_dev
+  echo "STATUS	: removing OpenCV 2.3 found in /usr/lib:"
+  sudo apt-get -y remove libopencv-dev
+  if [ $? -ne 0 ]; then echo "ERROR	: Could not remove existing OpenCV 2.3"; exit -1; fi
+  sudo apt-get -y autoremove libopencv-dev
+  if [ $? -ne 0 ]; then echo "ERROR	: Could not remove existing OpenCV 2.3"; exit -1; fi
 fi
 
 if [ -e /usr/local/lib/libopencv_core.so.3.* ]; then
@@ -133,7 +136,7 @@ if [ -e /usr/local/lib/libopencv_core.so.3.* ]; then
   exit -1
 elif [ -e /usr/local/lib/libopencv_core.so.2.4.8 ]; then
   echo "STATUS	: OpenCV found in /usr/local/lib:"
-  ls /usr/lib/libopencv_core.so.*
+  ls /usr/local/lib/libopencv_core.so.*
 elif [ "$cv" == "install" ]; then
   echo "STATUS	: INSTALLING OPENCV C++ LIBRARIES "
   if [ `uname -o` == "Solaris" ]; then
