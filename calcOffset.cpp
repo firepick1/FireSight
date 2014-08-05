@@ -24,6 +24,12 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
   assert(model.image.cols > 2*xtol);
   assert(model.image.rows > 2*ytol);
   Rect roi= jo_Rect(pStage, "roi", Rect(xtol, ytol, model.image.cols-2*xtol, model.image.rows-2*ytol), model.argMap);
+  if (roi.x == -1) {
+    roi.x = (model.image.cols - roi.width)/2;
+  }
+  if (roi.y == -1) {
+    roi.y = (model.image.rows - roi.height)/2;
+  }
   Rect roiScan = Rect(roi.x-xtol, roi.y-ytol, roi.width+2*xtol, roi.height+2*ytol);
   float minval = jo_float(pStage, "minval", 0.7f, model.argMap);
   float corr = jo_float(pStage, "corr", 0.99f);
