@@ -1,5 +1,5 @@
 [
-  {"op":"rectangle", "width":"{{width||200}}", "height":"{{height||30}}", "fill":0, "color":0},
+  {"op":"rectangle", "width":"{{width||200}}", "height":"{{height||30}}", "fill":"{{bgd||0}}", "color":0},
   {"op":"putText", 
     "text":"{{text||FireSight}}", 
     "org":"{{org||[10,-10]}}",
