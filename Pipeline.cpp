@@ -182,6 +182,50 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
   return stageOK("apply_warpAffine(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_warpPerspective(json_t *pStage, json_t *pStageModel, Model &model) {
+  validateImage(model.image);
+  const char *errMsg = NULL;
+
+  string  borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
+  int borderMode;
+
+  float default_vec_f[] = {1,0,0,0,1,0,0,0,1};
+  vector<float> default_vec(default_vec_f, default_vec_f + sizeof(default_vec_f) / sizeof(float) );
+  vector<float> vec = jo_vectorf(pStage, "matrix", default_vec, model.argMap);
+  Mat matrix = Mat::zeros(3,3,CV_32F);
+  for (size_t i = 0; i < 3; i++)
+      for (size_t j = 0; j < 3; j++)
+          matrix.at<float>(i,j) = vec[i*3+j];
+
+  if (!errMsg) {
+    if (borderModeStr.compare("BORDER_CONSTANT") == 0) {
+      borderMode = BORDER_CONSTANT;
+    } else if (borderModeStr.compare("BORDER_REPLICATE") == 0) {
+      borderMode = BORDER_REPLICATE;
+    } else if (borderModeStr.compare("BORDER_REFLECT") == 0) {
+      borderMode = BORDER_REFLECT;
+    } else if (borderModeStr.compare("BORDER_REFLECT_101") == 0) {
+      borderMode = BORDER_REFLECT_101;
+    } else if (borderModeStr.compare("BORDER_REFLECT101") == 0) {
+      borderMode = BORDER_REFLECT101;
+    } else if (borderModeStr.compare("BORDER_WRAP") == 0) {
+      borderMode = BORDER_WRAP;
+    } else {
+      errMsg = "Expected borderMode: BORDER_CONSTANT, BORDER_REPLICATE, BORDER_REFLECT, BORDER_REFLECT_101, BORDER_WRAP";
+    }
+  }
+
+  Scalar borderValue = jo_Scalar(pStage, "borderValue", Scalar::all(0), model.argMap);
+
+  if (!errMsg) {
+    Mat result = Mat::zeros(model.image.rows, model.image.cols, model.image.type());
+    warpPerspective(model.image, result, matrix, result.size(), cv::INTER_LINEAR, borderMode, borderValue );
+    model.image = result;
+  }
+
+  return stageOK("apply_warpPerspective(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_putText(json_t *pStage, json_t *pStageModel, Model &model) {
   validateImage(model.image);
   string text = jo_string(pStage, "text", "FireSight", model.argMap);
@@ -1540,6 +1584,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_warpAffine(pStage, pStageModel, model);
   } else if (strcmp(pOp, "warpRing")==0) {
     ok = apply_warpRing(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "warpPerspective")==0) {
+    ok = apply_warpPerspective(pStage, pStageModel, model);
 
   } else if (strncmp(pOp, "nop", 3)==0) {
     LOGDEBUG("Skipping nop...");
