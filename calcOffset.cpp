@@ -40,6 +40,9 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
     Mat tmplt;
     int borderMode = BORDER_REPLICATE;
 
+	if (roi.x < 0 || roi.y < 0 || model.image.cols < roi.x+roi.width || model.image.rows < roi.y+roi.height) {
+		errMsg = "ROI must be within image";
+	}
     if (tmpltPath.empty()) {
         errMsg = "Expected template path for imread";
     } else {
