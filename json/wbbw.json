@@ -1,0 +1,7 @@
+[
+  {"op":"rectangle", "width":"{{width||32}}", "height":"{{height||32}}", "fill":[0,0,0], "thickness":"{{border||0}}"}, 
+  {"op":"rectangle", "x":0, "y":0, "width":"{{size||16}}", "height":"{{size||16}}", "fill":[255,255,255], "thickness":0},
+  {"op":"rectangle", "x":"{{size||16}}", "y":"{{size||16}}", "width":"{{size||16}}", "height":"{{size||16}}", 
+  	"fill":[255,255,255], "thickness":0},
+  {"op":"rectangle", "width":"{{width||32}}", "height":"{{height||32}}", "thickness":"{{border||0}}", "color":"{{color||[255,255,255]}}"}
+]
