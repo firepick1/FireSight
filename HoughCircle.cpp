@@ -80,7 +80,8 @@ void HoughCircle::scan(Mat &image, vector<Circle> &circles) {
 
 	LOGTRACE1("HoughCircle::scan() -> found %d circles", (int) circles.size());
 
-    show(image, circles);
+    if (_showCircles)
+        show(image, circles);
 }
 
 void HoughCircle::show(Mat & image, vector<Circle> circles) {
