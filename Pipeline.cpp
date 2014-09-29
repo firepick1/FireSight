@@ -824,6 +824,12 @@ bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model
   int shift = jo_int(pStage, "shift", 0, model.argMap);
   const char *errMsg = NULL;
 
+  if ( x == -1 ) {
+  	x = (model.image.cols-width)/2;
+  }
+  if ( y == -1 ) {
+  	y = (model.image.rows-height)/2;
+  }
   if ( x < 0 || y < 0) {
     errMsg = "Expected 0<=x and 0<=y";
   } else if (shift < 0) {

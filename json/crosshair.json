@@ -1,5 +1,9 @@
+
 [
-  {"op":"rectangle", "width":"64", "height":"64", "fill":[255,255,255], "thickness":0},
-  {"op":"rectangle", "x":0, "y":"31", "width":"64", "height":"2", "fill":[0,0,0], "thickness":0},
-  {"op":"rectangle", "x":"31", "y":0, "width":"2", "height":"64", "fill":[0,0,0], "thickness":0}
+  {"op":"rectangle", "width":"{{width||64}}", "height":"{{height||64}}", "fill":"{{background||[255,255,255]}}", 
+  	"comment":"background", "thickness":"{{border||0}}"},
+  {"op":"rectangle", "x":-1, "y":0, "width":"{{size||2}}", "height":"{{height||64}}", "fill":"{{color||[0,0,0]}}", 
+  	"comment":"vertical bar", "thickness":0},
+  {"op":"rectangle", "x":0, "y":-1, "width":"{{width||64}}", "height":"{{size||2}}", "fill":"{{color||[0,0,0]}}", 
+  	"comment":"horizontal bar", "thickness":0}
 ]
