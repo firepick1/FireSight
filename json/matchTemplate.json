@@ -1,11 +1,10 @@
 [
-  {"op":"cvtColor", "code":"CV_BGR2GRAY"},
-  {"op":"matchTemplate", "method":"CV_TM_CCORR", "template":"img/tmplt-30x40.jpg"},
-  {"op":"nop-matchTemplate", "method":"CV_TM_CCORR_NORMED", "template":"img/tmplt-30x40.jpg"},
-  {"op":"nop-matchTemplate", "method":"CV_TM_CCEFF", "template":"img/tmplt-30x40.jpg"},
-  {"op":"nop-matchTemplate", "method":"CV_TM_CCEFF_NORMED", "template":"img/tmplt-30x40.jpg"},
-  {"op":"nop-matchTemplate", "method":"CV_TM_SQDIFF_NORMED", "template":"img/tmplt-30x40.jpg"},
-  {"op":"normalize", "alpha":0, "beta":255, "normType":"NORM_MINMAX", "comment":"normalize values for viewing"},
-  {"op":"cout", "cols":28, "rows":64, "comment":"matchTemplate output"},
-  {"op":"nop", "comment":"end of pipeline"}
+	{"op":"matchTemplate",
+		"template":"{{template}}",
+		"corr":"{{corr}}",
+		"threshold":"{{threshold}}",
+		"method":"{{method}}",
+		"angle":"{{angle }}",
+		"output":"{{output}}"
+	}
 ]
