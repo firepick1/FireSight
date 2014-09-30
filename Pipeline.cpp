@@ -1550,6 +1550,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_imwrite(pStage, pStageModel, model);
   } else if (strcmp(pOp, "Mat")==0) {
     ok = apply_Mat(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "matchGrid")==0) {
+    ok = apply_matchGrid(pStage, pStageModel, model);
   } else if (strcmp(pOp, "matchTemplate")==0) {
     ok = apply_matchTemplate(pStage, pStageModel, model);
   } else if (strcmp(pOp, "minAreaRect")==0) {

@@ -1,0 +1,12 @@
+[
+	{"op":"matchTemplate",
+		"name":"match",
+		"template":"{{template}}",
+		"corr":"{{corr}}",
+		"threshold":"{{threshold}}",
+		"method":"{{method}}",
+		"angle":"{{angle }}",
+		"output":"{{output}}"
+	},
+	{"op":"matchGrid", "model":"match" }
+]

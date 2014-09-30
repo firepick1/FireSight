@@ -86,6 +86,7 @@ set(FIRESIGHT_LIB_FILES
   bgSub.cpp
   calcOffset.cpp
   calcHist.cpp
+  calibrate.cpp
   dft.cpp 
   FireLog.cpp 
   generated_code.cpp
@@ -161,6 +162,7 @@ if(WIN32)
 endif(WIN32)
 
 add_executable(test 
+  test/test_calibrate.cpp
   test/test_warpAffine.cpp 
   test/test_warpRing.cpp 
   test/test_regionKeypoint.cpp 
