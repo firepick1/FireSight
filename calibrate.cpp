@@ -17,32 +17,44 @@ using namespace cv;
 using namespace std;
 using namespace firesight;
 
+bool cmpPoint2f_xy(const Point2f &lhs, const Point2f &rhs) {
+	int cmp = lhs.x - rhs.x;
+	if (cmp == 0) {
+		cmp = lhs.y - rhs.y;
+	}
+
+	return cmp < 0;
+}
 
 typedef struct GridPoint {
 	float x;
 	float y;
-	GridPoint() {
-		x = FLT_MAX;
-		y = FLT_MAX;
+	float dx;
+	GridPoint(float dx=1) {
+		this->x = FLT_MAX;
+		this->y = FLT_MAX;
+		this->dx = dx;
 	}
-	GridPoint(float x, float y) {
+	GridPoint(float x, float y, float dx=1) {
 		this->x = x;
 		this->y = y;
+		this->dx = dx;
 	}
 	inline bool isnan() { return x==FLT_MAX || y==FLT_MAX; }
 	inline GridPoint operator-(const GridPoint &that) {
-		return GridPoint(x-that.x,y-that.y);
+		return GridPoint(x-that.x,y-that.y,dx);
 	}
 	inline GridPoint operator+(const GridPoint &that) {
-		return GridPoint(x+that.x,y+that.y);
+		return GridPoint(x+that.x,y+that.y,dx);
 	}
 	inline GridPoint& operator=(const GridPoint &that) {
 		this->x = that.x;
 		this->y = that.y;
+		this->dx = that.dx;
 		return *this;
 	}
 	inline bool friend operator<(const GridPoint &lhs, const GridPoint &rhs) {
-		int cmp = lhs.x - rhs.x;
+		int cmp = (lhs.x - rhs.x)/lhs.dx;
 		if (cmp == 0) {
 			cmp = lhs.y - rhs.y;
 		}
@@ -55,6 +67,7 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     string rectsModelName = jo_string(pStage, "model", "", model.argMap);
 	double sepX = jo_double(pStage, "sepX", 5.0, model.argMap); 
 	double sepY = jo_double(pStage, "sepY", 5.0, model.argMap); 
+	double dx = jo_double(pStage, "dx", 1.0, model.argMap); 
 	double tolerance = jo_double(pStage, "tolerance", 0.35, model.argMap);
     json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName.c_str());
     string errMsg;
@@ -75,8 +88,8 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
 		}
     }
 
-	GridPoint dTot1(0,0);
-	GridPoint dTot2(0,0);
+	GridPoint dTot1(0,0,dx);
+	GridPoint dTot2(0,0,dx);
 	int dCount1 = 0;
 	int dCount2 = 0;
 	float dyMedian = FLT_MAX;
@@ -90,17 +103,30 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
 			if (json_is_number(pX) && json_is_number(pY)) {
 				double x = json_real_value(pX);
 				double y = json_real_value(pY);
-				GridPoint key(x,y);
-				pointMap[key] = GridPoint(x,y);
+				GridPoint key(x,y,dx);
+				pointMap[key] = GridPoint(x,y,dx);
 			}
 		}
 
-		int iMedian = pointMap.size()/2;
-		map<GridPoint,GridPoint>::iterator itMedian1=pointMap.begin();
-		for (int i=0; i<iMedian; i++) { itMedian1++; }
-		map<GridPoint,GridPoint>::iterator itMedian2 = itMedian1;
+		map<float,float> dyMap;
+		GridPoint prevPt;
+		for (map<GridPoint,GridPoint>::iterator it=pointMap.begin(); it!=pointMap.end(); it++) {
+			if (it != pointMap.begin()) {
+				float dy = prevPt.y - it->first.y;
+				dyMap[dy] = dy;
+			}
+			prevPt = it->first;
+		}
+		int iMedian = dyMap.size()/2;
+		cout << "iMedian" << iMedian << endl;
+		map<float,float>::iterator itMedian1=dyMap.begin();
+		for (int i=0; i<iMedian; i++) { 
+			cout << "itMedian1" <<  itMedian1->first << endl;
+			itMedian1++; 
+		}
+		map<float,float>::iterator itMedian2 = itMedian1;
 		itMedian2++;
-		dyMedian = itMedian1->first.y - itMedian2->first.y;
+		dyMedian = itMedian1->first - itMedian2->first;
 		float maxTol = dyMedian < 0 ? 1-tolerance : 1+tolerance;
 		float minTol = dyMedian < 0 ? 1+tolerance : 1-tolerance;
 		float maxDy1 = dyMedian * maxTol;
@@ -112,6 +138,7 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
 		GridPoint prevPt2;
 		for (map<GridPoint,GridPoint>::iterator it=pointMap.begin(); it!=pointMap.end(); it++) {
 			const GridPoint &curPt = it->first;
+			cout << "(" << curPt.x << "," << curPt.y << ")" << endl;
 			if (!prevPt1.isnan()) {
 				int dy1 = prevPt1.y - curPt.y;
 				if (minDy1 <= dy1 && dy1 <= maxDy1) {
