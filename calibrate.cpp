@@ -17,14 +17,23 @@ using namespace cv;
 using namespace std;
 using namespace firesight;
 
-bool cmpPoint2f_xy(const Point2f &lhs, const Point2f &rhs) {
-	int cmp = lhs.x - rhs.x;
-	if (cmp == 0) {
-		cmp = lhs.y - rhs.y;
-	}
+class ComparePoint2f {
+private:
+	bool isXY;
 
-	return cmp < 0;
-}
+public:
+	ComparePoint2f(bool isXY=true) {
+		this->isXY = isXY;
+	}
+public:
+	bool operator()(const Point2f &lhs, Point2f &rhs) {
+		int cmp = lhs.x - rhs.x;
+		if (cmp == 0) {
+			cmp = lhs.y - rhs.y;
+		}
+		return cmp < 0;
+	}
+};
 
 typedef struct GridPoint {
 	float x;
