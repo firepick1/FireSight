@@ -27,15 +27,21 @@ class ComparePoint2f {
         }
     public:
         bool operator()(const Point2f &lhs, const Point2f &rhs) const {
-			cout << "HELLO" << endl;
 			assert(!isnan(lhs.x));
 			assert(!isnan(rhs.x));
-			cout << "comparing " << lhs.x << " with " << rhs.x << endl;
-            int cmp = lhs.x - rhs.x;
-            if (cmp == 0) {
-				cout << "comparing " << lhs.y << " with " << rhs.y << endl;
-                cmp = lhs.y - rhs.y;
-            }
+			//cout << "comparing " << lhs.x << " with " << rhs.x << endl;
+			int cmp;
+			if ( isXY ) {
+				cmp = lhs.x - rhs.x;
+				if (cmp == 0) {
+					cmp = lhs.y - rhs.y;
+				}
+			} else {
+				cmp = lhs.y - rhs.y;
+				if (cmp == 0) {
+					cmp = lhs.x - rhs.x;
+				}
+			}
             return cmp < 0;
         }
 };
@@ -47,7 +53,6 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     string rectsModelName = jo_string(pStage, "model", "", model.argMap);
     double sepX = jo_double(pStage, "sepX", 5.0, model.argMap);
     double sepY = jo_double(pStage, "sepY", 5.0, model.argMap);
-    double dx = jo_double(pStage, "dx", 1.0, model.argMap);
     double tolerance = jo_double(pStage, "tolerance", 0.35, model.argMap);
     json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName.c_str());
     string errMsg;
@@ -90,25 +95,17 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
             }
         }
 
-        map<float,float> dyMap;
+		vector<float> dyList;
         Point2f prevPt;
         for (PointMap::iterator it=pointMap.begin(); it!=pointMap.end(); it++) {
             if (it != pointMap.begin()) {
                 float dy = prevPt.y - it->first.y;
-                dyMap[dy] = dy;
+				dyList.push_back(dy);
             }
             prevPt = it->first;
         }
-        int iMedian = dyMap.size()/2;
-        cout << "iMedian" << iMedian << endl;
-        map<float,float>::iterator itMedian1=dyMap.begin();
-        for (int i=0; i<iMedian; i++) {
-            cout << "itMedian1" <<  itMedian1->first << endl;
-            itMedian1++;
-        }
-        map<float,float>::iterator itMedian2 = itMedian1;
-        itMedian2++;
-        dyMedian = itMedian1->first - itMedian2->first;
+		sort(dyList.begin(), dyList.end());
+        dyMedian = dyList[dyList.size()/2];
         float maxTol = dyMedian < 0 ? 1-tolerance : 1+tolerance;
         float minTol = dyMedian < 0 ? 1+tolerance : 1-tolerance;
         float maxDy1 = dyMedian * maxTol;
