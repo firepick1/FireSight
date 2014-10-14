@@ -34,7 +34,7 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
     float minval = jo_float(pStage, "minval", 0.7f, model.argMap);
     float corr = jo_float(pStage, "corr", 0.99f);
     string outputStr = jo_string(pStage, "output", "current", model.argMap);
-    const char *errMsg = NULL;
+    string errMsg;
     int flags = INTER_LINEAR;
     int method = CV_TM_CCOEFF_NORMED;
     Mat tmplt;
@@ -57,10 +57,10 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
                 errMsg = "Expected template smaller than image to match";
             }
         } else {
-            errMsg = "imread failed";
+            errMsg = "imread failed: " + tmpltPath;
         }
     }
-    if (!errMsg) {
+    if (errMsg.empty()) {
         if (model.image.channels() > 3) {
             errMsg = "Expected at most 3 channels for pipeline image";
         } else if (tmplt.channels() != model.image.channels()) {
@@ -74,7 +74,7 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
         }
     }
 
-    if (!errMsg) {
+    if (errMsg.empty()) {
         Mat result;
         Mat imagePlanes[] = { Mat(), Mat(), Mat() };
         Mat tmpltPlanes[] = { Mat(), Mat(), Mat() };
@@ -196,5 +196,5 @@ bool Pipeline::apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &mode
         }
     }
 
-    return stageOK("apply_calcOffset(%s) %s", errMsg, pStage, pStageModel);
+    return stageOK("apply_calcOffset(%s) %s", errMsg.c_str(), pStage, pStageModel);
 }

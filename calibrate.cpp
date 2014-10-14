@@ -29,7 +29,6 @@ class ComparePoint2f {
         bool operator()(const Point2f &lhs, const Point2f &rhs) const {
 			assert(!isnan(lhs.x));
 			assert(!isnan(rhs.x));
-			//cout << "comparing " << lhs.x << " with " << rhs.x << endl;
 			int cmp;
 			if ( isXY ) {
 				cmp = lhs.x - rhs.x;
