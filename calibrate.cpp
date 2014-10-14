@@ -85,9 +85,11 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     int dCount1 = 0;
     int dCount2 = 0;
     float dyMedian = FLT_MAX;
-    const ComparePoint2f cmp;
+    const ComparePoint2f cmpXY(COMPARE_XY);
+    const ComparePoint2f cmpYX(COMPARE_YX);
     if (errMsg.empty()) {
-        PointMap pointMap(cmp);
+        PointMap pointMapXY(cmpXY);
+        PointMap pointMapYX(cmpYX);
         json_t *pValue;
         int index;
         json_array_foreach(pRects, index, pValue) {
@@ -97,22 +99,28 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
                 double x = json_real_value(pX);
                 double y = json_real_value(pY);
                 const Point2f key(x,y);
-                cout << "adding " << key << " to pointMap(" << pointMap.size() << ")" << endl;
-                pointMap[key] = Point2f(x,y);
+                cout << "adding " << key << " to pointMapXY(" << pointMapXY.size() << ")" << endl;
+                pointMapXY[key] = Point2f(x,y);
+                cout << "adding " << key << " to pointMapYX(" << pointMapYX.size() << ")" << endl;
+                pointMapYX[key] = Point2f(x,y);
             }
         }
 
-        vector<float> listXY;
+        vector<float> dyList;
+        vector<float> dxList;
         Point2f prevPt;
-        for (PointMap::iterator it=pointMap.begin(); it!=pointMap.end(); it++) {
-            if (it != pointMap.begin()) {
+        for (PointMap::iterator it=pointMapXY.begin(); it!=pointMapXY.end(); it++) {
+            if (it != pointMapXY.begin()) {
                 float dy = prevPt.y - it->first.y;
-                listXY.push_back(dy);
+                dyList.push_back(dy);
+				float dx = prevPt.x - it->first.x;
+                dxList.push_back(dx);
             }
             prevPt = it->first;
         }
-        sort(listXY.begin(), listXY.end());
-        dyMedian = listXY[listXY.size()/2];
+        sort(dyList.begin(), dyList.end());
+        sort(dxList.begin(), dxList.end());
+        dyMedian = dyList[dyList.size()/2];
         float maxTol = dyMedian < 0 ? 1-tolerance : 1+tolerance;
         float minTol = dyMedian < 0 ? 1+tolerance : 1-tolerance;
         float maxDy1 = dyMedian * maxTol;
@@ -123,8 +131,8 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         Point2f prevPt1;
         Point2f prevPt2;
         int n = 0;
-        for (map<Point2f,Point2f,ComparePoint2f>::iterator it=pointMap.begin();
-                it!=pointMap.end(); it++) {
+        for (map<Point2f,Point2f,ComparePoint2f>::iterator it=pointMapXY.begin();
+                it!=pointMapXY.end(); it++) {
             const Point2f &curPt = it->first;
             cout << "(" << curPt.x << "," << curPt.y << ")" << endl;
             if (n > 0) {
