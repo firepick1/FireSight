@@ -17,33 +17,41 @@ using namespace cv;
 using namespace std;
 using namespace firesight;
 
-class ComparePoint2f {
+enum CompareOp {
+    COMPARE_XY,
+    COMPARE_YX
+};
+
+typedef class ComparePoint2f {
     private:
-        bool isXY;
+        CompareOp op;
 
     public:
-        ComparePoint2f(bool isXY=true) {
-            this->isXY = isXY;
+        ComparePoint2f(CompareOp op=COMPARE_XY) {
+            this->op = op;
         }
     public:
         bool operator()(const Point2f &lhs, const Point2f &rhs) const {
-			assert(!isnan(lhs.x));
-			assert(!isnan(rhs.x));
-			int cmp;
-			if ( isXY ) {
-				cmp = lhs.x - rhs.x;
-				if (cmp == 0) {
-					cmp = lhs.y - rhs.y;
-				}
-			} else {
-				cmp = lhs.y - rhs.y;
-				if (cmp == 0) {
-					cmp = lhs.x - rhs.x;
-				}
-			}
+            assert(!isnan(lhs.x));
+            assert(!isnan(rhs.x));
+            int cmp;
+            switch (op) {
+            case COMPARE_XY:
+                cmp = lhs.x - rhs.x;
+                if (cmp == 0) {
+                    cmp = lhs.y - rhs.y;
+                }
+                break;
+            case COMPARE_YX:
+                cmp = lhs.y - rhs.y;
+                if (cmp == 0) {
+                    cmp = lhs.x - rhs.x;
+                }
+                break;
+            }
             return cmp < 0;
         }
-};
+} ComparePoint2f;
 
 typedef map<Point2f,Point2f,ComparePoint2f> PointMap;
 
@@ -89,22 +97,22 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
                 double x = json_real_value(pX);
                 double y = json_real_value(pY);
                 const Point2f key(x,y);
-				cout << "adding " << key << " to pointMap(" << pointMap.size() << ")" << endl;
+                cout << "adding " << key << " to pointMap(" << pointMap.size() << ")" << endl;
                 pointMap[key] = Point2f(x,y);
             }
         }
 
-		vector<float> dyList;
+        vector<float> listXY;
         Point2f prevPt;
         for (PointMap::iterator it=pointMap.begin(); it!=pointMap.end(); it++) {
             if (it != pointMap.begin()) {
                 float dy = prevPt.y - it->first.y;
-				dyList.push_back(dy);
+                listXY.push_back(dy);
             }
             prevPt = it->first;
         }
-		sort(dyList.begin(), dyList.end());
-        dyMedian = dyList[dyList.size()/2];
+        sort(listXY.begin(), listXY.end());
+        dyMedian = listXY[listXY.size()/2];
         float maxTol = dyMedian < 0 ? 1-tolerance : 1+tolerance;
         float minTol = dyMedian < 0 ? 1+tolerance : 1-tolerance;
         float maxDy1 = dyMedian * maxTol;
@@ -114,7 +122,7 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
 
         Point2f prevPt1;
         Point2f prevPt2;
-		int n = 0;
+        int n = 0;
         for (map<Point2f,Point2f,ComparePoint2f>::iterator it=pointMap.begin();
                 it!=pointMap.end(); it++) {
             const Point2f &curPt = it->first;
@@ -135,7 +143,7 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
             }
             prevPt2 = prevPt1;
             prevPt1 = curPt;
-			n++;
+            n++;
         }
         json_object_set(pStageModel, "dyMedian", json_real(dyMedian));
         json_object_set(pStageModel, "dCount1", json_integer(dCount1));
