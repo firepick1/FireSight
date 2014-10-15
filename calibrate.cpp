@@ -201,6 +201,23 @@ static string identifyColumns(json_t *pStageModel, PointMap &pointMapYX, float &
 	return errMsg;
 } // identifyColumns
 
+void initializePointMaps(json_t *pRects, PointMap &pointMapXY, PointMap &pointMapYX) {
+	Point2f	noPoint(FLT_MAX, FLT_MAX);
+	json_t *pValue;
+	int index;
+	json_array_foreach(pRects, index, pValue) {
+		json_t *pX = json_object_get(pValue, "x");
+		json_t *pY = json_object_get(pValue, "y");
+		if (json_is_number(pX) && json_is_number(pY)) {
+			double x = json_real_value(pX);
+			double y = json_real_value(pY);
+			const Point2f key(x,y);
+			pointMapXY[key] = noPoint;
+			pointMapYX[key] = noPoint;
+		}
+	}
+}
+
 bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model) {
     string rectsModelName = jo_string(pStage, "model", "", model.argMap);
     double sepX = jo_double(pStage, "sepX", 5.0, model.argMap);
@@ -237,23 +254,11 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     float dxMedian = FLT_MAX;
     const ComparePoint2f cmpXY(COMPARE_XY);
     const ComparePoint2f cmpYX(COMPARE_YX);
-    if (errMsg.empty()) {
-        PointMap pointMapXY(cmpXY);
-        PointMap pointMapYX(cmpYX);
-        json_t *pValue;
-        int index;
-        json_array_foreach(pRects, index, pValue) {
-            json_t *pX = json_object_get(pValue, "x");
-            json_t *pY = json_object_get(pValue, "y");
-            if (json_is_number(pX) && json_is_number(pY)) {
-                double x = json_real_value(pX);
-                double y = json_real_value(pY);
-                const Point2f key(x,y);
-                pointMapXY[key] = Point2f(x,y);
-                pointMapYX[key] = Point2f(x,y);
-            }
-        }
+	PointMap pointMapXY(cmpXY);
+	PointMap pointMapYX(cmpYX);
 
+    if (errMsg.empty()) {
+		initializePointMaps(pRects, pointMapXY, pointMapYX);
 		errMsg = identifyColumns(pStageModel, pointMapYX, dxMedian, 
 			dxTot1, dxTot2, dxCount1, dxCount2, tolerance, sepX);
 		string errMsg2 = identifyRows(pStageModel, pointMapXY, dyMedian, 
@@ -266,6 +271,13 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
 			errMsg.append(errMsg2);
 		}
     }
+
+	if (errMsg.empty()) {
+		for (map<Point2f,Point2f,ComparePoint2f>::iterator it=pointMapYX.begin();
+				it!=pointMapYX.end(); it++) {
+			const Point2f &curPt = it->first;
+		}
+	}
 
     return stageOK("apply_matchGrid(%s) %s", errMsg.c_str(), pStage, pStageModel);
 }
