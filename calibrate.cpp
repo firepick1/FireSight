@@ -55,8 +55,8 @@ typedef class ComparePoint2f {
 
 typedef map<Point2f,Point2f,ComparePoint2f> PointMap;
 
-static void identifyColumns(PointMap &pointMapXY, float &dyMedian, Point2f &dyTot1, Point2f &dyTot2, 
-	int &dyCount1, int &dyCount2, double tolerance) 
+static string identifyRows(json_t *pStageModel, PointMap &pointMapXY, float &dyMedian, 
+	Point2f &dyTot1, Point2f &dyTot2, int &dyCount1, int &dyCount2, double tolerance, int sepY) 
 {
 	vector<float> dyList;
 	Point2f prevPt;
@@ -101,10 +101,35 @@ static void identifyColumns(PointMap &pointMapXY, float &dyMedian, Point2f &dyTo
 		prevPt1 = curPt;
 		n++;
 	}
-} // identifyColumns
 
-static void identifyRows(PointMap &pointMapYX, float &dxMedian, Point2f &dxTot1, Point2f &dxTot2, 
-	int &dxCount1, int &dxCount2, double tolerance) 
+	string errMsg;
+	json_object_set(pStageModel, "dyMedian", json_real(dyMedian));
+	json_object_set(pStageModel, "dyCount1", json_integer(dyCount1));
+	json_object_set(pStageModel, "dyCount2", json_integer(dyCount2));
+	if (dyCount1 == 0) {
+		errMsg = "No grid points matched within tolerance (level 1) dyCount1:0";
+	} else if (dyCount2 == 0) {
+		json_object_set(pStageModel, "dxAvg1", json_real(dyTot1.x/dyCount1));
+		json_object_set(pStageModel, "dyAvg1", json_real(dyTot1.y/dyCount1));
+		errMsg = "No grid points matched within tolerance (level 2) dyCount2:0";
+	} else {
+		float dxAvg1 = dyTot1.x/dyCount1;
+		float dyAvg1 = dyTot1.y/dyCount1;
+		float dxAvg2 = dyTot2.x/dyCount2/2;
+		float dyAvg2 = dyTot2.y/dyCount2/2;
+		json_object_set(pStageModel, "dydxAvg1", json_real(dxAvg1));
+		json_object_set(pStageModel, "dydyAvg1", json_real(dyAvg1));
+		json_object_set(pStageModel, "dydxAvg2", json_real(dxAvg2));
+		json_object_set(pStageModel, "dydyAvg2", json_real(dyAvg2));
+		float normXY = sqrt(dxAvg2*dxAvg2 + dyAvg2*dyAvg2);
+		json_object_set(pStageModel, "gridY", json_real(normXY/sepY));
+	}
+
+	return errMsg;
+} // identifyRows
+
+static string identifyColumns(json_t *pStageModel, PointMap &pointMapYX, float &dxMedian, 
+	Point2f &dxTot1, Point2f &dxTot2, int &dxCount1, int &dxCount2, double tolerance, int sepX) 
 {
 	vector<float> dxList;
 	Point2f prevPt;
@@ -149,7 +174,32 @@ static void identifyRows(PointMap &pointMapYX, float &dxMedian, Point2f &dxTot1,
 		prevPt1 = curPt;
 		n++;
 	}
-} // identifyRows
+
+	string errMsg;
+	json_object_set(pStageModel, "dxMedian", json_real(dxMedian));
+	json_object_set(pStageModel, "dxCount1", json_integer(dxCount1));
+	json_object_set(pStageModel, "dxCount2", json_integer(dxCount2));
+	if (dxCount1 == 0) {
+		errMsg = "No grid points matched within tolerance (level 1) dxCount1:0";
+	} else if (dxCount2 == 0) {
+		json_object_set(pStageModel, "dxAvg1", json_real(dxTot1.x/dxCount1));
+		json_object_set(pStageModel, "dyAvg1", json_real(dxTot1.y/dxCount1));
+		errMsg = "No grid points matched within tolerance (level 2) dxCount2:0";
+	} else {
+		float dxAvg1 = dxTot1.x/dxCount1;
+		float dyAvg1 = dxTot1.y/dxCount1;
+		float dxAvg2 = dxTot2.x/dxCount2/2;
+		float dyAvg2 = dxTot2.y/dxCount2/2;
+		json_object_set(pStageModel, "dxdxAvg1", json_real(dxAvg1));
+		json_object_set(pStageModel, "dxdyAvg1", json_real(dyAvg1));
+		json_object_set(pStageModel, "dxdxAvg2", json_real(dxAvg2));
+		json_object_set(pStageModel, "dxdyAvg2", json_real(dyAvg2));
+		float normXY = sqrt(dxAvg2*dxAvg2 + dyAvg2*dyAvg2);
+		json_object_set(pStageModel, "gridX", json_real(normXY/sepX));
+	}
+
+	return errMsg;
+} // identifyColumns
 
 bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model) {
     string rectsModelName = jo_string(pStage, "model", "", model.argMap);
@@ -204,51 +254,17 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
             }
         }
 
-		identifyColumns(pointMapXY, dyMedian, dyTot1, dyTot2, dyCount1, dyCount2, tolerance);
-		identifyRows(pointMapYX, dxMedian, dxTot1, dxTot2, dxCount1, dxCount2, tolerance);
+		errMsg = identifyColumns(pStageModel, pointMapYX, dxMedian, 
+			dxTot1, dxTot2, dxCount1, dxCount2, tolerance, sepX);
+		string errMsg2 = identifyRows(pStageModel, pointMapXY, dyMedian, 
+			dyTot1, dyTot2, dyCount1, dyCount2, tolerance, sepY);
 
-        json_object_set(pStageModel, "dxMedian", json_real(dxMedian));
-        json_object_set(pStageModel, "dxCount1", json_integer(dxCount1));
-        json_object_set(pStageModel, "dxCount2", json_integer(dxCount2));
-        json_object_set(pStageModel, "dyMedian", json_real(dyMedian));
-        json_object_set(pStageModel, "dyCount1", json_integer(dyCount1));
-        json_object_set(pStageModel, "dyCount2", json_integer(dyCount2));
-        if (dxCount1 == 0) {
-            errMsg = "No grid points matched within tolerance (level 1) dxCount1:0";
-        } else if (dxCount2 == 0) {
-            json_object_set(pStageModel, "dxAvg1", json_real(dxTot1.x/dxCount1));
-            json_object_set(pStageModel, "dyAvg1", json_real(dxTot1.y/dxCount1));
-            errMsg = "No grid points matched within tolerance (level 2) dxCount2:0";
-        } else {
-            float dxAvg1 = dxTot1.x/dxCount1;
-            float dyAvg1 = dxTot1.y/dxCount1;
-            float dxAvg2 = dxTot2.x/dxCount2/2;
-            float dyAvg2 = dxTot2.y/dxCount2/2;
-            json_object_set(pStageModel, "dxdxAvg1", json_real(dxAvg1));
-            json_object_set(pStageModel, "dxdyAvg1", json_real(dyAvg1));
-            json_object_set(pStageModel, "dxdxAvg2", json_real(dxAvg2));
-            json_object_set(pStageModel, "dxdyAvg2", json_real(dyAvg2));
-            float normXY = sqrt(dxAvg2*dxAvg2 + dyAvg2*dyAvg2);
-            json_object_set(pStageModel, "gridX", json_real(normXY/sepX));
-        }
-        if (dyCount1 == 0) {
-            errMsg = "No grid points matched within tolerance (level 1) dyCount1:0";
-        } else if (dyCount2 == 0) {
-            json_object_set(pStageModel, "dxAvg1", json_real(dyTot1.x/dyCount1));
-            json_object_set(pStageModel, "dyAvg1", json_real(dyTot1.y/dyCount1));
-            errMsg = "No grid points matched within tolerance (level 2) dyCount2:0";
-        } else {
-            float dxAvg1 = dyTot1.x/dyCount1;
-            float dyAvg1 = dyTot1.y/dyCount1;
-            float dxAvg2 = dyTot2.x/dyCount2/2;
-            float dyAvg2 = dyTot2.y/dyCount2/2;
-            json_object_set(pStageModel, "dydxAvg1", json_real(dxAvg1));
-            json_object_set(pStageModel, "dydyAvg1", json_real(dyAvg1));
-            json_object_set(pStageModel, "dydxAvg2", json_real(dxAvg2));
-            json_object_set(pStageModel, "dydyAvg2", json_real(dyAvg2));
-            float normXY = sqrt(dxAvg2*dxAvg2 + dyAvg2*dyAvg2);
-            json_object_set(pStageModel, "gridY", json_real(normXY/sepY));
-        }
+		if (errMsg.empty()) {
+			errMsg = errMsg2;
+		} else if (!errMsg2.empty()) {
+			errMsg.append("; ");
+			errMsg.append(errMsg2);
+		}
     }
 
     return stageOK("apply_matchGrid(%s) %s", errMsg.c_str(), pStage, pStageModel);
