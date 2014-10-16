@@ -169,17 +169,17 @@ static string identifyRows(json_t *pStageModel, vector<Point2f> &pointsXY, float
     return errMsg;
 } // identifyRows
 
-static string identifyColumns(json_t *pStageModel, PointMap &pointMapYX, float &dxMedian, Point2f &dxTot1,
+static string identifyColumns(json_t *pStageModel, vector<Point2f> &pointsYX, float &dxMedian, Point2f &dxTot1,
                               Point2f &dxTot2, int &dxCount1, int &dxCount2, double tolerance, int sepX, float &gridX)
 {
     vector<float> dxList;
     Point2f prevPt;
-    for (PointMap::iterator it=pointMapYX.begin(); it!=pointMapYX.end(); it++) {
-        if (it != pointMapYX.begin()) {
-            float dx = prevPt.x - it->first.x;
+    for (vector<Point2f>::iterator it=pointsYX.begin(); it!=pointsYX.end(); it++) {
+        if (it != pointsYX.begin()) {
+            float dx = prevPt.x - it->x;
             dxList.push_back(dx);
         }
-        prevPt = it->first;
+        prevPt = *it;
     }
     sort(dxList.begin(), dxList.end());
     dxMedian = dxList[dxList.size()/2];
@@ -193,11 +193,11 @@ static string identifyColumns(json_t *pStageModel, PointMap &pointMapYX, float &
     Point2f prevPt1;
     Point2f prevPt2;
     int n = 0;
-    for (map<Point2f,Point2f,ComparePoint2f>::iterator it=pointMapYX.begin();
-            it!=pointMapYX.end(); it++) {
-        const Point2f &curPt = it->first;
+    for (vector<Point2f>::iterator it=pointsYX.begin();
+            it!=pointsYX.end(); it++) {
+        const Point2f &curPt = *it;
         if (n > 0) {
-            LOGDEBUG3("matchGrid() pointMapYX[%d] (%g,%g)", n, curPt.x, curPt.y);
+            LOGDEBUG3("matchGrid() pointsYX[%d] (%g,%g)", n, curPt.x, curPt.y);
             int dx1 = prevPt1.x - curPt.x;
             if (minDx1 <= dx1 && dx1 <= maxDx1) {
                 dxTot1 = dxTot1 + (prevPt1 - curPt);
@@ -243,8 +243,7 @@ static string identifyColumns(json_t *pStageModel, PointMap &pointMapYX, float &
     return errMsg;
 } // identifyColumns
 
-void initializePointMaps(json_t *pRects, vector<Point2f> &pointsXY, PointMap &pointMapYX) {
-    Point2f	noPoint(FLT_MAX, FLT_MAX);
+void initializePointMaps(json_t *pRects, vector<Point2f> &pointsXY, vector<Point2f> &pointsYX) {
     json_t *pValue;
     int index;
     json_array_foreach(pRects, index, pValue) {
@@ -255,11 +254,13 @@ void initializePointMaps(json_t *pRects, vector<Point2f> &pointsXY, PointMap &po
             double y = json_real_value(pY);
             const Point2f key(x,y);
             pointsXY.push_back(key);
-            pointMapYX[key] = noPoint;
+            pointsYX.push_back(key);
         }
     }
     const ComparePoint2f cmpXY(COMPARE_XY);
 	sort(pointsXY, cmpXY);
+    const ComparePoint2f cmpYX(COMPARE_YX);
+	sort(pointsYX, cmpYX);
 }
 
 inline Point3f calcObjPointDiff(const Point2f &curPt, const Point2f &prevPt, const Point2f &imgSep) {
@@ -311,11 +312,11 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     Point2f median(FLT_MAX,FLT_MAX);
     const ComparePoint2f cmpYX(COMPARE_YX);
     vector<Point2f> pointsXY;
-    PointMap pointMapYX(cmpYX);
+    vector<Point2f> pointsYX;
 
     if (errMsg.empty()) {
-        initializePointMaps(pRects, pointsXY, pointMapYX);
-        errMsg = identifyColumns(pStageModel, pointMapYX, median.x,
+        initializePointMaps(pRects, pointsXY, pointsYX);
+        errMsg = identifyColumns(pStageModel, pointsYX, median.x,
                                  dxTot1, dxTot2, dxCount1, dxCount2, tolerance, objSep.x, gridX);
         string errMsg2 = identifyRows(pStageModel, pointsXY, median.y,
                                       dyTot1, dyTot2, dyCount1, dyCount2, tolerance, objSep.y, gridY);
@@ -334,11 +335,11 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         float maxDx1 = median.x * maxTol;
         float minDx1 = median.x * minTol;
         vector<Point2f>::iterator itXY = pointsXY.begin();
-        map<Point2f,Point2f,ComparePoint2f>::iterator itYX = pointMapYX.begin();
+        vector<Point2f>::iterator itYX = pointsYX.begin();
 
         int dx = median.x > 0 ? 1 : -1;
         int dy = median.y > 0 ? 1 : -1;
-        Point2f ptImg0 = itYX->first;
+        Point2f ptImg0 = *itYX;
         Point3f ptObj;
         Point2f ptImg;
         Point2f imgSep(gridX*objSep.x, gridY*objSep.y);
@@ -348,8 +349,8 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         vector<Point2f> imagePts;
         vector<Point3f> objectPts;
         Point3f objCentroid;
-        while (++itYX!=pointMapYX.end()) {
-            const Point2f &ptImg1 = itYX->first;
+        while (++itYX!=pointsYX.end()) {
+            const Point2f &ptImg1 = *itYX;
             int dx1 = ptImg0.x - ptImg1.x;
             if (minDx1 <= dx1 && dx1 <= maxDx1) {
                 if (imagePts.size() == 0) {
