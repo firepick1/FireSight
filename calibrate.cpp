@@ -281,6 +281,7 @@ typedef struct GridMatcher {
     const ComparePoint2f cmpYX;
     set<Point2f,ComparePoint2f> imgSet;
 	Size imgSize;
+	Mat gridIndexes;	// object grid matrix of imagePts/objectPts vector indexes or -1
 
     GridMatcher(Size imgSize) : cmpYX(ComparePoint2f(COMPARE_YX)), imgSet(set<Point2f,ComparePoint2f>(cmpYX)) {
 		this->imgSize = imgSize;
@@ -303,15 +304,20 @@ typedef struct GridMatcher {
 
     void subMatrix(int row, int col, int rows, int cols,
                    vector<Point2f> &subImgPts, vector<Point3f> &subObjPts) {
+		if (gridIndexes.rows == 0) {
+			gridIndexes = Mat(imgSize.height+1, imgSize.width+1
+		}
     }
 
     int size() {
         return objectPts.size();
     }
+
     Point2f getImageCentroid() {
         int n = objectPts.size();
         return Point2f(imgTotals.x/n, imgTotals.y/n);
     }
+
     Point3f getObjectCentroid() {
         int n = objectPts.size();
         return Point3f(objTotals.x/n, objTotals.y/n, objTotals.z/n);
