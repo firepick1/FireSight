@@ -69,14 +69,19 @@ typedef struct GridMatcher {
     vector<Point3f> objectPts;
     Point3f objTotals;
     Point2f imgTotals;
-	Rect imgRect;
+    Rect imgRect;
     const ComparePoint2f cmpYX;
     set<Point2f,ComparePoint2f> imgSet;
-	Size imgSize;
-	Mat gridIndexes;	// object grid matrix of imagePts/objectPts vector indexes or -1 
-    GridMatcher(Size imgSize) : cmpYX(ComparePoint2f(COMPARE_YX)), imgSet(set<Point2f,ComparePoint2f>(cmpYX)) {
-		this->imgSize = imgSize;
-		this->imgRect = Rect(imgSize.width/2, imgSize.height/2, 0, 0);
+    Size imgSize;
+    Point2f imgSep;
+    Point2f objSep;
+    Mat gridIndexes;	// object grid matrix of imagePts/objectPts vector indexes or -1
+    GridMatcher(Size imgSize, Point2f imgSep, Point2f objSep)
+        : cmpYX(ComparePoint2f(COMPARE_YX)), imgSet(set<Point2f,ComparePoint2f>(cmpYX)) {
+        this->imgSize = imgSize;
+        this->imgSep = imgSep;
+        this->objSep = objSep;
+        this->imgRect = Rect(imgSize.width/2, imgSize.height/2, 0, 0);
     }
 
     bool add(Point2f &ptImg, Point3f &ptObj) {
@@ -93,10 +98,48 @@ typedef struct GridMatcher {
         return true;
     }
 
-    void subMatrix(int row, int col, int rows, int cols,
-                   vector<Point2f> &subImgPts, vector<Point3f> &subObjPts) {
-		if (gridIndexes.rows == 0) {
-			gridIndexes = Mat(imgSize.height+1, imgSize.width+1, CV_16S);
+    void calcGridIndexes() {
+        int ny = imgSize.height/imgSep.y+1.5;
+        int nx = imgSize.width/imgSep.x+1.5;
+        gridIndexes = Mat(Size(nx,ny),CV_16S);
+        gridIndexes = -1;
+        cout << "ny:" << ny << " nx:" << nx << " gridIndexes:" << matInfo(gridIndexes) << endl;
+        for (short i=0; i < objectPts.size(); i++) {
+            int r = objectPts[i].y;
+            int c = objectPts[i].x;
+            cout << "SUBMAT [" << r << "," << c << "] = " << i << endl;
+            assert( 0 <= r && r < gridIndexes.rows);
+            assert( 0 <= c && c < gridIndexes.cols);
+            gridIndexes.at<short>(r,c) = i;
+        }
+    }
+
+    void addSubImage(int row, int col, int rows, int cols, int minPts,
+                   vector<vector<Point2f> > &vImagePts, vector<vector<Point3f> > &vObjectPts) {
+		vector<Point2f> subImgPts;
+		vector<Point3f> subObjPts;
+        cout << "addSubImage" << gridIndexes.rows << endl;
+        float cy = (rows-1)/2.0;
+        float cx = (cols-1)/2.0;
+        float z = 0;
+        for (int r=0; r < rows; r++) {
+            for (int c=0; c < cols; c++) {
+                short index = gridIndexes.at<short>(r+row, c+col);
+                if (0 <= index) {
+                    Point2f ptImg = imagePts[index];
+                    Point3f ptObj = objectPts[index];
+                    Point3f subObjPt(objSep.x*(ptObj.x-cx), objSep.y*(ptObj.y-cy), z);
+                    cout << "index:" << index << " r:" << r << " c:" << c 
+						<< " ptImg:" << ptImg << " subObjPt:" << subObjPt << endl;
+                    subImgPts.push_back(ptImg);
+                    subObjPts.push_back(subObjPt);
+                }
+            }
+        }
+        cout << "addSubImage return" << endl;
+		if (subImgPts.size() >= minPts) {
+			vObjectPts.push_back(subObjPts);
+			vImagePts.push_back(subImgPts);
 		}
     }
 
@@ -113,37 +156,65 @@ typedef struct GridMatcher {
         int n = objectPts.size();
         return Point3f(objTotals.x/n, objTotals.y/n, objTotals.z/n);
     }
+
+    string calibrateImage(json_t *pStageModel, Mat &cameraMatrix, Mat &distCoeffs) {
+		string errMsg;
+        vector<Mat> rvecs;
+        vector<Mat> tvecs;
+        vector< vector<Point3f> > vObjectPts;
+        vector< vector<Point2f> > vImagePts;
+
+        calcGridIndexes();
+        int subRows = 7;
+        int subCols = 8;
+		int minPts = max(4, subRows * subCols * 2 / 3);
+		int dr = (gridIndexes.rows-subRows)/3;
+		int dc = (gridIndexes.cols-subCols)/3;
+        for (int r=0; r < gridIndexes.rows-subRows; r += dr) {
+            for (int c=0; c < gridIndexes.cols-subCols; c += dc) {
+                addSubImage(r, c, subRows, subCols, minPts, vImagePts, vObjectPts);
+            }
+        }
+
+		double rmserror;
+        cout << "calibrateCamera images:" << vImagePts.size() << endl;
+
+		try {
+			rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize,
+                                          cameraMatrix, distCoeffs, rvecs, tvecs);
+		} catch (cv::Exception ex) {
+			errMsg = "calibrateImage(FAILED) ";
+			errMsg += ex.msg;
+		} catch (const char * err) {
+			errMsg = "calibrateImage(FAILED) ";
+			errMsg += err;
+		} catch (...) {
+			errMsg = "calibrateImage(FAILED...)";
+		}
+        cout << "calibrateCamera => " << rmserror << endl;
+
+        json_t *pCalibrate = json_object();
+        json_object_set(pStageModel, "calibrate", pCalibrate);
+
+        json_object_set(pCalibrate, "camera", json_matrix(cameraMatrix));
+        json_object_set(pCalibrate, "distCoeffs", json_matrix(distCoeffs));
+        json_object_set(pCalibrate, "rmserror", json_real(rmserror));
+        json_object_set(pCalibrate, "images", json_real(vImagePts.size()));
+#ifdef RVECS_TVECS
+        json_t *pRvecs = json_array();
+        json_object_set(pCalibrate, "rvecs", pRvecs);
+        for (int i=0; i < rvecs.size(); i++) {
+            json_array_append(pRvecs, json_matrix(rvecs[i]));
+        }
+        json_t *pTvecs = json_array();
+        json_object_set(pCalibrate, "tvecs", pTvecs);
+        for (int i=0; i < tvecs.size(); i++) {
+            json_array_append(pTvecs, json_matrix(tvecs[i]));
+        }
+#endif
+		return errMsg;
+    }
 } GridMatcher;
-
-void calibrateImage(json_t *pStageModel, Size imageSize, vector<Point2f> &imagePts, vector<Point3f> &objectPts,
-                    Mat &cameraMatrix, Mat &distCoeffs) {
-    vector<Mat> rvecs;
-    vector<Mat> tvecs;
-    vector< vector<Point3f> > vObjectPts;
-    vObjectPts.push_back(objectPts);
-    vector< vector<Point2f> > vImagePts;
-    vImagePts.push_back(imagePts);
-
-    double rmserror = calibrateCamera(vObjectPts, vImagePts, imageSize, cameraMatrix, distCoeffs,
-                                      rvecs, tvecs);
-
-    json_t *pCalibrate = json_object();
-    json_object_set(pStageModel, "calibrate", pCalibrate);
-
-    json_object_set(pCalibrate, "rmserror", json_real(rmserror));
-    json_object_set(pCalibrate, "camera", json_matrix(cameraMatrix));
-    json_object_set(pCalibrate, "distCoeffs", json_matrix(distCoeffs));
-    json_t *pRvecs = json_array();
-    json_object_set(pCalibrate, "rvecs", pRvecs);
-    for (int i=0; i < rvecs.size(); i++) {
-        json_array_append(pRvecs, json_matrix(rvecs[i]));
-    }
-    json_t *pTvecs = json_array();
-    json_object_set(pCalibrate, "tvecs", pTvecs);
-    for (int i=0; i < tvecs.size(); i++) {
-        json_array_append(pTvecs, json_matrix(tvecs[i]));
-    }
-}
 
 typedef map<Point2f,Point2f,ComparePoint2f> PointMap;
 
@@ -310,9 +381,9 @@ void initializePointMaps(json_t *pRects, vector<Point2f> &pointsXY, vector<Point
         }
     }
     const ComparePoint2f cmpXY(COMPARE_XY);
-	sort(pointsXY, cmpXY);
+    sort(pointsXY, cmpXY);
     const ComparePoint2f cmpYX(COMPARE_YX);
-	sort(pointsYX, cmpYX);
+    sort(pointsYX, cmpYX);
 }
 
 inline Point3f calcObjPointDiff(const Point2f &curPt, const Point2f &prevPt, const Point2f &imgSep) {
@@ -361,16 +432,18 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     int dyCount2 = 0;
     float gridX = FLT_MAX;
     float gridY = FLT_MAX;
-    Point2f median(FLT_MAX,FLT_MAX);
+    Point2f dmedian(FLT_MAX,FLT_MAX);
     const ComparePoint2f cmpYX(COMPARE_YX);
     vector<Point2f> pointsXY;
     vector<Point2f> pointsYX;
+	Mat cameraMatrix;
+	Mat distCoeffs;
 
     if (errMsg.empty()) {
         initializePointMaps(pRects, pointsXY, pointsYX);
-        errMsg = identifyColumns(pStageModel, pointsYX, median.x,
+        errMsg = identifyColumns(pStageModel, pointsYX, dmedian.x,
                                  dxTot1, dxTot2, dxCount1, dxCount2, tolerance, objSep.x, gridX);
-        string errMsg2 = identifyRows(pStageModel, pointsXY, median.y,
+        string errMsg2 = identifyRows(pStageModel, pointsXY, dmedian.y,
                                       dyTot1, dyTot2, dyCount1, dyCount2, tolerance, objSep.y, gridY);
 
         if (errMsg.empty()) {
@@ -382,18 +455,16 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     }
 
     if (errMsg.empty()) {
-        int dx = median.x > 0 ? 1 : -1;
-        int dy = median.y > 0 ? 1 : -1;
         Point3f ptObj;
         Point2f ptImg;
 
-        float maxDx1 = median.x * (median.x < 0 ? 1-tolerance : 1+tolerance);
-        float minDx1 = median.x * (median.x < 0 ? 1+tolerance : 1-tolerance);
+        float maxDx1 = dmedian.x * (dmedian.x < 0 ? 1-tolerance : 1+tolerance);
+        float minDx1 = dmedian.x * (dmedian.x < 0 ? 1+tolerance : 1-tolerance);
         Point2f imgSep(gridX*objSep.x, gridY*objSep.y);
-        cout << "DEBUG minDx1:" << minDx1 << " maxDx1:" << maxDx1 << " dx:" << dx << " dy:" << dy << endl;
-        cout << "DEBUG median:" << median << endl;
+        cout << "DEBUG minDx1:" << minDx1 << " maxDx1:" << maxDx1 << endl;
+        cout << "DEBUG dmedian:" << dmedian << endl;
         cout << "DEBUG imgSep:" << imgSep << endl;
-        GridMatcher gm(imgSize);
+        GridMatcher gm(imgSize, imgSep, objSep);
 
         vector<Point2f>::iterator itYX = pointsYX.begin();
         for (Point2f ptImg0=(*itYX); ++itYX!=pointsYX.end(); ) {
@@ -406,7 +477,7 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
                     ptObj.y = (int)(ptImg.y/imgSep.y + 0.5);
                     cout << "DEBUG O1 " << ptImg << " " << ptImg0 << " => " << ptObj << endl;
                     gm.add(ptImg, ptObj);
-                    ptObj.x += dx;
+                    ptObj += calcObjPointDiff(ptImg1, ptImg, imgSep);
                     cout << "DEBUG O2 " << ptImg << " " << ptImg1 << " => " << ptObj << endl;
                     ptImg = ptImg1;
                     gm.add(ptImg, ptObj);
@@ -428,8 +499,8 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
             ptImg0 = ptImg1;
         }
 
-        float maxDy1 = median.y * (median.y < 0 ? 1-tolerance : 1+tolerance);
-        float minDy1 = median.y * (median.y < 0 ? 1+tolerance : 1-tolerance);
+        float maxDy1 = dmedian.y * (dmedian.y < 0 ? 1-tolerance : 1+tolerance);
+        float minDy1 = dmedian.y * (dmedian.y < 0 ? 1+tolerance : 1-tolerance);
         vector<Point2f>::iterator itXY = pointsXY.begin();
         for (Point2f ptImg0=(*itXY); ++itXY!=pointsXY.end(); ) {
             const Point2f &ptImg1(*itXY);
@@ -439,10 +510,10 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
                     ptImg = ptImg0;
                     ptObj.x = (int)(ptImg.x/imgSep.x + 0.5);
                     ptObj.y = (int)(ptImg.y/imgSep.y + 0.5);
-                    cout << "DEBUGy O1 " << ptImg << " " << ptImg0 << " => " << ptObj << endl;
+                    cout << "DEBUGy O1 ptImg:" << ptImg << " " << ptImg0 << " => " << ptObj << endl;
                     gm.add(ptImg, ptObj);
-                    ptObj.y += dy;
-                    cout << "DEBUGy O2 " << ptImg << " " << ptImg1 << " => " << ptObj << endl;
+                    ptObj += calcObjPointDiff(ptImg1, ptImg, imgSep);
+                    cout << "DEBUGy O2 ptImg:" << ptImg << " " << ptImg1 << " => " << ptObj << endl;
                     ptImg = ptImg1;
                     gm.add(ptImg, ptObj);
                 } else {
@@ -450,15 +521,15 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
                         ptObj += calcObjPointDiff(ptImg0, ptImg, imgSep);
                         ptImg = ptImg0;
                         gm.add(ptImg, ptObj);
-                        cout << "DEBUGy A " << ptImg << " " << ptImg0 << " => " << ptObj << endl;
+                        cout << "DEBUGy A ptImg:" << ptImg << " " << ptImg0 << " => " << ptObj << endl;
                     }
                     ptObj += calcObjPointDiff(ptImg1, ptImg, imgSep);
-                    cout << "DEBUGy B " << ptImg << " " << ptImg1 << " => " << ptObj << endl;
+                    cout << "DEBUGy B ptImg:" << ptImg << " " << ptImg1 << " => " << ptObj << endl;
                     ptImg = ptImg1;
                     gm.add(ptImg, ptObj);
                 }
             } else {
-                cout << "DEBUGy - " << ptImg << " " << ptImg1 << endl;
+                cout << "DEBUGy - ptImg:" << ptImg << " " << ptImg1 << endl;
             }
             ptImg0 = ptImg1;
         }
@@ -477,32 +548,22 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
             json_object_set(pRect, "objZ", json_real(objZ));
             json_array_append(pRects, pRect);
         }
-        Mat cameraMatrix;
-        //cameraMatrix = Mat::eye(3, 3, CV_64F);
-        //cameraMatrix.at<double>(0,2) = imgCentroid.x;
-        //cameraMatrix.at<double>(1,2) = imgCentroid.y;
-        Mat distCoeffs;
 
         float totx = 0;
         for (int i=0; i < gm.size(); i++) {
-            gm.objectPts[i] = Point3f(
-                                  //objSep.x*(gm.objectPts[i].x-objCentroid.x),
-                                  //objSep.y*(gm.objectPts[i].y-objCentroid.y),
-                                  objSep.x*(gm.objectPts[i].x),
-                                  objSep.y*(gm.objectPts[i].y),
-                                  gm.objectPts[i].z
-                              );
             totx += gm.objectPts[i].x;
             cout << i+1 << ". " << gm.objectPts[i] << endl;
         }
         cout << "totx:" << totx << endl;
 
-        calibrateImage(pStageModel, imgSize, gm.imagePts, gm.objectPts, cameraMatrix, distCoeffs);
+        errMsg = gm.calibrateImage(pStageModel, cameraMatrix, distCoeffs);
+    }
+	if (errMsg.empty()) {
         InputArray newCameraMatrix=noArray();
         Mat dst;
         undistort(model.image, dst, cameraMatrix, distCoeffs, newCameraMatrix);
         model.image = dst;
-    }
+	}
 
     return stageOK("apply_matchGrid(%s) %s", errMsg.c_str(), pStage, pStageModel);
 }
