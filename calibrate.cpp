@@ -95,17 +95,17 @@ typedef class ComparePoint2f {
 
 typedef map<Point2f,Point2f,ComparePoint2f> PointMap;
 
-static string identifyRows(json_t *pStageModel, PointMap &pointMapXY, float &dyMedian, Point2f &dyTot1,
+static string identifyRows(json_t *pStageModel, vector<Point2f> &pointsXY, float &dyMedian, Point2f &dyTot1,
                            Point2f &dyTot2, int &dyCount1, int &dyCount2, double tolerance, int sepY, float &gridY)
 {
     vector<float> dyList;
     Point2f prevPt;
-    for (PointMap::iterator it=pointMapXY.begin(); it!=pointMapXY.end(); it++) {
-        if (it != pointMapXY.begin()) {
-            float dy = prevPt.y - it->first.y;
+    for (vector<Point2f>::iterator it=pointsXY.begin(); it!=pointsXY.end(); it++) {
+        if (it != pointsXY.begin()) {
+            float dy = prevPt.y - it->y;
             dyList.push_back(dy);
         }
-        prevPt = it->first;
+        prevPt = *it;
     }
     sort(dyList.begin(), dyList.end());
     dyMedian = dyList[dyList.size()/2];
@@ -119,11 +119,11 @@ static string identifyRows(json_t *pStageModel, PointMap &pointMapXY, float &dyM
     Point2f prevPt1;
     Point2f prevPt2;
     int n = 0;
-    for (map<Point2f,Point2f,ComparePoint2f>::iterator it=pointMapXY.begin();
-            it!=pointMapXY.end(); it++) {
-        const Point2f &curPt = it->first;
+    for (vector<Point2f>::iterator it=pointsXY.begin();
+            it!=pointsXY.end(); it++) {
+        const Point2f &curPt = *it;
         if (n > 0) {
-            LOGDEBUG3("matchGrid() pointMapXY[%d] (%g,%g)", n, curPt.x, curPt.y);
+            LOGDEBUG3("matchGrid() pointsXY[%d] (%g,%g)", n, curPt.x, curPt.y);
             int dy1 = prevPt1.y - curPt.y;
             if (minDy1 <= dy1 && dy1 <= maxDy1) {
                 dyTot1 = dyTot1 + (prevPt1 - curPt);
@@ -243,7 +243,7 @@ static string identifyColumns(json_t *pStageModel, PointMap &pointMapYX, float &
     return errMsg;
 } // identifyColumns
 
-void initializePointMaps(json_t *pRects, PointMap &pointMapXY, PointMap &pointMapYX) {
+void initializePointMaps(json_t *pRects, vector<Point2f> &pointsXY, PointMap &pointMapYX) {
     Point2f	noPoint(FLT_MAX, FLT_MAX);
     json_t *pValue;
     int index;
@@ -254,10 +254,12 @@ void initializePointMaps(json_t *pRects, PointMap &pointMapXY, PointMap &pointMa
             double x = json_real_value(pX);
             double y = json_real_value(pY);
             const Point2f key(x,y);
-            pointMapXY[key] = noPoint;
+            pointsXY.push_back(key);
             pointMapYX[key] = noPoint;
         }
     }
+    const ComparePoint2f cmpXY(COMPARE_XY);
+	sort(pointsXY, cmpXY);
 }
 
 inline Point3f calcObjPointDiff(const Point2f &curPt, const Point2f &prevPt, const Point2f &imgSep) {
@@ -307,16 +309,15 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     float gridX = FLT_MAX;
     float gridY = FLT_MAX;
     Point2f median(FLT_MAX,FLT_MAX);
-    const ComparePoint2f cmpXY(COMPARE_XY);
     const ComparePoint2f cmpYX(COMPARE_YX);
-    PointMap pointMapXY(cmpXY);
+    vector<Point2f> pointsXY;
     PointMap pointMapYX(cmpYX);
 
     if (errMsg.empty()) {
-        initializePointMaps(pRects, pointMapXY, pointMapYX);
+        initializePointMaps(pRects, pointsXY, pointMapYX);
         errMsg = identifyColumns(pStageModel, pointMapYX, median.x,
                                  dxTot1, dxTot2, dxCount1, dxCount2, tolerance, objSep.x, gridX);
-        string errMsg2 = identifyRows(pStageModel, pointMapXY, median.y,
+        string errMsg2 = identifyRows(pStageModel, pointsXY, median.y,
                                       dyTot1, dyTot2, dyCount1, dyCount2, tolerance, objSep.y, gridY);
 
         if (errMsg.empty()) {
@@ -332,7 +333,7 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         float minTol = median.x < 0 ? 1+tolerance : 1-tolerance;
         float maxDx1 = median.x * maxTol;
         float minDx1 = median.x * minTol;
-        map<Point2f,Point2f,ComparePoint2f>::iterator itXY = pointMapXY.begin();
+        vector<Point2f>::iterator itXY = pointsXY.begin();
         map<Point2f,Point2f,ComparePoint2f>::iterator itYX = pointMapYX.begin();
 
         int dx = median.x > 0 ? 1 : -1;
