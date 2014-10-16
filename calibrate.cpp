@@ -349,37 +349,32 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         vector<Point2f> imagePts;
         vector<Point3f> objectPts;
         Point3f objCentroid;
+		Point2f imgCentroid;
         while (++itYX!=pointsYX.end()) {
             const Point2f &ptImg1 = *itYX;
             int dx1 = ptImg0.x - ptImg1.x;
             if (minDx1 <= dx1 && dx1 <= maxDx1) {
                 if (imagePts.size() == 0) {
-                    ptObj.x = (int)(ptImg0.x/imgSep.x + 0.5);
-                    ptObj.y = (int)(ptImg0.y/imgSep.y + 0.5);
-                    cout << "DEBUG - " << ptImg << " " << ptImg1 << endl;
-                    objectPts.push_back(ptObj);
-                    objCentroid += ptObj;
-                    imagePts.push_back(ptImg0);
+					ptImg = ptImg0;
+                    ptObj.x = (int)(ptImg.x/imgSep.x + 0.5);
+                    ptObj.y = (int)(ptImg.y/imgSep.y + 0.5);
                     cout << "DEBUG O1 " << ptImg << " " << ptImg0 << " => " << ptObj << endl;
+                    objectPts.push_back(ptObj); imagePts.push_back(ptImg); objCentroid += ptObj; imgCentroid += ptImg;
                     ptObj.x += dx;
-                    objectPts.push_back(ptObj);
-                    imagePts.push_back(ptImg1);
                     cout << "DEBUG O2 " << ptImg << " " << ptImg1 << " => " << ptObj << endl;
+					ptImg = ptImg1;
+                    objectPts.push_back(ptObj); imagePts.push_back(ptImg); objCentroid += ptObj; imgCentroid += ptImg;
                 } else {
                     if (ptImg != ptImg0) {
                         ptObj += calcObjPointDiff(ptImg0, ptImg, imgSep);
                         ptImg = ptImg0;
-                        objectPts.push_back(ptObj);
-                        objCentroid += ptObj;
-                        imagePts.push_back(ptImg);
+                        objectPts.push_back(ptObj); imagePts.push_back(ptImg); objCentroid += ptObj; imgCentroid += ptImg;
                         cout << "DEBUG A " << ptImg << " " << ptImg0 << " => " << ptObj << endl;
                     }
                     ptObj += calcObjPointDiff(ptImg1, ptImg, imgSep);
-                    ptImg = ptImg1;
-                    objectPts.push_back(ptObj);
-                    objCentroid += ptObj;
-                    imagePts.push_back(ptImg);
                     cout << "DEBUG B " << ptImg << " " << ptImg1 << " => " << ptObj << endl;
+                    ptImg = ptImg1;
+                    objectPts.push_back(ptObj); imagePts.push_back(ptImg); objCentroid += ptObj; imgCentroid += ptImg;
                 }
             } else {
                 cout << "DEBUG - " << ptImg << " " << ptImg1 << endl;
@@ -387,7 +382,8 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
             ptImg0 = ptImg1;
         }
         objCentroid = Point3f(objCentroid.x/objectPts.size(), objCentroid.y/objectPts.size(), -objZ);
-        cout << "DEBUG objCentroid:" << objCentroid << " objectPts:" << objectPts.size() << endl;
+        imgCentroid = Point2f(imgCentroid.x/objectPts.size(), imgCentroid.y/objectPts.size());
+        cout << "DEBUG objCentroid:" << objCentroid << " imgCentroid:" << imgCentroid << " objectPts:" << objectPts.size() << endl;
         json_t *pRects = json_array();
         json_object_set(pStageModel, "rects", pRects);
         for (int i=0; i < objectPts.size(); i++) {
@@ -399,8 +395,11 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
             json_object_set(pRect, "objZ", json_real(objZ));
             json_array_append(pRects, pRect);
         }
-		Mat cameraMatrix;
+		Mat cameraMatrix = Mat::eye(3, 3, CV_64F);
+		cameraMatrix.at<double>(0,2) = imgCentroid.x;
+		cameraMatrix.at<double>(1,2) = imgCentroid.y;
 		Mat distCoeffs;
+
         calibrateImage(pStageModel, imgSize, imagePts, objectPts, cameraMatrix, distCoeffs);
         InputArray newCameraMatrix=noArray();
 		Mat dst;
