@@ -582,6 +582,7 @@ bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model)
 bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *errMsg = NULL;
   Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
+  int radius = jo_int(pStage, "radius", 5, model.argMap);
   int thickness = jo_int(pStage, "thickness", 2, model.argMap);
   string rectsModelName = jo_string(pStage, "model", "", model.argMap);
   json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName.c_str());
@@ -632,7 +633,11 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
         break;
       }
       if (angle == FLT_MAX) {
-        circle(model.image, Point(x,y), (int)(0.5+min(width,height)/2.0), rectColor, thickness);
+	  	int r = radius;
+		if (width > 0 && height > 0) {
+			r = (int)(0.5+min(width,height)/2.0);
+		}
+        circle(model.image, Point(x,y), r, rectColor, thickness);
       } else {
         RotatedRect rect(Point(x,y), Size(width, height), angle);
         rect.points(vertices);
