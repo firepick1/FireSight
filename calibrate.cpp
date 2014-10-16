@@ -28,36 +28,6 @@ json_t * json_matrix(const Mat &mat) {
     return jmat;
 }
 
-void calibrateImage(json_t *pStageModel, Size imageSize, vector<Point2f> &imagePts, vector<Point3f> &objectPts,
-                    Mat &cameraMatrix, Mat &distCoeffs) {
-    vector<Mat> rvecs;
-    vector<Mat> tvecs;
-    vector< vector<Point3f> > vObjectPts;
-    vObjectPts.push_back(objectPts);
-    vector< vector<Point2f> > vImagePts;
-    vImagePts.push_back(imagePts);
-
-    double rmserror = calibrateCamera(vObjectPts, vImagePts, imageSize, cameraMatrix, distCoeffs,
-                                      rvecs, tvecs);
-
-    json_t *pCalibrate = json_object();
-    json_object_set(pStageModel, "calibrate", pCalibrate);
-
-    json_object_set(pCalibrate, "rmserror", json_real(rmserror));
-    json_object_set(pCalibrate, "camera", json_matrix(cameraMatrix));
-    json_object_set(pCalibrate, "distCoeffs", json_matrix(distCoeffs));
-    json_t *pRvecs = json_array();
-    json_object_set(pCalibrate, "rvecs", pRvecs);
-    for (int i=0; i < rvecs.size(); i++) {
-        json_array_append(pRvecs, json_matrix(rvecs[i]));
-    }
-    json_t *pTvecs = json_array();
-    json_object_set(pCalibrate, "tvecs", pTvecs);
-    for (int i=0; i < tvecs.size(); i++) {
-        json_array_append(pTvecs, json_matrix(tvecs[i]));
-    }
-}
-
 enum CompareOp {
     COMPARE_XY,
     COMPARE_YX
@@ -93,6 +63,87 @@ typedef class ComparePoint2f {
             return cmp < 0;
         }
 } ComparePoint2f;
+
+typedef struct GridMatcher {
+    vector<Point2f> imagePts;
+    vector<Point3f> objectPts;
+    Point3f objTotals;
+    Point2f imgTotals;
+	Rect imgRect;
+    const ComparePoint2f cmpYX;
+    set<Point2f,ComparePoint2f> imgSet;
+	Size imgSize;
+	Mat gridIndexes;	// object grid matrix of imagePts/objectPts vector indexes or -1 
+    GridMatcher(Size imgSize) : cmpYX(ComparePoint2f(COMPARE_YX)), imgSet(set<Point2f,ComparePoint2f>(cmpYX)) {
+		this->imgSize = imgSize;
+		this->imgRect = Rect(imgSize.width/2, imgSize.height/2, 0, 0);
+    }
+
+    bool add(Point2f &ptImg, Point3f &ptObj) {
+        set<Point2f,ComparePoint2f>::iterator it = imgSet.find(ptImg);
+
+        if (it != imgSet.end()) {
+            return false;
+        }
+        objectPts.push_back(ptObj);
+        imagePts.push_back(ptImg);
+        objTotals += ptObj;
+        imgTotals += ptImg;
+        imgSet.insert(ptImg);
+        return true;
+    }
+
+    void subMatrix(int row, int col, int rows, int cols,
+                   vector<Point2f> &subImgPts, vector<Point3f> &subObjPts) {
+		if (gridIndexes.rows == 0) {
+			gridIndexes = Mat(imgSize.height+1, imgSize.width+1, CV_16S);
+		}
+    }
+
+    int size() {
+        return objectPts.size();
+    }
+
+    Point2f getImageCentroid() {
+        int n = objectPts.size();
+        return Point2f(imgTotals.x/n, imgTotals.y/n);
+    }
+
+    Point3f getObjectCentroid() {
+        int n = objectPts.size();
+        return Point3f(objTotals.x/n, objTotals.y/n, objTotals.z/n);
+    }
+} GridMatcher;
+
+void calibrateImage(json_t *pStageModel, Size imageSize, vector<Point2f> &imagePts, vector<Point3f> &objectPts,
+                    Mat &cameraMatrix, Mat &distCoeffs) {
+    vector<Mat> rvecs;
+    vector<Mat> tvecs;
+    vector< vector<Point3f> > vObjectPts;
+    vObjectPts.push_back(objectPts);
+    vector< vector<Point2f> > vImagePts;
+    vImagePts.push_back(imagePts);
+
+    double rmserror = calibrateCamera(vObjectPts, vImagePts, imageSize, cameraMatrix, distCoeffs,
+                                      rvecs, tvecs);
+
+    json_t *pCalibrate = json_object();
+    json_object_set(pStageModel, "calibrate", pCalibrate);
+
+    json_object_set(pCalibrate, "rmserror", json_real(rmserror));
+    json_object_set(pCalibrate, "camera", json_matrix(cameraMatrix));
+    json_object_set(pCalibrate, "distCoeffs", json_matrix(distCoeffs));
+    json_t *pRvecs = json_array();
+    json_object_set(pCalibrate, "rvecs", pRvecs);
+    for (int i=0; i < rvecs.size(); i++) {
+        json_array_append(pRvecs, json_matrix(rvecs[i]));
+    }
+    json_t *pTvecs = json_array();
+    json_object_set(pCalibrate, "tvecs", pTvecs);
+    for (int i=0; i < tvecs.size(); i++) {
+        json_array_append(pTvecs, json_matrix(tvecs[i]));
+    }
+}
 
 typedef map<Point2f,Point2f,ComparePoint2f> PointMap;
 
@@ -271,58 +322,6 @@ inline Point3f calcObjPointDiff(const Point2f &curPt, const Point2f &prevPt, con
     dObjY += dObjY < 0 ? -0.5 : 0.5;
     return Point3f((int)(dObjX), (int) (dObjY), 0);
 }
-
-typedef struct GridMatcher {
-    vector<Point2f> imagePts;
-    vector<Point3f> objectPts;
-    Point3f objTotals;
-    Point2f imgTotals;
-	Rect imgRect;
-    const ComparePoint2f cmpYX;
-    set<Point2f,ComparePoint2f> imgSet;
-	Size imgSize;
-	Mat gridIndexes;	// object grid matrix of imagePts/objectPts vector indexes or -1
-
-    GridMatcher(Size imgSize) : cmpYX(ComparePoint2f(COMPARE_YX)), imgSet(set<Point2f,ComparePoint2f>(cmpYX)) {
-		this->imgSize = imgSize;
-		this->imgRect = Rect(imgSize.width/2, imgSize.height/2, 0, 0);
-    }
-
-    bool add(Point2f &ptImg, Point3f &ptObj) {
-        set<Point2f,ComparePoint2f>::iterator it = imgSet.find(ptImg);
-
-        if (it != imgSet.end()) {
-            return false;
-        }
-        objectPts.push_back(ptObj);
-        imagePts.push_back(ptImg);
-        objTotals += ptObj;
-        imgTotals += ptImg;
-        imgSet.insert(ptImg);
-        return true;
-    }
-
-    void subMatrix(int row, int col, int rows, int cols,
-                   vector<Point2f> &subImgPts, vector<Point3f> &subObjPts) {
-		if (gridIndexes.rows == 0) {
-			gridIndexes = Mat(imgSize.height+1, imgSize.width+1
-		}
-    }
-
-    int size() {
-        return objectPts.size();
-    }
-
-    Point2f getImageCentroid() {
-        int n = objectPts.size();
-        return Point2f(imgTotals.x/n, imgTotals.y/n);
-    }
-
-    Point3f getObjectCentroid() {
-        int n = objectPts.size();
-        return Point3f(objTotals.x/n, objTotals.y/n, objTotals.z/n);
-    }
-} GridMatcher;
 
 bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model) {
     string rectsModelName = jo_string(pStage, "model", "", model.argMap);
