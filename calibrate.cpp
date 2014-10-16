@@ -1,5 +1,6 @@
 #include <string.h>
 #include <math.h>
+#include <set>
 #include <iostream>
 #include <stdexcept>
 #include "FireLog.h"
@@ -271,6 +272,42 @@ inline Point3f calcObjPointDiff(const Point2f &curPt, const Point2f &prevPt, con
     return Point3f((int)(dObjX), (int) (dObjY), 0);
 }
 
+typedef struct PointCollector {
+    vector<Point2f> imagePts;
+    vector<Point3f> objectPts;
+    Point3f objTotals;
+    Point2f imgTotals;
+    const ComparePoint2f cmpYX;
+    set<Point2f,ComparePoint2f> imgSet;
+
+    PointCollector() : cmpYX(ComparePoint2f(COMPARE_YX)), imgSet(set<Point2f,ComparePoint2f>(cmpYX)) {
+    }
+
+    void add(Point2f &ptImg, Point3f &ptObj) {
+        set<Point2f,ComparePoint2f>::iterator it = imgSet.find(ptImg);
+
+        if (it == imgSet.end()) {
+            objectPts.push_back(ptObj);
+            imagePts.push_back(ptImg);
+            objTotals += ptObj;
+            imgTotals += ptImg;
+            imgSet.insert(ptImg);
+        }
+    }
+
+    int size() {
+        return objectPts.size();
+    }
+    Point2f getImageCentroid() {
+        int n = objectPts.size();
+        return Point2f(imgTotals.x/n, imgTotals.y/n);
+    }
+    Point3f getObjectCentroid() {
+        int n = objectPts.size();
+        return Point3f(objTotals.x/n, objTotals.y/n, objTotals.z/n);
+    }
+} PointCollector;
+
 bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model) {
     string rectsModelName = jo_string(pStage, "model", "", model.argMap);
     double objZ = jo_double(pStage, "objZ", 0, model.argMap);
@@ -346,65 +383,62 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         cout << "DEBUG minDx1:" << minDx1 << " maxDx1:" << maxDx1 << " dx:" << dx << " dy:" << dy << endl;
         cout << "DEBUG median:" << median << endl;
         cout << "DEBUG imgSep:" << imgSep << endl;
-        vector<Point2f> imagePts;
-        vector<Point3f> objectPts;
-        Point3f objCentroid;
-		Point2f imgCentroid;
+        PointCollector pc;
         while (++itYX!=pointsYX.end()) {
             const Point2f &ptImg1 = *itYX;
             int dx1 = ptImg0.x - ptImg1.x;
             if (minDx1 <= dx1 && dx1 <= maxDx1) {
-                if (imagePts.size() == 0) {
-					ptImg = ptImg0;
+                if (pc.imagePts.size() == 0) {
+                    ptImg = ptImg0;
                     ptObj.x = (int)(ptImg.x/imgSep.x + 0.5);
                     ptObj.y = (int)(ptImg.y/imgSep.y + 0.5);
                     cout << "DEBUG O1 " << ptImg << " " << ptImg0 << " => " << ptObj << endl;
-                    objectPts.push_back(ptObj); imagePts.push_back(ptImg); objCentroid += ptObj; imgCentroid += ptImg;
+                    pc.add(ptImg, ptObj);
                     ptObj.x += dx;
                     cout << "DEBUG O2 " << ptImg << " " << ptImg1 << " => " << ptObj << endl;
-					ptImg = ptImg1;
-                    objectPts.push_back(ptObj); imagePts.push_back(ptImg); objCentroid += ptObj; imgCentroid += ptImg;
+                    ptImg = ptImg1;
+                    pc.add(ptImg, ptObj);
                 } else {
                     if (ptImg != ptImg0) {
                         ptObj += calcObjPointDiff(ptImg0, ptImg, imgSep);
                         ptImg = ptImg0;
-                        objectPts.push_back(ptObj); imagePts.push_back(ptImg); objCentroid += ptObj; imgCentroid += ptImg;
+                        pc.add(ptImg, ptObj);
                         cout << "DEBUG A " << ptImg << " " << ptImg0 << " => " << ptObj << endl;
                     }
                     ptObj += calcObjPointDiff(ptImg1, ptImg, imgSep);
                     cout << "DEBUG B " << ptImg << " " << ptImg1 << " => " << ptObj << endl;
                     ptImg = ptImg1;
-                    objectPts.push_back(ptObj); imagePts.push_back(ptImg); objCentroid += ptObj; imgCentroid += ptImg;
+                    pc.add(ptImg, ptObj);
                 }
             } else {
                 cout << "DEBUG - " << ptImg << " " << ptImg1 << endl;
             }
             ptImg0 = ptImg1;
         }
-        objCentroid = Point3f(objCentroid.x/objectPts.size(), objCentroid.y/objectPts.size(), -objZ);
-        imgCentroid = Point2f(imgCentroid.x/objectPts.size(), imgCentroid.y/objectPts.size());
-        cout << "DEBUG objCentroid:" << objCentroid << " imgCentroid:" << imgCentroid << " objectPts:" << objectPts.size() << endl;
+        Point3f objCentroid = pc.getObjectCentroid();
+        Point2f imgCentroid = pc.getImageCentroid();
+        cout << "DEBUG objCentroid:" << objCentroid << " imgCentroid:" << imgCentroid << " objectPts:" << pc.size() << endl;
         json_t *pRects = json_array();
         json_object_set(pStageModel, "rects", pRects);
-        for (int i=0; i < objectPts.size(); i++) {
+        for (int i=0; i < pc.size(); i++) {
             json_t *pRect = json_object();
-            json_object_set(pRect, "x", json_real(imagePts[i].x));
-            json_object_set(pRect, "y", json_real(imagePts[i].y));
-            json_object_set(pRect, "objX", json_real(objSep.x*(objectPts[i].x-objCentroid.x)));
-            json_object_set(pRect, "objY", json_real(objSep.y*(objectPts[i].y-objCentroid.y)));
+            json_object_set(pRect, "x", json_real(pc.imagePts[i].x));
+            json_object_set(pRect, "y", json_real(pc.imagePts[i].y));
+            json_object_set(pRect, "objX", json_real(objSep.x*(pc.objectPts[i].x-objCentroid.x)));
+            json_object_set(pRect, "objY", json_real(objSep.y*(pc.objectPts[i].y-objCentroid.y)));
             json_object_set(pRect, "objZ", json_real(objZ));
             json_array_append(pRects, pRect);
         }
-		Mat cameraMatrix = Mat::eye(3, 3, CV_64F);
-		cameraMatrix.at<double>(0,2) = imgCentroid.x;
-		cameraMatrix.at<double>(1,2) = imgCentroid.y;
-		Mat distCoeffs;
+        Mat cameraMatrix = Mat::eye(3, 3, CV_64F);
+        cameraMatrix.at<double>(0,2) = imgCentroid.x;
+        cameraMatrix.at<double>(1,2) = imgCentroid.y;
+        Mat distCoeffs;
 
-        calibrateImage(pStageModel, imgSize, imagePts, objectPts, cameraMatrix, distCoeffs);
+        calibrateImage(pStageModel, imgSize, pc.imagePts, pc.objectPts, cameraMatrix, distCoeffs);
         InputArray newCameraMatrix=noArray();
-		Mat dst;
+        Mat dst;
         undistort(model.image, dst, cameraMatrix, distCoeffs, newCameraMatrix);
-		model.image = dst;
+        model.image = dst;
     }
 
     return stageOK("apply_matchGrid(%s) %s", errMsg.c_str(), pStage, pStageModel);
