@@ -167,6 +167,32 @@ typedef struct GridMatcher {
         return Point3f(objTotals.x/n, objTotals.y/n, objTotals.z/n);
     }
 
+	void subImageGreekCrossFactory(int dMajor, int dMinor) {
+		int minPts = 4;
+        int rLast = gridIndexes.rows-dMajor; 
+		int cLast = gridIndexes.cols-dMajor;
+
+		/*
+		addSubImage(rLast/2, cLast/2, dMinor, dMajor, minPts);
+		addSubImage(rLast/2, cLast/2, dMajor, dMinor, minPts);
+
+		addSubImage(rLast/2, max(0,cLast/2-1), dMinor, dMajor, minPts);
+		addSubImage(rLast/2, min(cLast,cLast/2+1), dMinor, dMajor, minPts);
+		addSubImage(max(0,rLast/2-1), cLast/2, dMajor, dMinor, minPts);
+		addSubImage(min(rLast,rLast/2+1), cLast/2, dMajor, dMinor, minPts);
+
+		addSubImage(rLast/2, max(0,cLast/2-2), dMinor, dMajor, minPts);
+		addSubImage(rLast/2, min(cLast,cLast/2+2), dMinor, dMajor, minPts);
+		addSubImage(max(0,rLast/2-2), cLast/2, dMajor, dMinor, minPts);
+		addSubImage(min(rLast,rLast/2+2), cLast/2, dMajor, dMinor, minPts);
+		*/
+
+		addSubImage(rLast/2, max(0,cLast/2-3), dMinor, dMajor, minPts);
+		addSubImage(rLast/2, min(cLast,cLast/2+3), dMinor, dMajor, minPts);
+		addSubImage(max(0,rLast/2-3), cLast/2, dMajor, dMinor, minPts);
+		addSubImage(min(rLast,rLast/2+3), cLast/2, dMajor, dMinor, minPts);
+	}
+
 	void subImageCrossFactory(int dMajor, int dMinor) {
 		int minPts = 4;
         int rLast = gridIndexes.rows-dMajor; 
@@ -194,96 +220,36 @@ typedef struct GridMatcher {
     string calibrateImage(json_t *pStageModel, Mat &cameraMatrix, Mat &distCoeffs, 
 		CalibrateOp op=CAL_DEFAULT) {
 		string errMsg;
-        vector<Mat> rvecs;
-        vector<Mat> tvecs;
 		vObjectPts.clear();
 		vImagePts.clear();
 
         calcGridIndexes();
-        int dim1  = 3; // 2:0.387, 3:0.382, 4:2.435
-        int dim2_0 = 6; // 7:0.389, 6:0.382, 5:0.387
-		int dim2_1 = 1;
-		int dim2_2 = 2;
-		int dim2_3 = 3;
-		int minPts = 4; // 5-9:0.382 10-15:0.384
-        int rLast1 = gridIndexes.rows-dim1; 
-		int cLast1 = gridIndexes.cols-dim1;
-        int rLast2 = gridIndexes.rows-dim2_0; 
-		int cLast2 = gridIndexes.cols-dim2_0;
 
-		#ifdef LARGE_CORNERS // 2.853
-		addSubImage(0,0,dim2_0, dim2_0-1, minPts);
-		addSubImage(0,cLast1/2,dim2_0, dim2_0-1, minPts);
-		addSubImage(rLast1/2,0,dim2_0, dim2_0-1, minPts);
-		addSubImage(rLast1/2,cLast1/2,dim2_0, dim2_0-1, minPts);
-		#endif
-
-		#ifdef RECT_CORNERS //2.325
-		int cornerMinPts = 5; // 
-		cout << "CORNER TL" << endl;
-		addSubImage(1, 1, dim1, dim2_0, cornerMinPts);
-		cout << "CORNER TR" << endl;
-		addSubImage(1, cLast1/2+dim1, dim1, dim2_0, cornerMinPts);
-		cout << "CORNER BL" << endl;
-		addSubImage(rLast1/2+dim1, 1, dim1, dim2_0, cornerMinPts);
-		cout << "CORNER BR" << endl;
-		addSubImage(rLast1/2+dim1, cLast1/2+dim1, dim1, dim2_0, cornerMinPts);
-		#endif
-
-		#ifdef SMALL_CORNER2
-		int cornerMinPts = 12; // 13:0.382 12-10:0.407, 9-6:1.325, 5:2.102
-		cout << "CORNER TL" << endl;
-		addSubImage(2, 2, dim1, dim1+1, cornerMinPts);
-		cout << "CORNER TR" << endl;
-		addSubImage(2, cLast1/2+dim1, dim1, dim1+1, cornerMinPts);
-		cout << "CORNER BL" << endl;
-		addSubImage(rLast1/2+dim1, 2, dim1, dim1+1, cornerMinPts);
-		cout << "CORNER BR" << endl;
-		addSubImage(rLast1/2+dim1, cLast1/2+dim1, dim1, dim1+1, cornerMinPts);
-		#endif
-
-		#ifdef SMALL_CORNER 
-		int cornerMinPts = 10; // 4:0.984 5:0.527 6:1.592 7:1.592 8:1.592 9:1.584 10:1.604
-		if (!addSubImage(1, 1, dim1, dim1+1, cornerMinPts)) {
-			if (addSubImage(2, 2, dim1+1, dim1, cornerMinPts)) {
-				cout << "CORNER TL" << endl;
-			}
+		switch (op) {
+			default:
+			CAL_DEFAULT:
+			CAL_GREEK_CROSS:
+				subImageGreekCrossFactory(6, 3);
+				break;
+			CAL_CROSS:
+				subImageCrossFactory(6, 3);
+				break;
 		}
-		if (!addSubImage(rLast1-1, 1, dim1, dim1+1, cornerMinPts)) {
-			if (addSubImage(rLast1-2, 2, dim1+1, dim1, cornerMinPts)) {
-				cout << "CORNER BL" << endl;
-			}
-		}
-		if (!addSubImage(rLast1-1, cLast1-1, dim1, dim1+1, cornerMinPts)) {
-			if (addSubImage(rLast1-2, cLast1-2, dim1+1, dim1, cornerMinPts)) {
-				cout << "CORNER BR" << endl;
-			}
-		}
-		if (!addSubImage(1, cLast1-1, dim1, dim1+1, cornerMinPts)) {
-			if (addSubImage(2, cLast1-2, dim1+1, dim1, cornerMinPts)) {
-				cout << "CORNER TR" << endl;
-			}
-		}
-		#endif
-
-		subImageCrossFactory(6, 3);
 
 		double rmserror;
         cout << "calibrateCamera images:" << vImagePts.size() << endl;
 
+        vector<Mat> rvecs;
+        vector<Mat> tvecs;
 		try {
 			rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize,
                                           cameraMatrix, distCoeffs, rvecs, tvecs);
 		} catch (cv::Exception ex) {
 			errMsg = "calibrateImage(FAILED) ";
 			errMsg += ex.msg;
-		} catch (const char * err) {
-			errMsg = "calibrateImage(FAILED) ";
-			errMsg += err;
 		} catch (...) {
 			errMsg = "calibrateImage(FAILED...)";
 		}
-        cout << "calibrateCamera => " << rmserror << endl;
 
         json_t *pCalibrate = json_object();
         json_object_set(pStageModel, "calibrate", pCalibrate);
