@@ -28,6 +28,13 @@ json_t * json_matrix(const Mat &mat) {
     return jmat;
 }
 
+enum CalibrateOp {
+	CAL_DEFAULT,
+	CAL_TILE,
+	CAL_CELTIC_CROSS,
+	CAL_CROSS
+};
+
 enum CompareOp {
     COMPARE_XY,
     COMPARE_YX
@@ -72,6 +79,8 @@ typedef struct GridMatcher {
     Rect imgRect;
     const ComparePoint2f cmpYX;
     set<Point2f,ComparePoint2f> imgSet;
+	vector<vector<Point2f> > vImagePts;
+	vector<vector<Point3f> > vObjectPts;
     Size imgSize;
     Point2f imgSep;
     Point2f objSep;
@@ -114,11 +123,9 @@ typedef struct GridMatcher {
         }
     }
 
-    void addSubImage(int row, int col, int rows, int cols, int minPts,
-                   vector<vector<Point2f> > &vImagePts, vector<vector<Point3f> > &vObjectPts) {
+    bool addSubImage(int row, int col, int rows, int cols, int minPts) {
 		vector<Point2f> subImgPts;
 		vector<Point3f> subObjPts;
-        cout << "addSubImage" << gridIndexes.rows << endl;
         float cy = (rows-1)/2.0;
         float cx = (cols-1)/2.0;
         float z = 0;
@@ -131,16 +138,19 @@ typedef struct GridMatcher {
                     Point3f subObjPt(objSep.x*(ptObj.x-cx), objSep.y*(ptObj.y-cy), z);
                     cout << "index:" << index << " r:" << r << " c:" << c 
 						<< " ptImg:" << ptImg << " subObjPt:" << subObjPt << endl;
-                    subImgPts.push_back(ptImg);
                     subObjPts.push_back(subObjPt);
+                    subImgPts.push_back(ptImg);
                 }
             }
         }
-        cout << "addSubImage return" << endl;
-		if (subImgPts.size() >= minPts) {
-			vObjectPts.push_back(subObjPts);
-			vImagePts.push_back(subImgPts);
+		if (subImgPts.size() < minPts) {
+			cout << "addSubImage(" << row << "," << col << ") REJECT:"<< subObjPts.size()  << endl;
+			return false;
 		}
+		cout << "addSubImage(" << row << "," << col << ") ADD:" << subObjPts.size() << endl;
+		vObjectPts.push_back(subObjPts);
+		vImagePts.push_back(subImgPts);
+		return true;
     }
 
     int size() {
@@ -157,24 +167,106 @@ typedef struct GridMatcher {
         return Point3f(objTotals.x/n, objTotals.y/n, objTotals.z/n);
     }
 
-    string calibrateImage(json_t *pStageModel, Mat &cameraMatrix, Mat &distCoeffs) {
+	void subImageCrossFactory(int dMajor, int dMinor) {
+		int minPts = 4;
+        int rLast = gridIndexes.rows-dMajor; 
+		int cLast = gridIndexes.cols-dMajor;
+
+		addSubImage(rLast/2, cLast/2, dMinor, dMajor, minPts);
+		addSubImage(rLast/2, cLast/2, dMajor, dMinor, minPts);
+
+		addSubImage(rLast/2, max(0,cLast/2-1), dMinor, dMajor, minPts);
+		addSubImage(rLast/2, min(cLast,cLast/2+1), dMinor, dMajor, minPts);
+		addSubImage(max(0,rLast/2-1), cLast/2, dMajor, dMinor, minPts);
+		addSubImage(min(rLast,rLast/2+1), cLast/2, dMajor, dMinor, minPts);
+
+		addSubImage(rLast/2, max(0,cLast/2-2), dMinor, dMajor, minPts);
+		addSubImage(rLast/2, min(cLast,cLast/2+2), dMinor, dMajor, minPts);
+		addSubImage(max(0,rLast/2-2), cLast/2, dMajor, dMinor, minPts);
+		addSubImage(min(rLast,rLast/2+2), cLast/2, dMajor, dMinor, minPts);
+
+		addSubImage(rLast/2, max(0,cLast/2-3), dMinor, dMajor, minPts);
+		addSubImage(rLast/2, min(cLast,cLast/2+3), dMinor, dMajor, minPts);
+		addSubImage(max(0,rLast/2-3), cLast/2, dMajor, dMinor, minPts);
+		addSubImage(min(rLast,rLast/2+3), cLast/2, dMajor, dMinor, minPts);
+	}
+
+    string calibrateImage(json_t *pStageModel, Mat &cameraMatrix, Mat &distCoeffs, 
+		CalibrateOp op=CAL_DEFAULT) {
 		string errMsg;
         vector<Mat> rvecs;
         vector<Mat> tvecs;
-        vector< vector<Point3f> > vObjectPts;
-        vector< vector<Point2f> > vImagePts;
+		vObjectPts.clear();
+		vImagePts.clear();
 
         calcGridIndexes();
-        int subRows = 7;
-        int subCols = 8;
-		int minPts = max(4, subRows * subCols * 2 / 3);
-		int dr = (gridIndexes.rows-subRows)/3;
-		int dc = (gridIndexes.cols-subCols)/3;
-        for (int r=0; r < gridIndexes.rows-subRows; r += dr) {
-            for (int c=0; c < gridIndexes.cols-subCols; c += dc) {
-                addSubImage(r, c, subRows, subCols, minPts, vImagePts, vObjectPts);
-            }
-        }
+        int dim1  = 3; // 2:0.387, 3:0.382, 4:2.435
+        int dim2_0 = 6; // 7:0.389, 6:0.382, 5:0.387
+		int dim2_1 = 1;
+		int dim2_2 = 2;
+		int dim2_3 = 3;
+		int minPts = 4; // 5-9:0.382 10-15:0.384
+        int rLast1 = gridIndexes.rows-dim1; 
+		int cLast1 = gridIndexes.cols-dim1;
+        int rLast2 = gridIndexes.rows-dim2_0; 
+		int cLast2 = gridIndexes.cols-dim2_0;
+
+		#ifdef LARGE_CORNERS // 2.853
+		addSubImage(0,0,dim2_0, dim2_0-1, minPts);
+		addSubImage(0,cLast1/2,dim2_0, dim2_0-1, minPts);
+		addSubImage(rLast1/2,0,dim2_0, dim2_0-1, minPts);
+		addSubImage(rLast1/2,cLast1/2,dim2_0, dim2_0-1, minPts);
+		#endif
+
+		#ifdef RECT_CORNERS //2.325
+		int cornerMinPts = 5; // 
+		cout << "CORNER TL" << endl;
+		addSubImage(1, 1, dim1, dim2_0, cornerMinPts);
+		cout << "CORNER TR" << endl;
+		addSubImage(1, cLast1/2+dim1, dim1, dim2_0, cornerMinPts);
+		cout << "CORNER BL" << endl;
+		addSubImage(rLast1/2+dim1, 1, dim1, dim2_0, cornerMinPts);
+		cout << "CORNER BR" << endl;
+		addSubImage(rLast1/2+dim1, cLast1/2+dim1, dim1, dim2_0, cornerMinPts);
+		#endif
+
+		#ifdef SMALL_CORNER2
+		int cornerMinPts = 12; // 13:0.382 12-10:0.407, 9-6:1.325, 5:2.102
+		cout << "CORNER TL" << endl;
+		addSubImage(2, 2, dim1, dim1+1, cornerMinPts);
+		cout << "CORNER TR" << endl;
+		addSubImage(2, cLast1/2+dim1, dim1, dim1+1, cornerMinPts);
+		cout << "CORNER BL" << endl;
+		addSubImage(rLast1/2+dim1, 2, dim1, dim1+1, cornerMinPts);
+		cout << "CORNER BR" << endl;
+		addSubImage(rLast1/2+dim1, cLast1/2+dim1, dim1, dim1+1, cornerMinPts);
+		#endif
+
+		#ifdef SMALL_CORNER 
+		int cornerMinPts = 10; // 4:0.984 5:0.527 6:1.592 7:1.592 8:1.592 9:1.584 10:1.604
+		if (!addSubImage(1, 1, dim1, dim1+1, cornerMinPts)) {
+			if (addSubImage(2, 2, dim1+1, dim1, cornerMinPts)) {
+				cout << "CORNER TL" << endl;
+			}
+		}
+		if (!addSubImage(rLast1-1, 1, dim1, dim1+1, cornerMinPts)) {
+			if (addSubImage(rLast1-2, 2, dim1+1, dim1, cornerMinPts)) {
+				cout << "CORNER BL" << endl;
+			}
+		}
+		if (!addSubImage(rLast1-1, cLast1-1, dim1, dim1+1, cornerMinPts)) {
+			if (addSubImage(rLast1-2, cLast1-2, dim1+1, dim1, cornerMinPts)) {
+				cout << "CORNER BR" << endl;
+			}
+		}
+		if (!addSubImage(1, cLast1-1, dim1, dim1+1, cornerMinPts)) {
+			if (addSubImage(2, cLast1-2, dim1+1, dim1, cornerMinPts)) {
+				cout << "CORNER TR" << endl;
+			}
+		}
+		#endif
+
+		subImageCrossFactory(6, 3);
 
 		double rmserror;
         cout << "calibrateCamera images:" << vImagePts.size() << endl;
@@ -196,7 +288,7 @@ typedef struct GridMatcher {
         json_t *pCalibrate = json_object();
         json_object_set(pStageModel, "calibrate", pCalibrate);
 
-        json_object_set(pCalibrate, "camera", json_matrix(cameraMatrix));
+        json_object_set(pCalibrate, "cameraMatrix", json_matrix(cameraMatrix));
         json_object_set(pCalibrate, "distCoeffs", json_matrix(distCoeffs));
         json_object_set(pCalibrate, "rmserror", json_real(rmserror));
         json_object_set(pCalibrate, "images", json_real(vImagePts.size()));
@@ -557,14 +649,74 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         cout << "totx:" << totx << endl;
 
         errMsg = gm.calibrateImage(pStageModel, cameraMatrix, distCoeffs);
+		cout << "distCoeffs:" << matInfo(distCoeffs) << endl;
     }
-	if (errMsg.empty()) {
-        InputArray newCameraMatrix=noArray();
-        Mat dst;
-        undistort(model.image, dst, cameraMatrix, distCoeffs, newCameraMatrix);
-        model.image = dst;
-	}
 
     return stageOK("apply_matchGrid(%s) %s", errMsg.c_str(), pStage, pStageModel);
 }
 
+bool Pipeline::apply_undistort(json_t *pStage, json_t *pStageModel, Model &model) {
+    string errMsg;
+    string modelName = jo_string(pStage, "model", "", model.argMap);
+    vector<double> cmDefault;
+        cmDefault.push_back(1.0);
+        cmDefault.push_back(0.0);
+        cmDefault.push_back(model.image.cols/2);
+        cmDefault.push_back(0.0);
+        cmDefault.push_back(1.0);
+        cmDefault.push_back(model.image.rows/2);
+        cmDefault.push_back(0.0);
+        cmDefault.push_back(0.0);
+        cmDefault.push_back(1.0);
+    vector<double> dcDefault;
+        dcDefault.push_back(0);
+        dcDefault.push_back(0);
+        dcDefault.push_back(0);
+        dcDefault.push_back(0);
+    vector<double> cm;
+    vector<double> dc;
+    Mat cameraMatrix;
+    Mat distCoeffs;
+
+	json_t *pCalibrate;
+    json_t *pCalibrateModel = json_object_get(model.getJson(false), modelName.c_str());
+	if (json_is_object(pCalibrateModel)) {
+		pCalibrate = json_object_get(pCalibrateModel, "calibrate");
+		if (!json_is_object(pCalibrate)) {
+			errMsg = "Expected \"calibrate\" JSON object in stage \"";
+			errMsg += modelName;
+			errMsg += "\"";
+		}
+	} else {
+		pCalibrate = pStage;
+	}
+
+	if (errMsg.empty()) {
+        cm = jo_vectord(pCalibrate, "cameraMatrix", cmDefault, model.argMap);
+        dc = jo_vectord(pCalibrate, "distCoeffs", dcDefault, model.argMap);
+
+        if (cm.size() != 9) {
+            errMsg = "expected cameraMatrix: [v11,v12,v13,v21,v22,v23,v31,v32,v33]";
+        } else {
+            cameraMatrix = Mat(cm);
+            cameraMatrix = cameraMatrix.reshape(0, 3);
+        }
+
+        if (dc.size() != 5 && dc.size() != 4 && dc.size() != 8) {
+            errMsg = "expected distCoeffs of 4, 5, or 8 elements";
+        } else {
+            distCoeffs = Mat(dc);
+        }
+    }
+
+    if (errMsg.empty()) {
+        InputArray newCameraMatrix=noArray();
+        Mat dst;
+		cout << "cameraMatrix:" << matInfo(cameraMatrix) << cameraMatrix << endl;
+		cout << "distCoeffs:" << matInfo(distCoeffs) << distCoeffs << endl;
+        undistort(model.image, dst, cameraMatrix, distCoeffs, newCameraMatrix);
+        model.image = dst;
+    }
+
+    return stageOK("apply_undistort(%s) %s", errMsg.c_str(), pStage, pStageModel);
+}

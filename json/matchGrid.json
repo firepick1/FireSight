@@ -8,7 +8,8 @@
 		"angle":"{{angle }}",
 		"output":"{{output}}"
 	},
-	{"op":"matchGrid", "name":"grid", "model":"match" },
-	{"op":"nop-drawRects", "model":"match", "color":[32,255,32]},
-	{"op":"drawRects", "radius":2, "model":"grid", "color":[255,255,32]}
+	{"op":"matchGrid", "name":"grid1", "model":"match" },
+	{"op":"drawRects", "name":"draw1", "radius":5, "model":"grid1", "color":[32,255,32]},
+	{"op":"undistort", "name":"undistort", "model":"grid1" },
+	{"op":"drawRects", "name":"draw2", "radius":2, "model":"grid1", "color":[32,32,255]}
 ]

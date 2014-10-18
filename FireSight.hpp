@@ -260,6 +260,7 @@ namespace firesight {
       bool apply_split(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_transparent(json_t *pStage, json_t *pStageModel, Model &model);
+      bool apply_undistort(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_warpPerspective(json_t *pStage, json_t *pStageModel, Model &model);
 

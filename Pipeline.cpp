@@ -1593,6 +1593,8 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
     ok = apply_transparent(pStage, pStageModel, model);
   } else if (strcmp(pOp, "threshold")==0) {
     ok = apply_threshold(pStage, pStageModel, model);
+  } else if (strcmp(pOp, "undistort")==0) {
+    ok = apply_undistort(pStage, pStageModel, model);
   } else if (strcmp(pOp, "warpAffine")==0) {
     ok = apply_warpAffine(pStage, pStageModel, model);
   } else if (strcmp(pOp, "warpRing")==0) {
