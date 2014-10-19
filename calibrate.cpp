@@ -32,6 +32,8 @@ enum CalibrateOp {
 	CAL_DEFAULT,
 	CAL_TILE,
 	CAL_CELTIC_CROSS,
+	CAL_XYAXIS,
+	CAL_QUADRANT,
 	CAL_CROSS
 };
 
@@ -112,11 +114,10 @@ typedef struct GridMatcher {
         int nx = imgSize.width/imgSep.x+1.5;
         gridIndexes = Mat(Size(nx,ny),CV_16S);
         gridIndexes = -1;
-        cout << "ny:" << ny << " nx:" << nx << " gridIndexes:" << matInfo(gridIndexes) << endl;
+        LOGTRACE2("calcGridIndexes() [%d,%d]", ny, nx);
         for (short i=0; i < objectPts.size(); i++) {
             int r = objectPts[i].y;
             int c = objectPts[i].x;
-            cout << "SUBMAT [" << r << "," << c << "] = " << i << endl;
             assert( 0 <= r && r < gridIndexes.rows);
             assert( 0 <= c && c < gridIndexes.cols);
             gridIndexes.at<short>(r,c) = i;
@@ -167,30 +168,30 @@ typedef struct GridMatcher {
         return Point3f(objTotals.x/n, objTotals.y/n, objTotals.z/n);
     }
 
-	void subImageGreekCrossFactory(int dMajor, int dMinor) {
+	void subImageXYAxisFactory() {
 		int minPts = 4;
-        int rLast = gridIndexes.rows-dMajor; 
-		int cLast = gridIndexes.cols-dMajor;
+		int xh = max(3, gridIndexes.rows/4);
+		int yw = max(3, gridIndexes.cols/4);
+		int c2 = gridIndexes.cols/2;
+		int r2 = gridIndexes.rows/2;
+		int cLast = gridIndexes.cols - c2;
+		int rLast = gridIndexes.rows - r2;
 
-		/*
-		addSubImage(rLast/2, cLast/2, dMinor, dMajor, minPts);
-		addSubImage(rLast/2, cLast/2, dMajor, dMinor, minPts);
+		addSubImage(rLast/2, 0, xh, c2, minPts);
+		addSubImage(rLast/2, cLast, xh, c2, minPts);
+		addSubImage(0, cLast/2, r2, yw, minPts);
+		addSubImage(rLast, cLast/2, r2, yw, minPts);
+	}
 
-		addSubImage(rLast/2, max(0,cLast/2-1), dMinor, dMajor, minPts);
-		addSubImage(rLast/2, min(cLast,cLast/2+1), dMinor, dMajor, minPts);
-		addSubImage(max(0,rLast/2-1), cLast/2, dMajor, dMinor, minPts);
-		addSubImage(min(rLast,rLast/2+1), cLast/2, dMajor, dMinor, minPts);
+	void subImageQuadrantFactory() {
+		int minPts = 4;
+		int qw = gridIndexes.cols/2;
+		int qh = gridIndexes.rows/2;
 
-		addSubImage(rLast/2, max(0,cLast/2-2), dMinor, dMajor, minPts);
-		addSubImage(rLast/2, min(cLast,cLast/2+2), dMinor, dMajor, minPts);
-		addSubImage(max(0,rLast/2-2), cLast/2, dMajor, dMinor, minPts);
-		addSubImage(min(rLast,rLast/2+2), cLast/2, dMajor, dMinor, minPts);
-		*/
-
-		addSubImage(rLast/2, max(0,cLast/2-3), dMinor, dMajor, minPts);
-		addSubImage(rLast/2, min(cLast,cLast/2+3), dMinor, dMajor, minPts);
-		addSubImage(max(0,rLast/2-3), cLast/2, dMajor, dMinor, minPts);
-		addSubImage(min(rLast,rLast/2+3), cLast/2, dMajor, dMinor, minPts);
+		addSubImage(0, 					0, 					qh, qw, minPts);
+		addSubImage(0, 					gridIndexes.cols-qw,qh, qw, minPts);
+		addSubImage(gridIndexes.rows-qh,0, 					qh, qw, minPts);
+		addSubImage(gridIndexes.rows-qh,gridIndexes.cols-qw,qh, qw, minPts);
 	}
 
 	void subImageCrossFactory(int dMajor, int dMinor) {
@@ -228,8 +229,11 @@ typedef struct GridMatcher {
 		switch (op) {
 			default:
 			CAL_DEFAULT:
-			CAL_GREEK_CROSS:
-				subImageGreekCrossFactory(6, 3);
+			CAL_XYAXIS:
+				subImageXYAxisFactory();
+				break;
+			CAL_QUADRANT:
+				subImageQuadrantFactory();
 				break;
 			CAL_CROSS:
 				subImageCrossFactory(6, 3);
@@ -494,15 +498,15 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     const ComparePoint2f cmpYX(COMPARE_YX);
     vector<Point2f> pointsXY;
     vector<Point2f> pointsYX;
-	Mat cameraMatrix;
-	Mat distCoeffs;
+    Mat cameraMatrix;
+    Mat distCoeffs;
 
     if (errMsg.empty()) {
         initializePointMaps(pRects, pointsXY, pointsYX);
-        errMsg = identifyColumns(pStageModel, pointsYX, dmedian.x,
-                                 dxTot1, dxTot2, dxCount1, dxCount2, tolerance, objSep.x, gridX);
-        string errMsg2 = identifyRows(pStageModel, pointsXY, dmedian.y,
-                                      dyTot1, dyTot2, dyCount1, dyCount2, tolerance, objSep.y, gridY);
+        errMsg = identifyColumns(pStageModel, pointsYX, dmedian.x, dxTot1, dxTot2,
+                                 dxCount1, dxCount2, tolerance, objSep.x, gridX);
+        string errMsg2 = identifyRows(pStageModel, pointsXY, dmedian.y, dyTot1, dyTot2,
+                                      dyCount1, dyCount2, tolerance, objSep.y, gridY);
 
         if (errMsg.empty()) {
             errMsg = errMsg2;
@@ -519,9 +523,6 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         float maxDx1 = dmedian.x * (dmedian.x < 0 ? 1-tolerance : 1+tolerance);
         float minDx1 = dmedian.x * (dmedian.x < 0 ? 1+tolerance : 1-tolerance);
         Point2f imgSep(gridX*objSep.x, gridY*objSep.y);
-        cout << "DEBUG minDx1:" << minDx1 << " maxDx1:" << maxDx1 << endl;
-        cout << "DEBUG dmedian:" << dmedian << endl;
-        cout << "DEBUG imgSep:" << imgSep << endl;
         GridMatcher gm(imgSize, imgSep, objSep);
 
         vector<Point2f>::iterator itYX = pointsYX.begin();
@@ -533,10 +534,8 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
                     ptImg = ptImg0;
                     ptObj.x = (int)(ptImg.x/imgSep.x + 0.5);
                     ptObj.y = (int)(ptImg.y/imgSep.y + 0.5);
-                    cout << "DEBUG O1 " << ptImg << " " << ptImg0 << " => " << ptObj << endl;
                     gm.add(ptImg, ptObj);
                     ptObj += calcObjPointDiff(ptImg1, ptImg, imgSep);
-                    cout << "DEBUG O2 " << ptImg << " " << ptImg1 << " => " << ptObj << endl;
                     ptImg = ptImg1;
                     gm.add(ptImg, ptObj);
                 } else {
@@ -544,15 +543,11 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
                         ptObj += calcObjPointDiff(ptImg0, ptImg, imgSep);
                         ptImg = ptImg0;
                         gm.add(ptImg, ptObj);
-                        cout << "DEBUG A " << ptImg << " " << ptImg0 << " => " << ptObj << endl;
                     }
                     ptObj += calcObjPointDiff(ptImg1, ptImg, imgSep);
-                    cout << "DEBUG B " << ptImg << " " << ptImg1 << " => " << ptObj << endl;
                     ptImg = ptImg1;
                     gm.add(ptImg, ptObj);
                 }
-            } else {
-                cout << "DEBUG - " << ptImg << " " << ptImg1 << endl;
             }
             ptImg0 = ptImg1;
         }
@@ -568,10 +563,8 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
                     ptImg = ptImg0;
                     ptObj.x = (int)(ptImg.x/imgSep.x + 0.5);
                     ptObj.y = (int)(ptImg.y/imgSep.y + 0.5);
-                    cout << "DEBUGy O1 ptImg:" << ptImg << " " << ptImg0 << " => " << ptObj << endl;
                     gm.add(ptImg, ptObj);
                     ptObj += calcObjPointDiff(ptImg1, ptImg, imgSep);
-                    cout << "DEBUGy O2 ptImg:" << ptImg << " " << ptImg1 << " => " << ptObj << endl;
                     ptImg = ptImg1;
                     gm.add(ptImg, ptObj);
                 } else {
@@ -579,22 +572,17 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
                         ptObj += calcObjPointDiff(ptImg0, ptImg, imgSep);
                         ptImg = ptImg0;
                         gm.add(ptImg, ptObj);
-                        cout << "DEBUGy A ptImg:" << ptImg << " " << ptImg0 << " => " << ptObj << endl;
                     }
                     ptObj += calcObjPointDiff(ptImg1, ptImg, imgSep);
-                    cout << "DEBUGy B ptImg:" << ptImg << " " << ptImg1 << " => " << ptObj << endl;
                     ptImg = ptImg1;
                     gm.add(ptImg, ptObj);
                 }
-            } else {
-                cout << "DEBUGy - ptImg:" << ptImg << " " << ptImg1 << endl;
             }
             ptImg0 = ptImg1;
         }
 
         Point3f objCentroid = gm.getObjectCentroid();
         Point2f imgCentroid = gm.getImageCentroid();
-        cout << "DEBUG objCentroid:" << objCentroid << " imgCentroid:" << imgCentroid << " objectPts:" << gm.size() << endl;
         json_t *pRects = json_array();
         json_object_set(pStageModel, "rects", pRects);
         for (int i=0; i < gm.size(); i++) {
@@ -615,7 +603,7 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         cout << "totx:" << totx << endl;
 
         errMsg = gm.calibrateImage(pStageModel, cameraMatrix, distCoeffs);
-		cout << "distCoeffs:" << matInfo(distCoeffs) << endl;
+        cout << "distCoeffs:" << matInfo(distCoeffs) << endl;
     }
 
     return stageOK("apply_matchGrid(%s) %s", errMsg.c_str(), pStage, pStageModel);
@@ -625,39 +613,39 @@ bool Pipeline::apply_undistort(json_t *pStage, json_t *pStageModel, Model &model
     string errMsg;
     string modelName = jo_string(pStage, "model", "", model.argMap);
     vector<double> cmDefault;
-        cmDefault.push_back(1.0);
-        cmDefault.push_back(0.0);
-        cmDefault.push_back(model.image.cols/2);
-        cmDefault.push_back(0.0);
-        cmDefault.push_back(1.0);
-        cmDefault.push_back(model.image.rows/2);
-        cmDefault.push_back(0.0);
-        cmDefault.push_back(0.0);
-        cmDefault.push_back(1.0);
+    cmDefault.push_back(1.0);
+    cmDefault.push_back(0.0);
+    cmDefault.push_back(model.image.cols/2);
+    cmDefault.push_back(0.0);
+    cmDefault.push_back(1.0);
+    cmDefault.push_back(model.image.rows/2);
+    cmDefault.push_back(0.0);
+    cmDefault.push_back(0.0);
+    cmDefault.push_back(1.0);
     vector<double> dcDefault;
-        dcDefault.push_back(0);
-        dcDefault.push_back(0);
-        dcDefault.push_back(0);
-        dcDefault.push_back(0);
+    dcDefault.push_back(0);
+    dcDefault.push_back(0);
+    dcDefault.push_back(0);
+    dcDefault.push_back(0);
     vector<double> cm;
     vector<double> dc;
     Mat cameraMatrix;
     Mat distCoeffs;
 
-	json_t *pCalibrate;
+    json_t *pCalibrate;
     json_t *pCalibrateModel = json_object_get(model.getJson(false), modelName.c_str());
-	if (json_is_object(pCalibrateModel)) {
-		pCalibrate = json_object_get(pCalibrateModel, "calibrate");
-		if (!json_is_object(pCalibrate)) {
-			errMsg = "Expected \"calibrate\" JSON object in stage \"";
-			errMsg += modelName;
-			errMsg += "\"";
-		}
-	} else {
-		pCalibrate = pStage;
-	}
+    if (json_is_object(pCalibrateModel)) {
+        pCalibrate = json_object_get(pCalibrateModel, "calibrate");
+        if (!json_is_object(pCalibrate)) {
+            errMsg = "Expected \"calibrate\" JSON object in stage \"";
+            errMsg += modelName;
+            errMsg += "\"";
+        }
+    } else {
+        pCalibrate = pStage;
+    }
 
-	if (errMsg.empty()) {
+    if (errMsg.empty()) {
         cm = jo_vectord(pCalibrate, "cameraMatrix", cmDefault, model.argMap);
         dc = jo_vectord(pCalibrate, "distCoeffs", dcDefault, model.argMap);
 
@@ -678,8 +666,8 @@ bool Pipeline::apply_undistort(json_t *pStage, json_t *pStageModel, Model &model
     if (errMsg.empty()) {
         InputArray newCameraMatrix=noArray();
         Mat dst;
-		cout << "cameraMatrix:" << matInfo(cameraMatrix) << cameraMatrix << endl;
-		cout << "distCoeffs:" << matInfo(distCoeffs) << distCoeffs << endl;
+        cout << "cameraMatrix:" << matInfo(cameraMatrix) << cameraMatrix << endl;
+        cout << "distCoeffs:" << matInfo(distCoeffs) << distCoeffs << endl;
         undistort(model.image, dst, cameraMatrix, distCoeffs, newCameraMatrix);
         model.image = dst;
     }
