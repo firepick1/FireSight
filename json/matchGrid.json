@@ -2,7 +2,7 @@
 	{"op":"matchTemplate",
 		"name":"match",
 		"template":"{{template}}",
-		"corr":"{{corr}}",
+		"corr":"{{corr||0.8}}",
 		"threshold":"{{threshold}}",
 		"method":"{{method}}",
 		"angle":"{{angle }}",

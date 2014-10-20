@@ -33,11 +33,13 @@ enum CalibrateOp {
 
 	CAL_DEFAULT,
 	CAL_NONE,
-	CAL_FULL,
+	CAL_TILE1,
+	CAL_TILE2,
+	CAL_TILE3,
+	CAL_TILE4,
 	CAL_CELTIC_CROSS,
 	CAL_XYAXES,
 	CAL_XYORIGIN,
-	CAL_QUADRANT,
 	CAL_CROSS
 };
 
@@ -105,6 +107,7 @@ typedef struct GridMatcher {
     Rect imgRect;
     const ComparePoint2f cmpYX;
     set<Point2f,ComparePoint2f> imgSet;
+    set<Point2f,ComparePoint2f> subImgSet;
     vector<vector<Point2f> > vImagePts;
     vector<vector<Point3f> > vObjectPts;
     Size imgSize;
@@ -112,7 +115,10 @@ typedef struct GridMatcher {
     Point2f objSep;
     Mat gridIndexes;	// object grid matrix of imagePts/objectPts vector indexes or -1
     GridMatcher(Size imgSize, Point2f imgSep, Point2f objSep)
-        : cmpYX(ComparePoint2f(COMPARE_YX)), imgSet(set<Point2f,ComparePoint2f>(cmpYX)) {
+        : cmpYX(ComparePoint2f(COMPARE_YX)),
+          imgSet(set<Point2f,ComparePoint2f>(cmpYX)),
+          subImgSet(set<Point2f,ComparePoint2f>(cmpYX))
+    {
         this->imgSize = imgSize;
         this->imgSep = imgSep;
         this->objSep = objSep;
@@ -163,24 +169,27 @@ typedef struct GridMatcher {
                     Point3f subObjPt(objSep.x*(ptObj.x-cx), objSep.y*(ptObj.y-cy), z);
                     subObjPts.push_back(subObjPt);
                     subImgPts.push_back(ptImg);
+                    if (subImgSet.insert(ptImg).second) {
+                        LOGTRACE2("addSubImage() point:[%d,%d]", (int)ptImg.x, (int)ptImg.y);
+                    }
                 }
             }
         }
         if (subImgPts.size() < minPts) {
-			if (logLevel >= FIRELOG_TRACE) {
-				char buf[255];
-				snprintf(buf, sizeof(buf), "addSubImage(%d,%d,%d,%d) REJECT:%ld",
-					row, col, rows, cols, (long) subObjPts.size());
-				LOGTRACE1("%s", buf);
-			}
+            if (logLevel >= FIRELOG_TRACE) {
+                char buf[255];
+                snprintf(buf, sizeof(buf), "addSubImage(%d,%d,%d,%d) REJECT:%ld",
+                         row, col, rows, cols, (long) subObjPts.size());
+                LOGTRACE1("%s", buf);
+            }
             return false;
         }
-		if (logLevel >= FIRELOG_TRACE) {
-			char buf[255];
-			snprintf(buf, sizeof(buf), "addSubImage(%d,%d,%d,%d) ADD:%ld",
-				row, col, rows, cols, (long) subObjPts.size());
-			LOGTRACE1("%s", buf);
-		}
+        if (logLevel >= FIRELOG_TRACE) {
+            char buf[255];
+            snprintf(buf, sizeof(buf), "addSubImage(%d,%d,%d,%d) ADD:%ld",
+                     row, col, rows, cols, (long) subObjPts.size());
+            LOGTRACE1("%s", buf);
+        }
         vObjectPts.push_back(subObjPts);
         vImagePts.push_back(subImgPts);
         return true;
@@ -204,20 +213,27 @@ typedef struct GridMatcher {
         int minPts = 4;
         int xh = max(3, gridIndexes.rows/4);
         int yw = max(3, gridIndexes.cols/4);
-        int c2 = gridIndexes.cols/2;
-        int r2 = gridIndexes.rows/2;
-        int cLast = gridIndexes.cols - c2;
-        int rLast = gridIndexes.rows - r2;
+        int rows = gridIndexes.rows;
+        int cols = gridIndexes.cols;
+        int c2 = cols/2;
+        int r2 = rows/2;
 
-        addSubImage(rLast/2, 0, xh, c2, minPts);
-        addSubImage(rLast/2, cLast, xh, c2, minPts);
-        addSubImage(0, cLast/2, r2, yw, minPts);
-        addSubImage(rLast, cLast/2, r2, yw, minPts);
+        LOGTRACE("subImageCelticCrossFactory()");
+        // origin cross
+        addSubImage(r2-xh/2, c2-c2/2, xh, c2, minPts);
+        addSubImage(r2-r2/2, c2-yw/2, r2, yw, minPts);
 
-        addSubImage(rLast/2-xh, cLast/2-yw, xh, yw, minPts);
-        addSubImage(rLast-xh, cLast/2-yw, xh, yw, minPts);
-        addSubImage(rLast/2-xh, cLast-yw, xh, yw, minPts);
-        addSubImage(rLast-xh, cLast-yw, xh, yw, minPts);
+        // xy axes
+        addSubImage(r2-xh/2, 0, xh, c2, minPts);
+        addSubImage(r2-xh/2, cols-c2, xh, c2, minPts);
+        addSubImage(0, 		 c2-yw/2, r2, yw, minPts);
+        addSubImage(rows-r2, c2-yw/2, r2, yw, minPts);
+
+        // near quadrants
+        addSubImage(r2-xh-1, c2-yw-1, xh, yw, minPts);
+        addSubImage(r2+1,    c2-yw-1, xh, yw, minPts);
+        addSubImage(r2-xh-1, c2+1, xh, yw, minPts);
+        addSubImage(r2+1,    c2+1, xh, yw, minPts);
     }
 
     void subImageXYOriginFactory() {
@@ -229,6 +245,7 @@ typedef struct GridMatcher {
         int cLast = gridIndexes.cols - c2;
         int rLast = gridIndexes.rows - r2;
 
+        LOGTRACE("subImageXYOriginFactory()");
         addSubImage(rLast/2, cLast/2, xh, c2, minPts);
         addSubImage(rLast/2, cLast/2, r2, yw, minPts);
 
@@ -247,21 +264,46 @@ typedef struct GridMatcher {
         int cLast = gridIndexes.cols - c2;
         int rLast = gridIndexes.rows - r2;
 
+        LOGTRACE("subImageXYAxesFactory()");
         addSubImage(rLast/2, 0, xh, c2, minPts);
         addSubImage(rLast/2, cLast, xh, c2, minPts);
         addSubImage(0, cLast/2, r2, yw, minPts);
         addSubImage(rLast, cLast/2, r2, yw, minPts);
     }
 
-    void subImageQuadrantFactory() {
+    void subImageTileFactory(int n) {
         int minPts = 4;
-        int qw = gridIndexes.cols/2;
-        int qh = gridIndexes.rows/2;
+        int rows = gridIndexes.rows;
+        int cols = gridIndexes.cols;
+        int w = cols/n;
+        int h = rows/n;
+        int n2 = n/2;
 
-        addSubImage(0, 					0, 					qh, qw, minPts);
-        addSubImage(0, 					gridIndexes.cols-qw,qh, qw, minPts);
-        addSubImage(gridIndexes.rows-qh,0, 					qh, qw, minPts);
-        addSubImage(gridIndexes.rows-qh,gridIndexes.cols-qw,qh, qw, minPts);
+        LOGTRACE1("subImageTileFactory(%d)", n);
+        if (n == 1) {
+            addSubImage(0, 0, rows, cols, minPts);
+        } else {
+            if (n % 2) {
+                int c2 = (cols-w)/2;
+                int r2 = (rows-h)/2;
+                addSubImage(r2, c2, h, w, minPts);	// center
+                for (int i=0; i < n2; i++) {
+                    addSubImage(r2, i*w, h, w, minPts);
+                    addSubImage(r2, cols-i*w, h, w, minPts);
+                    addSubImage(i*h, c2, h, w, minPts);
+                    addSubImage(rows-i*h, c2, h, w, minPts);
+                }
+            }
+
+            for (int r=0; r < n2; r++) {
+                for (int c=0; c < n2; c++) {
+                    addSubImage(r, c, h, w, minPts);
+                    addSubImage(rows-r, c, h, w, minPts);
+                    addSubImage(r, cols-c, h, w, minPts);
+                    addSubImage(rows-r, cols-c, h, w, minPts);
+                }
+            }
+        }
     }
 
     void subImageCrossFactory(int dMajor, int dMinor) {
@@ -269,6 +311,7 @@ typedef struct GridMatcher {
         int rLast = gridIndexes.rows-dMajor;
         int cLast = gridIndexes.cols-dMajor;
 
+        LOGTRACE("subImageCrossFactory()");
         addSubImage(rLast/2, cLast/2, dMinor, dMajor, minPts);
         addSubImage(rLast/2, cLast/2, dMajor, dMinor, minPts);
 
@@ -288,8 +331,39 @@ typedef struct GridMatcher {
         addSubImage(min(rLast,rLast/2+3), cLast/2, dMajor, dMinor, minPts);
     }
 
+	CalibrateOp parseCalibrateOp(string opStr, string &errMsg) {
+		CalibrateOp op = CAL_NONE;
+
+		if (opStr.compare("none") == 0) {
+			op = CAL_NONE;
+		} else if (opStr.compare("tile1") == 0) {
+			op = CAL_TILE1;
+		} else if (opStr.compare("tile2") == 0) {
+			op = CAL_TILE2;
+		} else if (opStr.compare("tile3") == 0) {
+			op = CAL_TILE3;
+		} else if (opStr.compare("tile4") == 0) {
+			op = CAL_TILE4;
+		} else if (opStr.compare("celtic") == 0) {
+			op = CAL_CELTIC_CROSS;
+		} else if (opStr.compare("cross") == 0) {
+			op = CAL_CROSS;
+		} else if (opStr.compare("xyorigin") == 0) {
+			op = CAL_XYORIGIN;
+		} else if (opStr.compare("xyaxes") == 0) {
+			op = CAL_XYAXES;
+		} else if (opStr.compare("default") == 0) {
+			op = CAL_DEFAULT;
+		} else {
+			errMsg = "Unknown calibrate option:";
+			errMsg += opStr;
+		}
+
+		return op;
+	}
+
     string calibrateImage(json_t *pStageModel, Mat &cameraMatrix, Mat &distCoeffs,
-                          Mat &image, CalibrateOp op=CAL_DEFAULT)
+                          Mat &image, string opStr)
     {
         json_t *pCalibrate = json_object();
         json_object_set(pStageModel, "calibrate", pCalibrate);
@@ -299,10 +373,10 @@ typedef struct GridMatcher {
 
         calcGridIndexes();
 
-		if (op == CAL_DEFAULT) {
-			op = CAL_NONE; // may change
-			op = CAL_XYORIGIN;
-		}
+		CalibrateOp op = parseCalibrateOp(opStr);
+        if (op == CAL_DEFAULT) { // may change
+            op = CAL_CELTIC_CROSS;
+        }
 
         switch (op) {
         default:
@@ -320,11 +394,17 @@ typedef struct GridMatcher {
         case CAL_CROSS:
             subImageCrossFactory(6, 3);
             break;
-        case CAL_QUADRANT:
-            subImageQuadrantFactory();
+        case CAL_TILE1:
+            subImageTileFactory(1);
             break;
-        case CAL_FULL:
-            addSubImage(0, 0, gridIndexes.rows, gridIndexes.cols, 4);
+        case CAL_TILE2:
+            subImageTileFactory(2);
+            break;
+        case CAL_TILE3:
+            subImageTileFactory(3);
+            break;
+        case CAL_TILE4:
+            subImageTileFactory(4);
             break;
         }
 
@@ -337,9 +417,9 @@ typedef struct GridMatcher {
             vector<double> dcDefault;
             initCameraVectors(cmDefault, dcDefault, image);
             cameraMatrix = Mat(3, 3, CV_64F);
-			for (int i=0; i<cmDefault.size(); i++) {
-				cameraMatrix.at<double>(i/3, i%3) = cmDefault[i];
-			}
+            for (int i=0; i<cmDefault.size(); i++) {
+                cameraMatrix.at<double>(i/3, i%3) = cmDefault[i];
+            }
             distCoeffs = Mat(dcDefault);
         } else {
             try {
@@ -352,6 +432,34 @@ typedef struct GridMatcher {
                 errMsg = "calibrateImage(FAILED...)";
             }
         }
+
+		json_object_set(pCalibrate, "op", json_string(opStr.c_str()));
+		if (errMsg.empty()) {
+			Point3f objCentroid = gm.getObjectCentroid();
+			Point2f imgCentroid = gm.getImageCentroid();
+			json_t *pRects = json_array();
+			json_object_set(pStageModel, "rects", pRects);
+			for (int i=0; i < gm.size(); i++) {
+				json_t *pRect = json_object();
+				json_object_set(pRect, "x", json_real(gm.imagePts[i].x));
+				json_object_set(pRect, "y", json_real(gm.imagePts[i].y));
+				json_object_set(pRect, "objX", json_real(objSep.x*(gm.objectPts[i].x-objCentroid.x)));
+				json_object_set(pRect, "objY", json_real(objSep.y*(gm.objectPts[i].y-objCentroid.y)));
+				json_array_append(pRects, pRect);
+				set<Point2f,ComparePoint2f>::iterator it = gm.subImgSet.find(gm.imagePts[i]);
+				if (it == gm.subImgSet.end()) { // color marks points not used in calibration
+					json_t *pBGR = json_array();
+					json_object_set(pRect,"color", pBGR);
+					json_array_append(pBGR, json_integer(color[0]));
+					json_array_append(pBGR, json_integer(color[1]));
+					json_array_append(pBGR, json_integer(color[2]));
+				}
+			}
+			for (set<Point2f,ComparePoint2f>::iterator it=gm.subImgSet.begin(); 
+				it != gm.subImgSet.end(); it++) {
+				LOGTRACE2("subImgSet:[%g,%g]", it->y, it->x);
+			}
+		}
 
         json_object_set(pCalibrate, "cameraMatrix", json_matrix(cameraMatrix));
         json_object_set(pCalibrate, "distCoeffs", json_matrix(distCoeffs));
@@ -555,7 +663,8 @@ inline Point3f calcObjPointDiff(const Point2f &curPt, const Point2f &prevPt, con
 bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model) {
     string rectsModelName = jo_string(pStage, "model", "", model.argMap);
     //string opStr = jo_string(pStage, "calibrate", "default", model.argMap);
-    string opStr = jo_string(pStage, "calibrate", "xyorigin", model.argMap);
+    string opStr = jo_string(pStage, "calibrate", "tile1", model.argMap);
+    Scalar color = jo_Scalar(pStage, "color", Scalar(255,255,255), model.argMap);
     Point2f objSep(
         jo_double(pStage, "sepX", 5.0, model.argMap),
         jo_double(pStage, "sepY", 5.0, model.argMap));
@@ -564,26 +673,6 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     Point2f imgCenter(model.image.cols/2.0, model.image.rows/2.0);
     json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName.c_str());
     string errMsg;
-    CalibrateOp op;
-
-    if (opStr.compare("none") == 0) {
-        op = CAL_NONE;
-    } else if (opStr.compare("full") == 0) {
-        op = CAL_FULL;
-    } else if (opStr.compare("quadrant") == 0) {
-        op = CAL_QUADRANT;
-    } else if (opStr.compare("cross") == 0) {
-        op = CAL_CROSS;
-    } else if (opStr.compare("xyorigin") == 0) {
-        op = CAL_XYORIGIN;
-    } else if (opStr.compare("xyaxes") == 0) {
-        op = CAL_XYAXES;
-	} else if (opStr.compare("default") == 0) {
-		op = CAL_DEFAULT;
-	} else {
-		errMsg = "Unknown calibrate option:";
-		errMsg += opStr;
-    }
 
     if (rectsModelName.empty()) {
         errMsg = "matchGrid model: expected name of stage with rects";
@@ -633,14 +722,14 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         }
     }
 
+    Point2f imgSep(gridX*objSep.x, gridY*objSep.y);
+    GridMatcher gm(imgSize, imgSep, objSep);
     if (errMsg.empty()) {
         Point3f ptObj;
         Point2f ptImg;
 
         float maxDx1 = dmedian.x * (dmedian.x < 0 ? 1-tolerance : 1+tolerance);
         float minDx1 = dmedian.x * (dmedian.x < 0 ? 1+tolerance : 1-tolerance);
-        Point2f imgSep(gridX*objSep.x, gridY*objSep.y);
-        GridMatcher gm(imgSize, imgSep, objSep);
 
         vector<Point2f>::iterator itYX = pointsYX.begin();
         for (Point2f ptImg0=(*itYX); ++itYX!=pointsYX.end(); ) {
@@ -698,19 +787,6 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
             ptImg0 = ptImg1;
         }
 
-        Point3f objCentroid = gm.getObjectCentroid();
-        Point2f imgCentroid = gm.getImageCentroid();
-        json_t *pRects = json_array();
-        json_object_set(pStageModel, "rects", pRects);
-        for (int i=0; i < gm.size(); i++) {
-            json_t *pRect = json_object();
-            json_object_set(pRect, "x", json_real(gm.imagePts[i].x));
-            json_object_set(pRect, "y", json_real(gm.imagePts[i].y));
-            json_object_set(pRect, "objX", json_real(objSep.x*(gm.objectPts[i].x-objCentroid.x)));
-            json_object_set(pRect, "objY", json_real(objSep.y*(gm.objectPts[i].y-objCentroid.y)));
-            json_array_append(pRects, pRect);
-        }
-
         if (logLevel == FIRELOG_TRACE) {
             for (int i=0; i < gm.size(); i++) {
                 LOGTRACE4("apply_matchGrid() objectPt[%d] (%g,%g,%g)",
@@ -718,9 +794,7 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
             }
         }
 
-        errMsg = gm.calibrateImage(pStageModel, cameraMatrix, distCoeffs, model.image);
-        json_t *pCalibrate  = json_object_get(pStageModel, "calibrate");
-        json_object_set(pCalibrate, "op", json_string(opStr.c_str()));
+        errMsg = gm.calibrateImage(pStageModel, cameraMatrix, distCoeffs, model.image, opStr);
     }
 
     return stageOK("apply_matchGrid(%s) %s", errMsg.c_str(), pStage, pStageModel);
@@ -761,14 +835,14 @@ bool Pipeline::apply_undistort(const char *pName, json_t *pStage, json_t *pStage
                 cameraMatrix.at<double>(i/3, i%3) = cm[i];
             }
         } else if (cm.size() == 0) {
-			LOGTRACE("apply_undistort() no cameraMatrix => no transformation");
+            LOGTRACE("apply_undistort() no cameraMatrix => no transformation");
         } else {
             errMsg = "expected cameraMatrix: [v11,v12,v13,v21,v22,v23,v31,v32,v33]";
         }
 
         switch (dc.size()) {
         case 0:
-			LOGTRACE("apply_undistort() no distCoeffs => no transformation");
+            LOGTRACE("apply_undistort() no distCoeffs => no transformation");
             break;
         case 4:
         case 5:
@@ -783,13 +857,13 @@ bool Pipeline::apply_undistort(const char *pName, json_t *pStage, json_t *pStage
 
     if (errMsg.empty()) {
         if (distCoeffs.rows >= 4 && cameraMatrix.rows == 3) {
-			json_object_set(pStageModel, "model", json_string(modelName.c_str()));
+            json_object_set(pStageModel, "model", json_string(modelName.c_str()));
             Mat dst;
-			InputArray newCameraMatrix=noArray();
+            InputArray newCameraMatrix=noArray();
             undistort(model.image, dst, cameraMatrix, distCoeffs, newCameraMatrix);
             model.image = dst;
         } else {
-			json_object_set(pStageModel, "model", json_string(""));
+            json_object_set(pStageModel, "model", json_string(""));
         }
     }
 
