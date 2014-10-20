@@ -30,11 +30,11 @@ json_t * json_matrix(const Mat &mat) {
 
 enum CalibrateOp {
 	CAL_TILE,
-	CAL_CELTIC_CROSS,
 
 	CAL_DEFAULT,
 	CAL_NONE,
 	CAL_FULL,
+	CAL_CELTIC_CROSS,
 	CAL_XYAXES,
 	CAL_QUADRANT,
 	CAL_CROSS
@@ -160,18 +160,26 @@ typedef struct GridMatcher {
                     Point2f ptImg = imagePts[index];
                     Point3f ptObj = objectPts[index];
                     Point3f subObjPt(objSep.x*(ptObj.x-cx), objSep.y*(ptObj.y-cy), z);
-    //                cout << "index:" << index << " r:" << r << " c:" << c
-     //                    << " ptImg:" << ptImg << " subObjPt:" << subObjPt << endl;
                     subObjPts.push_back(subObjPt);
                     subImgPts.push_back(ptImg);
                 }
             }
         }
         if (subImgPts.size() < minPts) {
-			LOGTRACE3("addSubImage(%d,%d) REJECT:%ld", row, col, (long) subObjPts.size());
+			if (logLevel >= FIRELOG_TRACE) {
+				char buf[255];
+				snprintf(buf, sizeof(buf), "addSubImage(%d,%d,%d,%d) REJECT:%ld",
+					row, col, rows, cols, (long) subObjPts.size());
+				LOGTRACE1("%s", buf);
+			}
             return false;
         }
-		LOGTRACE3("addSubImage(%d,%d) ADD:%ld", row, col, (long) subObjPts.size());
+		if (logLevel >= FIRELOG_TRACE) {
+			char buf[255];
+			snprintf(buf, sizeof(buf), "addSubImage(%d,%d,%d,%d) ADD:%ld",
+				row, col, rows, cols, (long) subObjPts.size());
+			LOGTRACE1("%s", buf);
+		}
         vObjectPts.push_back(subObjPts);
         vImagePts.push_back(subImgPts);
         return true;
@@ -189,6 +197,26 @@ typedef struct GridMatcher {
     Point3f getObjectCentroid() {
         int n = objectPts.size();
         return Point3f(objTotals.x/n, objTotals.y/n, objTotals.z/n);
+    }
+
+    void subImageCelticCrossFactory() {
+        int minPts = 4;
+        int xh = max(3, gridIndexes.rows/4);
+        int yw = max(3, gridIndexes.cols/4);
+        int c2 = gridIndexes.cols/2;
+        int r2 = gridIndexes.rows/2;
+        int cLast = gridIndexes.cols - c2;
+        int rLast = gridIndexes.rows - r2;
+
+        addSubImage(rLast/2, 0, xh, c2, minPts);
+        addSubImage(rLast/2, cLast, xh, c2, minPts);
+        addSubImage(0, cLast/2, r2, yw, minPts);
+        addSubImage(rLast, cLast/2, r2, yw, minPts);
+
+        addSubImage(rLast/2-xh, cLast/2-yw, xh, yw, minPts);
+        addSubImage(rLast-xh, cLast/2-yw, xh, yw, minPts);
+        addSubImage(rLast/2-xh, cLast-yw, xh, yw, minPts);
+        addSubImage(rLast-xh, cLast-yw, xh, yw, minPts);
     }
 
     void subImageXYAxesFactory() {
@@ -254,12 +282,15 @@ typedef struct GridMatcher {
 
 		if (op == CAL_DEFAULT) {
 			op = CAL_NONE; // may change
-			op = CAL_XYAXES;
+			op = CAL_CELTIC_CROSS;
 		}
 
         switch (op) {
         default:
         case CAL_NONE:
+            break;
+        case CAL_CELTIC_CROSS:
+            subImageCelticCrossFactory();
             break;
         case CAL_XYAXES:
             subImageXYAxesFactory();
@@ -696,9 +727,7 @@ bool Pipeline::apply_undistort(const char *pName, json_t *pStage, json_t *pStage
     }
 
     if (errMsg.empty()) {
-	cout << "cmDefault:" << cmDefault.size() << endl;
         cm = jo_vectord(pCalibrate, "cameraMatrix", cmDefault, model.argMap);
-	cout << "cmDefault:" << cm.size() << endl;
         dc = jo_vectord(pCalibrate, "distCoeffs", dcDefault, model.argMap);
 
         if (cm.size() == 9) {
