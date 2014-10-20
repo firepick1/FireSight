@@ -1471,7 +1471,7 @@ bool Pipeline::processModel(Model &model) {
     } else {
       LOGDEBUG1("%s", debugBuf);
       try {
-        const char *errMsg = dispatch(pOp.c_str(), pStage, pStageModel, model);
+        const char *errMsg = dispatch(pName.c_str(), pOp.c_str(), pStage, pStageModel, model);
         ok = logErrorMessage(errMsg, pName.c_str(), pStage);
         if (isSaveImage) {
           model.imageMap[pName.c_str()] = model.image.clone();
@@ -1501,7 +1501,7 @@ bool Pipeline::processModel(Model &model) {
   return ok;
 }
 
-const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, Model &model) {
+const char * Pipeline::dispatch(const char *pName, const char *pOp, json_t *pStage, json_t *pStageModel, Model &model) {
   bool ok = true;
   const char *errMsg = NULL;
  
@@ -1594,7 +1594,7 @@ const char * Pipeline::dispatch(const char *pOp, json_t *pStage, json_t *pStageM
   } else if (strcmp(pOp, "threshold")==0) {
     ok = apply_threshold(pStage, pStageModel, model);
   } else if (strcmp(pOp, "undistort")==0) {
-    ok = apply_undistort(pStage, pStageModel, model);
+    ok = apply_undistort(pName, pStage, pStageModel, model);
   } else if (strcmp(pOp, "warpAffine")==0) {
     ok = apply_warpAffine(pStage, pStageModel, model);
   } else if (strcmp(pOp, "warpRing")==0) {

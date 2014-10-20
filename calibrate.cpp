@@ -79,11 +79,12 @@ typedef class ComparePoint2f {
 static void initCameraVectors(vector<double> &cmDefault, vector<double> &dcDefault,
                               Mat &image)
 {
-    cmDefault.push_back(1.0);
+	double focalLength = 1000; // 
+    cmDefault.push_back(focalLength);
     cmDefault.push_back(0.0);
     cmDefault.push_back(image.cols/2);
     cmDefault.push_back(0.0);
-    cmDefault.push_back(1.0);
+    cmDefault.push_back(focalLength);
     cmDefault.push_back(image.rows/2);
     cmDefault.push_back(0.0);
     cmDefault.push_back(0.0);
@@ -253,6 +254,7 @@ typedef struct GridMatcher {
 
 		if (op == CAL_DEFAULT) {
 			op = CAL_NONE; // may change
+			op = CAL_XYAXES;
 		}
 
         switch (op) {
@@ -499,7 +501,7 @@ inline Point3f calcObjPointDiff(const Point2f &curPt, const Point2f &prevPt, con
 
 bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model) {
     string rectsModelName = jo_string(pStage, "model", "", model.argMap);
-    string opStr = jo_string(pStage, "calibrate", "none", model.argMap);
+    string opStr = jo_string(pStage, "calibrate", "default", model.argMap);
     Point2f objSep(
         jo_double(pStage, "sepX", 5.0, model.argMap),
         jo_double(pStage, "sepY", 5.0, model.argMap));
@@ -520,6 +522,11 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         op = CAL_CROSS;
     } else if (opStr.compare("xyaxes") == 0) {
         op = CAL_XYAXES;
+	} else if (opStr.compare("default") == 0) {
+		op = CAL_DEFAULT;
+	} else {
+		errMsg = "Unknown calibrate option:";
+		errMsg += opStr;
     }
 
     if (rectsModelName.empty()) {
@@ -663,9 +670,9 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     return stageOK("apply_matchGrid(%s) %s", errMsg.c_str(), pStage, pStageModel);
 }
 
-bool Pipeline::apply_undistort(json_t *pStage, json_t *pStageModel, Model &model) {
+bool Pipeline::apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model) {
     string errMsg;
-    string modelName = jo_string(pStage, "model", "", model.argMap);
+    string modelName = jo_string(pStage, "model", pName, model.argMap);
     vector<double> cm;
     vector<double> dc;
     vector<double> cmDefault;
@@ -673,7 +680,7 @@ bool Pipeline::apply_undistort(json_t *pStage, json_t *pStageModel, Model &model
     Mat cameraMatrix;
     Mat distCoeffs;
 
-    initCameraVectors(cmDefault, dcDefault, model.image);
+    //initCameraVectors(cmDefault, dcDefault, model.image);
 
     json_t *pCalibrate;
     json_t *pCalibrateModel = json_object_get(model.getJson(false), modelName.c_str());
@@ -689,32 +696,47 @@ bool Pipeline::apply_undistort(json_t *pStage, json_t *pStageModel, Model &model
     }
 
     if (errMsg.empty()) {
+	cout << "cmDefault:" << cmDefault.size() << endl;
         cm = jo_vectord(pCalibrate, "cameraMatrix", cmDefault, model.argMap);
+	cout << "cmDefault:" << cm.size() << endl;
         dc = jo_vectord(pCalibrate, "distCoeffs", dcDefault, model.argMap);
 
-        if (cm.size() != 9) {
-            errMsg = "expected cameraMatrix: [v11,v12,v13,v21,v22,v23,v31,v32,v33]";
-        } else {
+        if (cm.size() == 9) {
             cameraMatrix = Mat(3, 3, CV_64F);
-			for (int i=0; i<cmDefault.size(); i++) {
-				cameraMatrix.at<double>(i/3, i%3) = cmDefault[i];
-			}
+            for (int i=0; i<cm.size(); i++) {
+                cameraMatrix.at<double>(i/3, i%3) = cm[i];
+            }
+        } else if (cm.size() == 0) {
+			LOGTRACE("apply_undistort() no cameraMatrix => no transformation");
+        } else {
+            errMsg = "expected cameraMatrix: [v11,v12,v13,v21,v22,v23,v31,v32,v33]";
         }
 
-        if (dc.size() != 5 && dc.size() != 4 && dc.size() != 8) {
-            errMsg = "expected distCoeffs of 4, 5, or 8 elements";
-        } else {
+        switch (dc.size()) {
+        case 0:
+			LOGTRACE("apply_undistort() no distCoeffs => no transformation");
+            break;
+        case 4:
+        case 5:
+        case 8:
             distCoeffs = Mat(dc);
+            break;
+        default:
+            errMsg = "expected distCoeffs of 4, 5, or 8 elements";
+            break;
         }
     }
 
     if (errMsg.empty()) {
-        InputArray newCameraMatrix=noArray();
-        Mat dst;
-        cout << "cameraMatrix:" << matInfo(cameraMatrix) << cameraMatrix << endl;
-        cout << "distCoeffs:" << matInfo(distCoeffs) << distCoeffs << endl;
-        undistort(model.image, dst, cameraMatrix, distCoeffs, newCameraMatrix);
-        model.image = dst;
+        if (distCoeffs.rows >= 4 && cameraMatrix.rows == 3) {
+			json_object_set(pStageModel, "model", json_string(modelName.c_str()));
+            Mat dst;
+			InputArray newCameraMatrix=noArray();
+            undistort(model.image, dst, cameraMatrix, distCoeffs, newCameraMatrix);
+            model.image = dst;
+        } else {
+			json_object_set(pStageModel, "model", json_string(""));
+        }
     }
 
     return stageOK("apply_undistort(%s) %s", errMsg.c_str(), pStage, pStageModel);

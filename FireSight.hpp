@@ -260,11 +260,11 @@ namespace firesight {
       bool apply_split(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_transparent(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_undistort(json_t *pStage, json_t *pStageModel, Model &model);
+      bool apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_warpPerspective(json_t *pStage, json_t *pStageModel, Model &model);
 
-      const char * dispatch(const char *pOp, json_t *pStage, json_t *pStageModel, Model &model);
+      const char * dispatch(const char *pName, const char *pOp, json_t *pStage, json_t *pStageModel, Model &model);
       void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
       void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);
       int parseCvType(const char *typeName, const char *&errMsg);
