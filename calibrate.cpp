@@ -36,6 +36,7 @@ enum CalibrateOp {
 	CAL_FULL,
 	CAL_CELTIC_CROSS,
 	CAL_XYAXES,
+	CAL_XYORIGIN,
 	CAL_QUADRANT,
 	CAL_CROSS
 };
@@ -219,6 +220,24 @@ typedef struct GridMatcher {
         addSubImage(rLast-xh, cLast-yw, xh, yw, minPts);
     }
 
+    void subImageXYOriginFactory() {
+        int minPts = 4;
+        int xh = max(3, gridIndexes.rows/4);
+        int yw = max(3, gridIndexes.cols/4);
+        int c2 = gridIndexes.cols/2;
+        int r2 = gridIndexes.rows/2;
+        int cLast = gridIndexes.cols - c2;
+        int rLast = gridIndexes.rows - r2;
+
+        addSubImage(rLast/2, cLast/2, xh, c2, minPts);
+        addSubImage(rLast/2, cLast/2, r2, yw, minPts);
+
+        addSubImage(rLast/2, 0, xh, c2, minPts);
+        addSubImage(rLast/2, cLast, xh, c2, minPts);
+        addSubImage(0, cLast/2, r2, yw, minPts);
+        addSubImage(rLast, cLast/2, r2, yw, minPts);
+    }
+
     void subImageXYAxesFactory() {
         int minPts = 4;
         int xh = max(3, gridIndexes.rows/4);
@@ -282,7 +301,7 @@ typedef struct GridMatcher {
 
 		if (op == CAL_DEFAULT) {
 			op = CAL_NONE; // may change
-			op = CAL_CELTIC_CROSS;
+			op = CAL_XYORIGIN;
 		}
 
         switch (op) {
@@ -291,6 +310,9 @@ typedef struct GridMatcher {
             break;
         case CAL_CELTIC_CROSS:
             subImageCelticCrossFactory();
+            break;
+        case CAL_XYORIGIN:
+            subImageXYOriginFactory();
             break;
         case CAL_XYAXES:
             subImageXYAxesFactory();
@@ -532,7 +554,8 @@ inline Point3f calcObjPointDiff(const Point2f &curPt, const Point2f &prevPt, con
 
 bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model) {
     string rectsModelName = jo_string(pStage, "model", "", model.argMap);
-    string opStr = jo_string(pStage, "calibrate", "default", model.argMap);
+    //string opStr = jo_string(pStage, "calibrate", "default", model.argMap);
+    string opStr = jo_string(pStage, "calibrate", "xyorigin", model.argMap);
     Point2f objSep(
         jo_double(pStage, "sepX", 5.0, model.argMap),
         jo_double(pStage, "sepY", 5.0, model.argMap));
@@ -551,6 +574,8 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         op = CAL_QUADRANT;
     } else if (opStr.compare("cross") == 0) {
         op = CAL_CROSS;
+    } else if (opStr.compare("xyorigin") == 0) {
+        op = CAL_XYORIGIN;
     } else if (opStr.compare("xyaxes") == 0) {
         op = CAL_XYAXES;
 	} else if (opStr.compare("default") == 0) {
