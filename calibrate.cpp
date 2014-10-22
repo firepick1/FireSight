@@ -31,7 +31,7 @@ json_t * json_matrix(const Mat &mat) {
 enum CalibrateOp {
 	CAL_TILE,
 
-	CAL_DEFAULT,
+	CAL_BEST,
 	CAL_HBAR,
 	CAL_VBAR,
 	CAL_HVBAR,
@@ -580,8 +580,8 @@ typedef struct GridMatcher {
             op = CAL_XYORIGIN;
         } else if (opStr.compare("xyaxes") == 0) {
             op = CAL_XYAXES;
-        } else if (opStr.compare("default") == 0) {
-            op = CAL_DEFAULT;
+        } else if (opStr.compare("best") == 0) {
+            op = CAL_BEST;
         } else {
             errMsg = "Unknown calibrate option:";
             errMsg += opStr;
@@ -609,8 +609,8 @@ typedef struct GridMatcher {
         if (!errMsg.empty()) {
             return errMsg;
         }
-        if (op == CAL_DEFAULT) { // may change
-            op = CAL_CELTIC_CROSS;
+        if (op == CAL_BEST) { 
+            op = CAL_TILE3; // may change to best available
         }
         switch (op) {
         default:
