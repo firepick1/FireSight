@@ -30,6 +30,8 @@ namespace firesight {
 
   CLASS_DECLSPEC Point jo_Point(const json_t *pObj, const char *key, const Point &defaultValue, ArgMap &argMap=emptyMap) ;
 
+  CLASS_DECLSPEC Point2f jo_Point2f(const json_t *pObj, const char *key, const Point2f &defaultValue, ArgMap &argMap=emptyMap) ;
+
   CLASS_DECLSPEC Rect jo_Rect(const json_t *pObj, const char *key, const Rect &defaultValue, ArgMap &argMap=emptyMap) ;
 
   CLASS_DECLSPEC int jo_shape(json_t *pStage, const char *key, const char *&errMsg, ArgMap &argMap=emptyMap) ;

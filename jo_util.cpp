@@ -170,6 +170,27 @@ string jo_string(const json_t *pObj, const char *key, const char *defaultValue, 
     return jo_parse(result, defaultValue, argMap);
 }
 
+Point2f jo_Point2f(const json_t *pObj, const char *key, const Point2f &defaultValue, ArgMap &argMap) {
+    Point2f result = defaultValue;
+    vector<float> vDefault;
+    vDefault.push_back(defaultValue.x);
+    vDefault.push_back(defaultValue.y);
+    vector<float> v = jo_vectorf(pObj, key, vDefault, argMap);
+    if (v.size() == 2) {
+        result.x = v[0];
+        result.y = v[1];
+    } else {
+        LOGERROR1("Expected [x,y] for Point2f: %s", key);
+    }
+    if (logLevel >= FIRELOG_TRACE) {
+        char buf[250];
+        snprintf(buf, sizeof(buf), "jo_Point2f(key:%s default:[%g %g]) -> [%g %g]",
+                 key, defaultValue.x, defaultValue.y, result.x, result.y);
+        LOGTRACE1("%s", buf);
+    }
+    return result;
+}
+
 Point jo_Point(const json_t *pObj, const char *key, const Point &defaultValue, ArgMap &argMap) {
     Point result = defaultValue;
     vector<int> vDefault;
