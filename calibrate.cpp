@@ -915,10 +915,7 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     string opStr = jo_string(pStage, "calibrate", "default", model.argMap);
     Scalar color = jo_Scalar(pStage, "color", Scalar(255,255,255), model.argMap);
 	Point2f scale = jo_Point2f(pStage, "scale", Point2f(1,1), model.argMap);
-
-    Point2f objSep(
-        jo_double(pStage, "sepX", 5.0, model.argMap),
-        jo_double(pStage, "sepY", 5.0, model.argMap));
+    Point2f objSep = jo_Point2f(pStage, "sep", Point2f(5,5), model.argMap);
     double tolerance = jo_double(pStage, "tolerance", 0.35, model.argMap);
     Size imgSize(model.image.cols, model.image.rows);
     Point2f imgCenter(model.image.cols/2.0, model.image.rows/2.0);
