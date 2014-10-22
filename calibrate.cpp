@@ -380,7 +380,7 @@ typedef struct GridMatcher {
 		float ocx2 = oc.x * oc.x;
         float nMax = ocy2 * ocx2 * scale.x * scale.x * scale.y * scale.y;
 
-        LOGTRACE("subImageEllipseFactory()");
+        LOGTRACE2("subImageEllipseFactory(%g,%g)", scale.x, scale.y);
         for (int r=0; r < rows; r++) {
             float dr = r-oc.y;
             for (int c=0; c <= cols; c++) {
