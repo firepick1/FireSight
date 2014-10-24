@@ -942,6 +942,7 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     vector<Point2f> pointsYX;
     Mat cameraMatrix;
     Mat distCoeffs;
+	GridMatcher gm(imgSize);
 
     if (errMsg.empty()) {
         initializePointMaps(pRects, pointsXY, pointsYX);
@@ -950,7 +951,6 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         string errMsg2 = identifyRows(pStageModel, pointsXY, dmedian.y, dyTot1, dyTot2,
                                       dyCount1, dyCount2, tolerance, objSep.y, gridY);
 
-        if (errMsg.empty()) {
             errMsg = errMsg2;
         } else if (!errMsg2.empty()) {
             errMsg.append("; ");
@@ -960,7 +960,6 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
 
     if (errMsg.empty()) {
         Point2f imgSep(gridX*objSep.x, gridY*objSep.y);
-        GridMatcher gm(imgSize);
 		gm.init(imgSep, objSep);
         gm.matchPoints(dmedian, tolerance, pointsYX, pointsXY);
         errMsg = gm.calibrateImage(pStageModel, cameraMatrix, distCoeffs, model.image, opStr, color, scale);
