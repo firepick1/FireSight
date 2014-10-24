@@ -130,7 +130,7 @@ typedef struct GridMatcher {
           subImgSet(set<Point2f,ComparePoint2f>(cmpYX)),
 		  grid(FLT_MAX,FLT_MAX),
 		  objSep(objSep),
-		  tolerance(tolerance);
+		  tolerance(tolerance)
     {
         this->imgSize = imgSize;
         this->imgRect = Rect(imgSize.width/2, imgSize.height/2, 0, 0);
@@ -292,9 +292,8 @@ typedef struct GridMatcher {
 		return errMsg;
 	} // identifyColumns
 
-    void init(Point2f imgSep, Point2f objSep) {
+    void init(Point2f imgSep) {
         this->imgSep = imgSep;
-        this->objSep = objSep;
     }
 
     bool add(Point2f &ptImg, Point3f &ptObj) {
