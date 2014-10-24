@@ -32,9 +32,7 @@ enum CalibrateOp {
 	CAL_TILE,
 
 	CAL_BEST,
-	CAL_HBAR,
-	CAL_VBAR,
-	CAL_HVBAR,
+	CAL_I,
 	CAL_NONE,
 	CAL_ELLIPSE,
 	CAL_TILE1,
@@ -370,6 +368,20 @@ typedef struct GridMatcher {
         return Point3f(objTotals.x/n, objTotals.y/n, objTotals.z/n);
     }
 
+    void subImageIFactory(Point2f scale) {
+        int rows = gridIndexes.rows;
+        int cols = gridIndexes.cols;
+		Point2f oc((cols-1)/2.0, (rows-1)/2.0);
+		int xh = (int)(0.5+scale.y*rows/4.0);
+		int yw = (int)(0.5+scale.x*cols/4.0);
+		int c2 = (cols-yw)/2;
+		int minPts = 4;
+		
+		addSubImage(0, 0, xh, cols, minPts);
+		addSubImage(rows-xh, 0, xh, cols, minPts);
+		addSubImage(0, c2, rows, yw, minPts);
+    }
+
     void subImageEllipseFactory(Point2f scale) {
         vector<Point2f> subImgPts;
         vector<Point3f> subObjPts;
@@ -393,23 +405,6 @@ typedef struct GridMatcher {
         }
         vObjectPts.push_back(subObjPts);
         vImagePts.push_back(subImgPts);
-    }
-
-    void subImageBarFactory(bool h, bool v) {
-        int minPts = 4;
-        int rows = gridIndexes.rows;
-        int cols = gridIndexes.cols;
-        int xh = rows % 2 ? 3 : 2;
-        int yw = cols % 2 ? 3 : 2;
-        bool combine = true;
-
-        LOGTRACE("subImageBarFactory()");
-        if (h) {
-            addSubImage((rows-xh)/2, 0, xh, cols, minPts, combine);
-        }
-        if (v) {
-            addSubImage(0, (cols-yw)/2, rows, yw, minPts, combine);
-        }
     }
 
     void subImageCelticCrossFactory() {
@@ -554,12 +549,8 @@ typedef struct GridMatcher {
 
         if (opStr.compare("none") == 0) {
             op = CAL_NONE;
-        } else if (opStr.compare("hbar") == 0) {
-            op = CAL_HBAR;
-        } else if (opStr.compare("vbar") == 0) {
-            op = CAL_VBAR;
-        } else if (opStr.compare("hvbar") == 0) {
-            op = CAL_HVBAR;
+        } else if (opStr.compare("I") == 0) {
+            op = CAL_I;
         } else if (opStr.compare("ellipse") == 0) {
             op = CAL_ELLIPSE;
         } else if (opStr.compare("tile1") == 0) {
@@ -628,14 +619,8 @@ typedef struct GridMatcher {
         case CAL_CROSS:
             subImageCrossFactory();
             break;
-        case CAL_HBAR:
-            subImageBarFactory(true, false);
-            break;
-        case CAL_VBAR:
-            subImageBarFactory(false, true);
-            break;
-        case CAL_HVBAR:
-            subImageBarFactory(true, true);
+        case CAL_I:
+            subImageIFactory(scale);
             break;
         case CAL_ELLIPSE:
             subImageEllipseFactory(scale);
