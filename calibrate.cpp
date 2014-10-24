@@ -123,18 +123,21 @@ typedef struct GridMatcher {
     Point2f imgSep;
     Point2f objSep;
     Mat gridIndexes;	// object grid matrix of imagePts/objectPts vector indexes or -1
-    GridMatcher(Size imgSize)
+	double tolerance;
+    GridMatcher(Size imgSize, Point2f objSep, double tolerance)
         : cmpYX(ComparePoint2f(COMPARE_YX)),
           imgSet(set<Point2f,ComparePoint2f>(cmpYX)),
           subImgSet(set<Point2f,ComparePoint2f>(cmpYX)),
-		  grid(FLT_MAX,FLT_MAX)
+		  grid(FLT_MAX,FLT_MAX),
+		  objSep(objSep),
+		  tolerance(tolerance);
     {
         this->imgSize = imgSize;
         this->imgRect = Rect(imgSize.width/2, imgSize.height/2, 0, 0);
 	}
 
 	string identifyRows(json_t *pStageModel, vector<Point2f> &pointsXY, float &dyMedian, Point2f &dyTot1,
-                           Point2f &dyTot2, int &dyCount1, int &dyCount2, double tolerance, int sepY)
+                           Point2f &dyTot2, int &dyCount1, int &dyCount2)
 	{
 		vector<float> dyList;
 		Point2f prevPt;
@@ -204,7 +207,7 @@ typedef struct GridMatcher {
 			json_object_set(pStageModel, "dydxAvg2", json_real(dxAvg2));
 			json_object_set(pStageModel, "dydyAvg2", json_real(dyAvg2));
 			float normXY = sqrt(dxAvg2*dxAvg2 + dyAvg2*dyAvg2);
-			grid.y = normXY / sepY;
+			grid.y = normXY / objSep.y;
 			json_object_set(pStageModel, "grid.y", json_real(grid.y));
 		}
 
@@ -212,7 +215,7 @@ typedef struct GridMatcher {
 	} // identifyRows
 
 	string identifyColumns(json_t *pStageModel, vector<Point2f> &pointsYX, float &dxMedian, Point2f &dxTot1,
-								  Point2f &dxTot2, int &dxCount1, int &dxCount2, double tolerance, int sepX)
+								  Point2f &dxTot2, int &dxCount1, int &dxCount2)
 	{
 		vector<float> dxList;
 		Point2f prevPt;
@@ -282,7 +285,7 @@ typedef struct GridMatcher {
 			json_object_set(pStageModel, "dxdxAvg2", json_real(dxAvg2));
 			json_object_set(pStageModel, "dxdyAvg2", json_real(dyAvg2));
 			float normXY = sqrt(dxAvg2*dxAvg2 + dyAvg2*dyAvg2);
-			grid.x = normXY / sepX;
+			grid.x = normXY / objSep.x;
 			json_object_set(pStageModel, "grid.x", json_real(grid.x));
 		}
 
@@ -373,7 +376,7 @@ typedef struct GridMatcher {
         return perspective;
     }
 
-    void matchPoints(Point2f dmedian, double tolerance, vector<Point2f> &pointsYX, vector<Point2f> &pointsXY) {
+    void matchPoints(Point2f dmedian, vector<Point2f> &pointsYX, vector<Point2f> &pointsXY) {
         Point3f ptObj;
         Point2f ptImg;
 
@@ -942,14 +945,14 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     vector<Point2f> pointsYX;
     Mat cameraMatrix;
     Mat distCoeffs;
-	GridMatcher gm(imgSize);
+	GridMatcher gm(imgSize, objSep, tolerance);
 
     if (errMsg.empty()) {
         initializePointMaps(pRects, pointsXY, pointsYX);
         errMsg = gm.identifyColumns(pStageModel, pointsYX, dmedian.x, dxTot1, dxTot2,
-                                 dxCount1, dxCount2, tolerance, objSep.x);
+                                 dxCount1, dxCount2);
         string errMsg2 = gm.identifyRows(pStageModel, pointsXY, dmedian.y, dyTot1, dyTot2,
-                                      dyCount1, dyCount2, tolerance, objSep.y);
+                                      dyCount1, dyCount2);
 
         if (errMsg.empty()) {
             errMsg = errMsg2;
@@ -961,8 +964,8 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
 
     if (errMsg.empty()) {
         Point2f imgSep(gm.grid.x*objSep.x, gm.grid.y*objSep.y);
-		gm.init(imgSep, objSep);
-        gm.matchPoints(dmedian, tolerance, pointsYX, pointsXY);
+		gm.init(imgSep);
+        gm.matchPoints(dmedian, pointsYX, pointsXY);
         errMsg = gm.calibrateImage(pStageModel, cameraMatrix, distCoeffs, model.image, opStr, color, scale);
     }
 
