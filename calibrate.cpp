@@ -209,6 +209,7 @@ typedef struct GridMatcher {
 			float normXY = sqrt(dxAvg2*dxAvg2 + dyAvg2*dyAvg2);
 			grid.y = normXY / objSep.y;
 			json_object_set(pStageModel, "grid.y", json_real(grid.y));
+			imgSep.y = grid.y*objSep.y;
 		}
 
 		return errMsg;
@@ -287,14 +288,11 @@ typedef struct GridMatcher {
 			float normXY = sqrt(dxAvg2*dxAvg2 + dyAvg2*dyAvg2);
 			grid.x = normXY / objSep.x;
 			json_object_set(pStageModel, "grid.x", json_real(grid.x));
+			imgSep.x = grid.x*objSep.x;
 		}
 
 		return errMsg;
 	} // identifyColumns
-
-    void init(Point2f imgSep) {
-        this->imgSep = imgSep;
-    }
 
     bool add(Point2f &ptImg, Point3f &ptObj) {
         set<Point2f,ComparePoint2f>::iterator it = imgSet.find(ptImg);
@@ -962,8 +960,6 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     }
 
     if (errMsg.empty()) {
-        Point2f imgSep(gm.grid.x*objSep.x, gm.grid.y*objSep.y);
-		gm.init(imgSep);
         gm.matchPoints(dmedian, pointsYX, pointsXY);
         errMsg = gm.calibrateImage(pStageModel, cameraMatrix, distCoeffs, model.image, opStr, color, scale);
     }
