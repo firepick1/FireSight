@@ -122,15 +122,18 @@ typedef struct GridMatcher {
     Point2f imgSep;
     Point2f objSep;
     Mat gridIndexes;	// object grid matrix of imagePts/objectPts vector indexes or -1
-    GridMatcher(Size imgSize, Point2f imgSep, Point2f objSep)
+    GridMatcher(Size imgSize)
         : cmpYX(ComparePoint2f(COMPARE_YX)),
           imgSet(set<Point2f,ComparePoint2f>(cmpYX)),
           subImgSet(set<Point2f,ComparePoint2f>(cmpYX))
     {
         this->imgSize = imgSize;
+        this->imgRect = Rect(imgSize.width/2, imgSize.height/2, 0, 0);
+	}
+
+    void init(Point2f imgSep, Point2f objSep) {
         this->imgSep = imgSep;
         this->objSep = objSep;
-        this->imgRect = Rect(imgSize.width/2, imgSize.height/2, 0, 0);
     }
 
     bool add(Point2f &ptImg, Point3f &ptObj) {
@@ -957,7 +960,8 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
 
     if (errMsg.empty()) {
         Point2f imgSep(gridX*objSep.x, gridY*objSep.y);
-        GridMatcher gm(imgSize, imgSep, objSep);
+        GridMatcher gm(imgSize);
+		gm.init(imgSep, objSep);
         gm.matchPoints(dmedian, tolerance, pointsYX, pointsXY);
         errMsg = gm.calibrateImage(pStageModel, cameraMatrix, distCoeffs, model.image, opStr, color, scale);
     }
