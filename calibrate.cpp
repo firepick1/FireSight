@@ -131,6 +131,162 @@ typedef struct GridMatcher {
         this->imgRect = Rect(imgSize.width/2, imgSize.height/2, 0, 0);
 	}
 
+	string identifyRows(json_t *pStageModel, vector<Point2f> &pointsXY, float &dyMedian, Point2f &dyTot1,
+                           Point2f &dyTot2, int &dyCount1, int &dyCount2, double tolerance, int sepY, float &gridY)
+	{
+		vector<float> dyList;
+		Point2f prevPt;
+		for (vector<Point2f>::iterator it=pointsXY.begin(); it!=pointsXY.end(); it++) {
+			if (it != pointsXY.begin()) {
+				float dy = prevPt.y - it->y;
+				dyList.push_back(dy);
+			}
+			prevPt = *it;
+		}
+		sort(dyList.begin(), dyList.end());
+		dyMedian = dyList[dyList.size()/2];
+		float maxTol = dyMedian < 0 ? 1-tolerance : 1+tolerance;
+		float minTol = dyMedian < 0 ? 1+tolerance : 1-tolerance;
+		float maxDy1 = dyMedian * maxTol;
+		float minDy1 = dyMedian * minTol;
+		float maxDy2 = 2*dyMedian * maxTol;
+		float minDy2 = 2*dyMedian * minTol;
+
+		Point2f prevPt1;
+		Point2f prevPt2;
+		int n = 0;
+		for (vector<Point2f>::iterator it=pointsXY.begin();
+				it!=pointsXY.end(); it++) {
+			const Point2f &curPt = *it;
+			if (n > 0) {
+				LOGDEBUG3("indentifyRows() pointsXY[%d] (%g,%g)", n, curPt.x, curPt.y);
+				float dy1 = prevPt1.y - curPt.y;
+				if (dy1 < minDy1) {
+					LOGTRACE2("identifyRows() reject dy1:%g < minDy1:%g", dy1, minDy1);
+				} else if (maxDy1 < dy1) {
+					LOGTRACE2("identifyRows() reject maxDy1:%g < dy1:%g", maxDy1, dy1);
+				} else {
+					dyTot1 = dyTot1 + (prevPt1 - curPt);
+					dyCount1++;
+				}
+				if (n > 1) {
+					int dy2 = prevPt2.y - curPt.y;
+					if (minDy2 <= dy2 && dy2 <= maxDy2) {
+						dyTot2 = dyTot2 + (prevPt2 - curPt);
+						dyCount2++;
+					}
+				}
+			}
+			prevPt2 = prevPt1;
+			prevPt1 = curPt;
+			n++;
+		}
+
+		string errMsg;
+		json_object_set(pStageModel, "dyMedian", json_real(dyMedian));
+		json_object_set(pStageModel, "dyCount1", json_integer(dyCount1));
+		json_object_set(pStageModel, "dyCount2", json_integer(dyCount2));
+		if (dyCount1 == 0) {
+			errMsg = "No grid points matched within tolerance (level 1) dyCount1:0";
+		} else if (dyCount2 == 0) {
+			json_object_set(pStageModel, "dxAvg1", json_real(dyTot1.x/dyCount1));
+			json_object_set(pStageModel, "dyAvg1", json_real(dyTot1.y/dyCount1));
+			errMsg = "No grid points matched within tolerance (level 2) dyCount2:0";
+		} else {
+			float dxAvg1 = dyTot1.x/dyCount1;
+			float dyAvg1 = dyTot1.y/dyCount1;
+			float dxAvg2 = dyTot2.x/dyCount2/2;
+			float dyAvg2 = dyTot2.y/dyCount2/2;
+			json_object_set(pStageModel, "dydxAvg1", json_real(dxAvg1));
+			json_object_set(pStageModel, "dydyAvg1", json_real(dyAvg1));
+			json_object_set(pStageModel, "dydxAvg2", json_real(dxAvg2));
+			json_object_set(pStageModel, "dydyAvg2", json_real(dyAvg2));
+			float normXY = sqrt(dxAvg2*dxAvg2 + dyAvg2*dyAvg2);
+			gridY = normXY / sepY;
+			json_object_set(pStageModel, "gridY", json_real(gridY));
+		}
+
+		return errMsg;
+	} // identifyRows
+
+	string identifyColumns(json_t *pStageModel, vector<Point2f> &pointsYX, float &dxMedian, Point2f &dxTot1,
+								  Point2f &dxTot2, int &dxCount1, int &dxCount2, double tolerance, int sepX, float &gridX)
+	{
+		vector<float> dxList;
+		Point2f prevPt;
+		for (vector<Point2f>::iterator it=pointsYX.begin(); it!=pointsYX.end(); it++) {
+			if (it != pointsYX.begin()) {
+				float dx = prevPt.x - it->x;
+				dxList.push_back(dx);
+			}
+			prevPt = *it;
+		}
+		sort(dxList.begin(), dxList.end());
+		dxMedian = dxList[dxList.size()/2];
+		float maxTol = dxMedian < 0 ? 1-tolerance : 1+tolerance;
+		float minTol = dxMedian < 0 ? 1+tolerance : 1-tolerance;
+		float maxDx1 = dxMedian * maxTol;
+		float minDx1 = dxMedian * minTol;
+		float maxDx2 = 2*dxMedian * maxTol;
+		float minDx2 = 2*dxMedian * minTol;
+
+		Point2f prevPt1;
+		Point2f prevPt2;
+		int n = 0;
+		for (vector<Point2f>::iterator it=pointsYX.begin();
+				it!=pointsYX.end(); it++) {
+			const Point2f &curPt = *it;
+			if (n > 0) {
+				LOGDEBUG3("identify_Columns() pointsYX[%d] (%g,%g)", n, curPt.x, curPt.y);
+				float dx1 = prevPt1.x - curPt.x;
+				if (dx1 < minDx1) {
+					LOGTRACE2("identifyColumns() reject dx1:%g < minDx1:%g", dx1, minDx1);
+				} else if (maxDx1 < dx1) {
+					LOGTRACE2("identifyColumns() reject maxDx1:%g < dx1:%g", maxDx1, dx1);
+				} else {
+					dxTot1 = dxTot1 + (prevPt1 - curPt);
+					dxCount1++;
+				}
+				if (n > 1) {
+					int dx2 = prevPt2.x - curPt.x;
+					if (minDx2 <= dx2 && dx2 <= maxDx2) {
+						dxTot2 = dxTot2 + (prevPt2 - curPt);
+						dxCount2++;
+					}
+				}
+			}
+			prevPt2 = prevPt1;
+			prevPt1 = curPt;
+			n++;
+		}
+
+		string errMsg;
+		json_object_set(pStageModel, "dxMedian", json_real(dxMedian));
+		json_object_set(pStageModel, "dxCount1", json_integer(dxCount1));
+		json_object_set(pStageModel, "dxCount2", json_integer(dxCount2));
+		if (dxCount1 == 0) {
+			errMsg = "No grid points matched within tolerance (level 1) dxCount1:0";
+		} else if (dxCount2 == 0) {
+			json_object_set(pStageModel, "dxAvg1", json_real(dxTot1.x/dxCount1));
+			json_object_set(pStageModel, "dyAvg1", json_real(dxTot1.y/dxCount1));
+			errMsg = "No grid points matched within tolerance (level 2) dxCount2:0";
+		} else {
+			float dxAvg1 = dxTot1.x/dxCount1;
+			float dyAvg1 = dxTot1.y/dxCount1;
+			float dxAvg2 = dxTot2.x/dxCount2/2;
+			float dyAvg2 = dxTot2.y/dxCount2/2;
+			json_object_set(pStageModel, "dxdxAvg1", json_real(dxAvg1));
+			json_object_set(pStageModel, "dxdyAvg1", json_real(dyAvg1));
+			json_object_set(pStageModel, "dxdxAvg2", json_real(dxAvg2));
+			json_object_set(pStageModel, "dxdyAvg2", json_real(dyAvg2));
+			float normXY = sqrt(dxAvg2*dxAvg2 + dyAvg2*dyAvg2);
+			gridX = normXY / sepX;
+			json_object_set(pStageModel, "gridX", json_real(gridX));
+		}
+
+		return errMsg;
+	} // identifyColumns
+
     void init(Point2f imgSep, Point2f objSep) {
         this->imgSep = imgSep;
         this->objSep = objSep;
@@ -722,162 +878,6 @@ typedef struct GridMatcher {
 
 typedef map<Point2f,Point2f,ComparePoint2f> PointMap;
 
-static string identifyRows(json_t *pStageModel, vector<Point2f> &pointsXY, float &dyMedian, Point2f &dyTot1,
-                           Point2f &dyTot2, int &dyCount1, int &dyCount2, double tolerance, int sepY, float &gridY)
-{
-    vector<float> dyList;
-    Point2f prevPt;
-    for (vector<Point2f>::iterator it=pointsXY.begin(); it!=pointsXY.end(); it++) {
-        if (it != pointsXY.begin()) {
-            float dy = prevPt.y - it->y;
-            dyList.push_back(dy);
-        }
-        prevPt = *it;
-    }
-    sort(dyList.begin(), dyList.end());
-    dyMedian = dyList[dyList.size()/2];
-    float maxTol = dyMedian < 0 ? 1-tolerance : 1+tolerance;
-    float minTol = dyMedian < 0 ? 1+tolerance : 1-tolerance;
-    float maxDy1 = dyMedian * maxTol;
-    float minDy1 = dyMedian * minTol;
-    float maxDy2 = 2*dyMedian * maxTol;
-    float minDy2 = 2*dyMedian * minTol;
-
-    Point2f prevPt1;
-    Point2f prevPt2;
-    int n = 0;
-    for (vector<Point2f>::iterator it=pointsXY.begin();
-            it!=pointsXY.end(); it++) {
-        const Point2f &curPt = *it;
-        if (n > 0) {
-            LOGDEBUG3("indentifyRows() pointsXY[%d] (%g,%g)", n, curPt.x, curPt.y);
-            float dy1 = prevPt1.y - curPt.y;
-            if (dy1 < minDy1) {
-                LOGTRACE2("identifyRows() reject dy1:%g < minDy1:%g", dy1, minDy1);
-            } else if (maxDy1 < dy1) {
-                LOGTRACE2("identifyRows() reject maxDy1:%g < dy1:%g", maxDy1, dy1);
-            } else {
-                dyTot1 = dyTot1 + (prevPt1 - curPt);
-                dyCount1++;
-            }
-            if (n > 1) {
-                int dy2 = prevPt2.y - curPt.y;
-                if (minDy2 <= dy2 && dy2 <= maxDy2) {
-                    dyTot2 = dyTot2 + (prevPt2 - curPt);
-                    dyCount2++;
-                }
-            }
-        }
-        prevPt2 = prevPt1;
-        prevPt1 = curPt;
-        n++;
-    }
-
-    string errMsg;
-    json_object_set(pStageModel, "dyMedian", json_real(dyMedian));
-    json_object_set(pStageModel, "dyCount1", json_integer(dyCount1));
-    json_object_set(pStageModel, "dyCount2", json_integer(dyCount2));
-    if (dyCount1 == 0) {
-        errMsg = "No grid points matched within tolerance (level 1) dyCount1:0";
-    } else if (dyCount2 == 0) {
-        json_object_set(pStageModel, "dxAvg1", json_real(dyTot1.x/dyCount1));
-        json_object_set(pStageModel, "dyAvg1", json_real(dyTot1.y/dyCount1));
-        errMsg = "No grid points matched within tolerance (level 2) dyCount2:0";
-    } else {
-        float dxAvg1 = dyTot1.x/dyCount1;
-        float dyAvg1 = dyTot1.y/dyCount1;
-        float dxAvg2 = dyTot2.x/dyCount2/2;
-        float dyAvg2 = dyTot2.y/dyCount2/2;
-        json_object_set(pStageModel, "dydxAvg1", json_real(dxAvg1));
-        json_object_set(pStageModel, "dydyAvg1", json_real(dyAvg1));
-        json_object_set(pStageModel, "dydxAvg2", json_real(dxAvg2));
-        json_object_set(pStageModel, "dydyAvg2", json_real(dyAvg2));
-        float normXY = sqrt(dxAvg2*dxAvg2 + dyAvg2*dyAvg2);
-        gridY = normXY / sepY;
-        json_object_set(pStageModel, "gridY", json_real(gridY));
-    }
-
-    return errMsg;
-} // identifyRows
-
-static string identifyColumns(json_t *pStageModel, vector<Point2f> &pointsYX, float &dxMedian, Point2f &dxTot1,
-                              Point2f &dxTot2, int &dxCount1, int &dxCount2, double tolerance, int sepX, float &gridX)
-{
-    vector<float> dxList;
-    Point2f prevPt;
-    for (vector<Point2f>::iterator it=pointsYX.begin(); it!=pointsYX.end(); it++) {
-        if (it != pointsYX.begin()) {
-            float dx = prevPt.x - it->x;
-            dxList.push_back(dx);
-        }
-        prevPt = *it;
-    }
-    sort(dxList.begin(), dxList.end());
-    dxMedian = dxList[dxList.size()/2];
-    float maxTol = dxMedian < 0 ? 1-tolerance : 1+tolerance;
-    float minTol = dxMedian < 0 ? 1+tolerance : 1-tolerance;
-    float maxDx1 = dxMedian * maxTol;
-    float minDx1 = dxMedian * minTol;
-    float maxDx2 = 2*dxMedian * maxTol;
-    float minDx2 = 2*dxMedian * minTol;
-
-    Point2f prevPt1;
-    Point2f prevPt2;
-    int n = 0;
-    for (vector<Point2f>::iterator it=pointsYX.begin();
-            it!=pointsYX.end(); it++) {
-        const Point2f &curPt = *it;
-        if (n > 0) {
-            LOGDEBUG3("identify_Columns() pointsYX[%d] (%g,%g)", n, curPt.x, curPt.y);
-            float dx1 = prevPt1.x - curPt.x;
-            if (dx1 < minDx1) {
-                LOGTRACE2("identifyColumns() reject dx1:%g < minDx1:%g", dx1, minDx1);
-            } else if (maxDx1 < dx1) {
-                LOGTRACE2("identifyColumns() reject maxDx1:%g < dx1:%g", maxDx1, dx1);
-            } else {
-                dxTot1 = dxTot1 + (prevPt1 - curPt);
-                dxCount1++;
-            }
-            if (n > 1) {
-                int dx2 = prevPt2.x - curPt.x;
-                if (minDx2 <= dx2 && dx2 <= maxDx2) {
-                    dxTot2 = dxTot2 + (prevPt2 - curPt);
-                    dxCount2++;
-                }
-            }
-        }
-        prevPt2 = prevPt1;
-        prevPt1 = curPt;
-        n++;
-    }
-
-    string errMsg;
-    json_object_set(pStageModel, "dxMedian", json_real(dxMedian));
-    json_object_set(pStageModel, "dxCount1", json_integer(dxCount1));
-    json_object_set(pStageModel, "dxCount2", json_integer(dxCount2));
-    if (dxCount1 == 0) {
-        errMsg = "No grid points matched within tolerance (level 1) dxCount1:0";
-    } else if (dxCount2 == 0) {
-        json_object_set(pStageModel, "dxAvg1", json_real(dxTot1.x/dxCount1));
-        json_object_set(pStageModel, "dyAvg1", json_real(dxTot1.y/dxCount1));
-        errMsg = "No grid points matched within tolerance (level 2) dxCount2:0";
-    } else {
-        float dxAvg1 = dxTot1.x/dxCount1;
-        float dyAvg1 = dxTot1.y/dxCount1;
-        float dxAvg2 = dxTot2.x/dxCount2/2;
-        float dyAvg2 = dxTot2.y/dxCount2/2;
-        json_object_set(pStageModel, "dxdxAvg1", json_real(dxAvg1));
-        json_object_set(pStageModel, "dxdyAvg1", json_real(dyAvg1));
-        json_object_set(pStageModel, "dxdxAvg2", json_real(dxAvg2));
-        json_object_set(pStageModel, "dxdyAvg2", json_real(dyAvg2));
-        float normXY = sqrt(dxAvg2*dxAvg2 + dyAvg2*dyAvg2);
-        gridX = normXY / sepX;
-        json_object_set(pStageModel, "gridX", json_real(gridX));
-    }
-
-    return errMsg;
-} // identifyColumns
-
 void initializePointMaps(json_t *pRects, vector<Point2f> &pointsXY, vector<Point2f> &pointsYX) {
     json_t *pValue;
     int index;
@@ -946,9 +946,9 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
 
     if (errMsg.empty()) {
         initializePointMaps(pRects, pointsXY, pointsYX);
-        errMsg = identifyColumns(pStageModel, pointsYX, dmedian.x, dxTot1, dxTot2,
+        errMsg = gm.identifyColumns(pStageModel, pointsYX, dmedian.x, dxTot1, dxTot2,
                                  dxCount1, dxCount2, tolerance, objSep.x, gridX);
-        string errMsg2 = identifyRows(pStageModel, pointsXY, dmedian.y, dyTot1, dyTot2,
+        string errMsg2 = gm.identifyRows(pStageModel, pointsXY, dmedian.y, dyTot1, dyTot2,
                                       dyCount1, dyCount2, tolerance, objSep.y, gridY);
 
         if (errMsg.empty()) {
