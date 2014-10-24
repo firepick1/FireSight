@@ -951,6 +951,7 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
         string errMsg2 = identifyRows(pStageModel, pointsXY, dmedian.y, dyTot1, dyTot2,
                                       dyCount1, dyCount2, tolerance, objSep.y, gridY);
 
+        if (errMsg.empty()) {
             errMsg = errMsg2;
         } else if (!errMsg2.empty()) {
             errMsg.append("; ");
