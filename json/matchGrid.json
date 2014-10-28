@@ -3,7 +3,7 @@
 		"name":"match",
 		"template":"{{template}}",
 		"corr":"{{corr||0.8}}",
-		"threshold":"{{threshold}}",
+		"threshold":"{{threshold||0.6}}",
 		"method":"{{method}}",
 		"angle":"{{angle }}",
 		"output":"{{output}}" },
@@ -15,5 +15,6 @@
 		"model":"match" },
 	{"op":"drawRects", "name":"draw1", "radius":5, "model":"grid1", "color":[32,255,32]},
 	{"op":"undistort", "name":"undistort", "model":"grid1" },
+	{"op":"warpPerspective", "matrix":"{{matrix}}", "borderValue":[64,255,64]},
 	{"op":"drawRects", "name":"draw2", "radius":2, "model":"grid1", "color":[32,32,255]}
 ]

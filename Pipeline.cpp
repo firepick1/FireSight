@@ -1403,8 +1403,9 @@ Pipeline::~Pipeline() {
   json_decref(pPipeline);
 }
 
-static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStage) {
+static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStage, json_t *pStageModel) {
   if (errMsg) {
+	json_object_set(pStageModel, "ERROR", json_string(errMsg));
     char *pStageJson = json_dumps(pStage, 0);
     LOGERROR3("Pipeline::process stage:%s error:%s pStageJson:%s", pName, errMsg, pStageJson);
     free(pStageJson);
@@ -1458,7 +1459,8 @@ bool Pipeline::processModel(Model &model) {
     }
     string comment = jo_string(pStage, "comment", "", model.argMap);
     json_t *pStageModel = json_object();
-    json_object_set(model.getJson(false), pName.c_str(), pStageModel);
+	json_t *jmodel = model.getJson(false);
+    json_object_set(jmodel, pName.c_str(), pStageModel);
     if (logLevel >= FIRELOG_DEBUG) {
       string stageDump = jo_object_dump(pStage, model.argMap);
       snprintf(debugBuf,sizeof(debugBuf), "process() %s %s", 
@@ -1467,19 +1469,20 @@ bool Pipeline::processModel(Model &model) {
     if (strncmp(pOp.c_str(), "nop", 3)==0) {
       LOGDEBUG1("%s (NO ACTION TAKEN)", debugBuf);
     } else if (pName.compare("input")==0) {
-      ok = logErrorMessage("\"input\" is the reserved stage name for the input image", pName.c_str(), pStage);
+      ok = logErrorMessage("\"input\" is the reserved stage name for the input image", 
+	  	pName.c_str(), pStage, pStageModel);
     } else {
       LOGDEBUG1("%s", debugBuf);
       try {
         const char *errMsg = dispatch(pName.c_str(), pOp.c_str(), pStage, pStageModel, model);
-        ok = logErrorMessage(errMsg, pName.c_str(), pStage);
+        ok = logErrorMessage(errMsg, pName.c_str(), pStage, pStageModel);
         if (isSaveImage) {
           model.imageMap[pName.c_str()] = model.image.clone();
         }
       } catch (runtime_error &ex) {
-        ok = logErrorMessage(ex.what(), pName.c_str(), pStage);
+        ok = logErrorMessage(ex.what(), pName.c_str(), pStage, pStageModel);
       } catch (cv::Exception &ex) {
-        ok = logErrorMessage(ex.what(), pName.c_str(), pStage);
+        ok = logErrorMessage(ex.what(), pName.c_str(), pStage, pStageModel);
       }
     } //if-else (pOp)
     if (!ok) { 

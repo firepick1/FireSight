@@ -35,6 +35,9 @@ enum CalibrateOp {
 	CAL_I,
 	CAL_NONE,
 	CAL_ELLIPSE,
+	CAL_CORNERS,
+	CAL_DIAMOND,
+	CAL_QUADRILATERAL,
 	CAL_TILE1,
 	CAL_TILE2,
 	CAL_TILE3,
@@ -134,6 +137,54 @@ typedef struct GridMatcher {
     {
         this->imgSize = imgSize;
         this->imgRect = Rect(imgSize.width/2, imgSize.height/2, 0, 0);
+	}
+
+	double calcGridness(const vector<Point2f> &imgPts) {
+        int rows = gridIndexes.rows;
+        int cols = gridIndexes.cols;
+		int r2 = rows/2;
+		int c2 = cols/2;
+		int index00 = gridIndexes.at<short>(r2,c2);
+		int index0x = gridIndexes.at<short>(r2,c2+1);
+		int indexy0 = gridIndexes.at<short>(r2+1,c2);
+		Point2f center(imgPts[index00]);
+		LOGTRACE2("calcGridness() r2:%d c2:%d", r2, c2);
+		LOGTRACE3("calcGridness() index00:%d imgPt:(%g,%g)", 
+			index00, imgPts[index00].x, imgPts[index00].y);
+		LOGTRACE3("calcGridness() index0x:%d imgPt:(%g,%g)", 
+			index0x, imgPts[index0x].x, imgPts[index0x].y);
+		LOGTRACE3("calcGridness() indexy0:%d imgPt:(%g,%g)", 
+			indexy0, imgPts[indexy0].x, imgPts[indexy0].y);
+
+		if (index00 < 0 || index0x < 0 || indexy0 < 0) {
+			LOGERROR("GridMatcher::calcGridness() could not calculate grid separation");
+			return nan("");	// Impossible RMS value
+		}  
+		Point2f gridSep(imgPts[index0x].x-center.x, imgPts[indexy0].y-center.y);
+		int n = 0;
+		double totalSquaredError = 0;
+
+		LOGTRACE4("calcGridness() center:(%g,%g) gridSep:(%g,%g)", 
+			center.x, center.y, gridSep.x, gridSep.y);
+		if (gridSep.x == 0 || gridSep.y == 0) {
+			return nan("");
+		}
+		for (int r=0; r < rows; r++) {
+			for (int c=0; c < cols; c++) {
+				int index = gridIndexes.at<short>(r,c);
+				if (index >= 0) {
+					Point2f gridPt = Point2f((c-c2)*gridSep.x, (r-r2)*gridSep.y) + center;
+					Point2f diff = gridPt - imgPts[index];
+					double  e2 = diff.x*(double)diff.x + diff.y*(double)diff.y;
+					LOGTRACE4("calcGridness() r:%d c:%d diff:(%g,%g)", r, c, diff.x, diff.y);
+					totalSquaredError += e2;
+					n++;
+				}
+			}
+		}
+
+		double rms = sqrt(totalSquaredError/n);
+		return rms;
 	}
 
 	string identifyRows(json_t *pStageModel, vector<Point2f> &pointsXY, float &dyMedian, Point2f &dyTot1,
@@ -340,7 +391,7 @@ typedef struct GridMatcher {
             int index = gridIndexes.at<short>(r,(r*c2)/r2);
             if (0 <= index) {
                 perspectiveDst[0] = imagePts[index];
-                perspectiveSrc[0] = Point2f(objectPts[index].x, objectPts[index].y);
+                perspectiveSrc[0] = Point2f(grid.x*objectPts[index].x, grid.y*objectPts[index].y);
                 break;
             }
         }
@@ -348,7 +399,7 @@ typedef struct GridMatcher {
             int index = gridIndexes.at<short>(rows-r-1,(r*c2)/r2);
             if (0 <= index) {
                 perspectiveDst[1] = imagePts[index];
-                perspectiveSrc[1] = Point2f(objectPts[index].x, objectPts[index].y);
+                perspectiveSrc[1] = Point2f(grid.x*objectPts[index].x, grid.y*objectPts[index].y);
                 break;
             }
         }
@@ -356,7 +407,7 @@ typedef struct GridMatcher {
             int index = gridIndexes.at<short>(r,cols-1-(r*c2)/r2);
             if (0 <= index) {
                 perspectiveDst[2] = imagePts[index];
-                perspectiveSrc[2] = Point2f(objectPts[index].x, objectPts[index].y);
+                perspectiveSrc[2] = Point2f(grid.x*objectPts[index].x, grid.y*objectPts[index].y);
                 break;
             }
         }
@@ -364,7 +415,7 @@ typedef struct GridMatcher {
             int index = gridIndexes.at<short>(rows-r-1,cols-1-(r*c2)/r2);
             if (0 <= index) {
                 perspectiveDst[3] = imagePts[index];
-                perspectiveSrc[3] = Point2f(objectPts[index].x, objectPts[index].y);
+                perspectiveSrc[3] = Point2f(grid.x*objectPts[index].x, grid.y*objectPts[index].y);
                 break;
             }
         }
@@ -452,17 +503,21 @@ typedef struct GridMatcher {
         }
     }
 
-    bool addSubImagePoint(int r, int c, Point2f objCenter,
-                          vector<Point2f> &subImgPts, vector<Point3f> &subObjPts) {
+    bool addSubImagePoint(int r, int c, Point2f objCenter, vector<Point2f> &subImgPts, 
+							vector<Point3f> &subObjPts, 
+						  set<Point2f,ComparePoint2f> *pSubImgSet=NULL) {
         short index = gridIndexes.at<short>(r, c);
 		bool added = false;
         if (0 <= index) {
             Point2f ptImg = imagePts[index];
             Point3f ptObj = objectPts[index];
-            Point3f subObjPt(objSep.x*(ptObj.x-objCenter.x), objSep.y*(ptObj.y-objCenter.y), 0);
+            //Point3f subObjPt(objSep.x*(ptObj.x-objCenter.x), objSep.y*(ptObj.y-objCenter.y), 0);
+            Point3f subObjPt(ptObj);
             added = true;
-			if (subImgSet.insert(ptImg).second) {
-				LOGTRACE2("addSubImagePoint() point:[%d,%d]", (int)ptImg.x, (int)ptImg.y);
+			LOGTRACE4("addSubImagePoint(r:%d,c:%d,objCenter.x:%g,objCenter.y:%g)", r, c, objCenter.x, objCenter.y);
+			if (pSubImgSet) {
+				bool added = pSubImgSet->insert(ptImg).second;
+				(void) added;
 			}
             subObjPts.push_back(subObjPt);
             subImgPts.push_back(ptImg);
@@ -495,6 +550,12 @@ typedef struct GridMatcher {
             }
             return false;
         }
+		for (int i=0; i<subImgPts.size(); i++) {
+			Point2f ptImg = subImgPts[i];
+			if (subImgSet.insert(ptImg).second) {
+				LOGTRACE2("addSubImage() point:[%d,%d]", (int)ptImg.x, (int)ptImg.y);
+			}
+		}
         if (logLevel >= FIRELOG_TRACE) {
             char buf[255];
             snprintf(buf, sizeof(buf), "addSubImage(%d,%d,%d,%d) ADD:%ld",
@@ -529,6 +590,40 @@ typedef struct GridMatcher {
         return Point3f(objTotals.x/n, objTotals.y/n, objTotals.z/n);
     }
 
+    void subImageCornersFactory(Point2f scale) {
+        int rows = gridIndexes.rows;
+        int cols = gridIndexes.cols;
+		int n2 = min(rows,cols)/2;
+
+		Point2f oc((cols-1)/2.0, (rows-1)/2.0);
+		int h = 2;
+		int w = 2;
+		int rlast = rows-h;
+		int clast = cols-w;
+		int minPts = 4;
+		
+		for (int i = 0; i < n2; i++) {
+			if (addSubImage(i, i, h, w, minPts)) {
+				break;
+			}
+		}
+		for (int i = 0; i < n2; i++) {
+			if (addSubImage(i, clast-i, h, w, minPts)) {
+				break;
+			}
+		}
+		for (int i = 0; i < n2; i++) {
+			if (addSubImage(rlast-i, i, h, w, minPts)) {
+				break;
+			}
+		}
+		for (int i = 0; i < n2; i++) {
+			if (addSubImage(rlast-i, clast-i, h, w, minPts)) {
+				break;
+			}
+		}
+    }
+
     void subImageIFactory(Point2f scale) {
         int rows = gridIndexes.rows;
         int cols = gridIndexes.cols;
@@ -541,6 +636,88 @@ typedef struct GridMatcher {
 		addSubImage(0, 0, xh, cols, minPts);
 		addSubImage(rows-xh, 0, xh, cols, minPts);
 		addSubImage(0, c2, rows, yw, minPts);
+    }
+
+    bool subImageQuadrilateralFactory(Point2f scale) {
+        vector<Point2f> subImgPts;
+        vector<Point3f> subObjPts;
+        int rows = gridIndexes.rows;
+        int cols = gridIndexes.cols;
+		int rStart = max(0,min(rows-1,(int)(0.5+rows*(1-scale.y))));
+		int rLast = rows-rStart-1;
+		int cStart = max(0,min(cols-1,(int)(0.5+cols*(1-scale.x))));
+		int cLast = cols-cStart-1;
+		Point2f oc((cols-1)/2.0, (rows-1)/2.0);
+
+        LOGTRACE2("subImageQuadrilateralFactory(%g,%g)", scale.x, scale.y);
+		for (int r=rStart; r <= oc.y; r++) {
+			if (addSubImagePoint(r, r, oc, subImgPts, subObjPts, &subImgSet)) {
+				break;
+            }
+        }
+		for (int r=rStart; r <= oc.y; r++) {
+			if (addSubImagePoint(r, cLast-(r-rStart), oc, subImgPts, subObjPts, &subImgSet)) {
+				break;
+            }
+        }
+		for (int r=rLast; oc.y < r; r--) {
+			if (addSubImagePoint(r, cStart+(rLast-r), oc, subImgPts, subObjPts, &subImgSet)) {
+				break;
+            }
+        }
+		for (int r=rLast; oc.y < r; r--) {
+			if (addSubImagePoint(r, cLast-(rLast-r), oc, subImgPts, subObjPts, &subImgSet)) {
+				break;
+            }
+        }
+		if (subObjPts.size() < 4) {
+			LOGERROR1("subImageQuadrilateralFactor() could not find 4 points to match (%d found)", (int)subObjPts.size());
+			return false;
+		}
+		vObjectPts.push_back(subObjPts);
+		vImagePts.push_back(subImgPts);
+		return true;
+    }
+
+    bool subImageDiamondFactory(Point2f scale) {
+        vector<Point2f> subImgPts;
+        vector<Point3f> subObjPts;
+        int rows = gridIndexes.rows;
+        int cols = gridIndexes.cols;
+		int rStart = max(0,min(rows-1,(int)(0.5+rows*(1-scale.y))));
+		int rLast = rows-rStart-1;
+		int cStart = max(0,min(cols-1,(int)(0.5+cols*(1-scale.x))));
+		int cLast = cols-cStart-1;
+		Point2f oc((cols-1)/2.0, (rows-1)/2.0);
+
+        LOGTRACE2("subImageDiamondFactory(%g,%g)", scale.x, scale.y);
+		for (int r=rStart; r <= oc.y; r++) {
+			if (addSubImagePoint(r, oc.x, oc, subImgPts, subObjPts, &subImgSet)) {
+				break;
+            }
+        }
+		for (int r=rLast; oc.y < r; r--) {
+			if (addSubImagePoint(r, oc.x, oc, subImgPts, subObjPts, &subImgSet)) {
+				break;
+            }
+        }
+		for (int c=cStart; c <= oc.x; c++) {
+			if (addSubImagePoint(oc.y, c, oc, subImgPts, subObjPts, &subImgSet)) {
+				break;
+            }
+        }
+		for (int c=cLast; oc.x < c; c--) {
+			if (addSubImagePoint(oc.y, c, oc, subImgPts, subObjPts, &subImgSet)) {
+				break;
+            }
+        }
+		if (subObjPts.size() < 4) {
+			LOGERROR1("subImageDiamondFactory() could not find 4 points to match (%d found)", (int)subObjPts.size());
+			return false;
+		}
+		vObjectPts.push_back(subObjPts);
+		vImagePts.push_back(subImgPts);
+		return true;
     }
 
     void subImageEllipseFactory(Point2f scale) {
@@ -560,7 +737,7 @@ typedef struct GridMatcher {
                 float dc = c-oc.x;
                 float n = scale.x*scale.x*dr*dr*ocx2 + scale.y*scale.y*dc*dc*ocy2;
                 if (n <= nMax) {
-                    addSubImagePoint(r, c, oc, subImgPts, subObjPts);
+                    addSubImagePoint(r, c, oc, subImgPts, subObjPts, &subImgSet);
                 }
             }
         }
@@ -712,6 +889,12 @@ typedef struct GridMatcher {
             op = CAL_NONE;
         } else if (opStr.compare("I") == 0) {
             op = CAL_I;
+        } else if (opStr.compare("corners") == 0) {
+            op = CAL_CORNERS;
+        } else if (opStr.compare("diamond") == 0) {
+            op = CAL_DIAMOND;
+        } else if (opStr.compare("quad") == 0) {
+            op = CAL_QUADRILATERAL;
         } else if (opStr.compare("ellipse") == 0) {
             op = CAL_ELLIPSE;
         } else if (opStr.compare("tile1") == 0) {
@@ -783,6 +966,15 @@ typedef struct GridMatcher {
         case CAL_I:
             subImageIFactory(scale);
             break;
+        case CAL_CORNERS:
+            subImageCornersFactory(scale);
+            break;
+        case CAL_DIAMOND:
+            subImageDiamondFactory(scale);
+            break;
+        case CAL_QUADRILATERAL:
+            subImageQuadrilateralFactory(scale);
+            break;
         case CAL_ELLIPSE:
             subImageEllipseFactory(scale);
             break;
@@ -813,13 +1005,20 @@ typedef struct GridMatcher {
             initCameraVectors(cmDefault, dcDefault, image);
             cameraMatrix = Mat(3, 3, CV_64F);
             for (int i=0; i<cmDefault.size(); i++) {
-                cameraMatrix.at<double>(i/3, i%3) = cmDefault[i];
+                cameraMatrix.at<double>(i/3, i%3) = cmDefault[i]+1;
             }
-            distCoeffs = Mat(dcDefault);
+            distCoeffs = Mat(4, 1, CV_64F);
+			for (int i=0; i<dcDefault.size(); i++) {
+				distCoeffs.at<double>(i,0) = dcDefault[i];
+			}
+			rvecs.push_back(Mat(3, 1, CV_64F));
+			tvecs.push_back(Mat(3, 1, CV_64F));
+			subImgSet = imgSet;
         } else {
             try {
                 rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize,
                                            cameraMatrix, distCoeffs, rvecs, tvecs);
+				
             } catch (cv::Exception ex) {
                 errMsg = "calibrateImage(FAILED) ";
                 errMsg += ex.msg;
@@ -828,7 +1027,20 @@ typedef struct GridMatcher {
             }
         }
 
+		double gridnessIn = nan("");
+		double gridnessOut = nan("");
         if (errMsg.empty()) {
+			gridnessIn = calcGridness(imagePts);
+			if (rvecs.size() > 0) {
+				gridnessOut = 0;
+				for (int i=0; i < rvecs.size(); i++) {
+					vector<Point2f> projectedPts;
+					projectPoints(objectPts, rvecs[i], tvecs[i], cameraMatrix, distCoeffs, projectedPts);
+					gridnessOut += calcGridness(projectedPts);
+				}
+				gridnessOut = gridnessOut/rvecs.size();
+			}
+
             Point3f objCentroid = getObjectCentroid();
             Point2f imgCentroid = getImageCentroid();
             for (int i=0; i < size(); i++) {
@@ -853,14 +1065,19 @@ typedef struct GridMatcher {
             }
         }
 
+        json_object_set(pCalibrate, "perspective", json_matrix(perspective));
         json_object_set(pCalibrate, "op", json_string(opStr.c_str()));
         json_object_set(pCalibrate, "cameraMatrix", json_matrix(cameraMatrix));
-        json_object_set(pCalibrate, "perspective", json_matrix(perspective));
         json_object_set(pCalibrate, "distCoeffs", json_matrix(distCoeffs));
         json_object_set(pCalibrate, "candidates", json_integer(size()));
         json_object_set(pCalibrate, "matched", json_integer(subImgSet.size()));
-        json_object_set(pCalibrate, "rmserror", json_real(rmserror));
         json_object_set(pCalibrate, "images", json_real(vImagePts.size()));
+        json_object_set(pCalibrate, "rmserror", 
+			isnan(rmserror) ? json_string("NaN") : json_real(rmserror));
+        json_object_set(pCalibrate, "gridnessIn", 
+			isnan(gridnessIn) ? json_string("NaN") : json_real(gridnessIn));
+        json_object_set(pCalibrate, "gridnessOut", 
+			isnan(gridnessOut) ? json_string("NaN") : json_real(gridnessOut));
 #ifdef RVECS_TVECS
         json_t *pRvecs = json_array();
         json_object_set(pCalibrate, "rvecs", pRvecs);
@@ -902,7 +1119,7 @@ void initializePointMaps(json_t *pRects, vector<Point2f> &pointsXY, vector<Point
 
 bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model) {
     string rectsModelName = jo_string(pStage, "model", "", model.argMap);
-    string opStr = jo_string(pStage, "calibrate", "default", model.argMap);
+    string opStr = jo_string(pStage, "calibrate", "best", model.argMap);
     Scalar color = jo_Scalar(pStage, "color", Scalar(255,255,255), model.argMap);
 	Point2f scale = jo_Point2f(pStage, "scale", Point2f(1,1), model.argMap);
     Point2f objSep = jo_Point2f(pStage, "sep", Point2f(5,5), model.argMap);
