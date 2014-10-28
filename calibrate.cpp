@@ -37,7 +37,10 @@ enum CalibrateOp {
 	CAL_ELLIPSE,
 	CAL_CORNERS,
 	CAL_DIAMOND,
-	CAL_QUADRILATERAL,
+	CAL_QUAD0,
+	CAL_QUAD1,
+	CAL_QUAD2,
+	CAL_QUAD3,
 	CAL_TILE1,
 	CAL_TILE2,
 	CAL_TILE3,
@@ -139,7 +142,9 @@ typedef struct GridMatcher {
         this->imgRect = Rect(imgSize.width/2, imgSize.height/2, 0, 0);
 	}
 
-	double calcGridness(const vector<Point2f> &imgPts) {
+	vector<Point2f> create_gridImgPts(const vector<Point2f> &imgPts) {
+		vector<Point2f> gridImgPts(imgPts.size());
+
         int rows = gridIndexes.rows;
         int cols = gridIndexes.cols;
 		int r2 = rows/2;
@@ -148,33 +153,53 @@ typedef struct GridMatcher {
 		int index0x = gridIndexes.at<short>(r2,c2+1);
 		int indexy0 = gridIndexes.at<short>(r2+1,c2);
 		Point2f center(imgPts[index00]);
-		LOGTRACE2("calcGridness() r2:%d c2:%d", r2, c2);
-		LOGTRACE3("calcGridness() index00:%d imgPt:(%g,%g)", 
+		LOGTRACE2("create_gridImgPts() r2:%d c2:%d", r2, c2);
+		LOGTRACE3("create_gridImgPts() index00:%d imgPt:(%g,%g)", 
 			index00, imgPts[index00].x, imgPts[index00].y);
-		LOGTRACE3("calcGridness() index0x:%d imgPt:(%g,%g)", 
+		LOGTRACE3("create_gridImgPts() index0x:%d imgPt:(%g,%g)", 
 			index0x, imgPts[index0x].x, imgPts[index0x].y);
-		LOGTRACE3("calcGridness() indexy0:%d imgPt:(%g,%g)", 
+		LOGTRACE3("create_gridImgPts() indexy0:%d imgPt:(%g,%g)", 
 			indexy0, imgPts[indexy0].x, imgPts[indexy0].y);
 
 		if (index00 < 0 || index0x < 0 || indexy0 < 0) {
-			LOGERROR("GridMatcher::calcGridness() could not calculate grid separation");
-			return nan("");	// Impossible RMS value
-		}  
-		Point2f gridSep(imgPts[index0x].x-center.x, imgPts[indexy0].y-center.y);
+			LOGERROR("GridMatcher::create_gridImgPts() could not calculate grid separation");
+		} else {  
+			Point2f gridSep(imgPts[index0x].x-center.x, imgPts[indexy0].y-center.y);
+			int n = 0;
+			double totalSquaredError = 0;
+
+			LOGTRACE4("create_gridImgPts() center:(%g,%g) gridSep:(%g,%g)", 
+				center.x, center.y, gridSep.x, gridSep.y);
+			if (gridSep.x > 0 && gridSep.y > 0) {
+				for (int r=0; r < rows; r++) {
+					for (int c=0; c < cols; c++) {
+						int index = gridIndexes.at<short>(r,c);
+						if (index >= 0) {
+							Point2f gridPt = Point2f((c-c2)*gridSep.x, (r-r2)*gridSep.y) + center;
+							gridImgPts[index] = gridPt;
+						}
+					}
+				}
+			}
+		}
+		return gridImgPts;
+	}
+
+	double calcGridness(const vector<Point2f> &imgPts) {
+        int rows = gridIndexes.rows;
+        int cols = gridIndexes.cols;
 		int n = 0;
 		double totalSquaredError = 0;
+		vector<Point2f> gridImgPts = create_gridImgPts(imgPts);
 
-		LOGTRACE4("calcGridness() center:(%g,%g) gridSep:(%g,%g)", 
-			center.x, center.y, gridSep.x, gridSep.y);
-		if (gridSep.x == 0 || gridSep.y == 0) {
+		if (gridImgPts.size() == 0) {
 			return nan("");
 		}
 		for (int r=0; r < rows; r++) {
 			for (int c=0; c < cols; c++) {
 				int index = gridIndexes.at<short>(r,c);
 				if (index >= 0) {
-					Point2f gridPt = Point2f((c-c2)*gridSep.x, (r-r2)*gridSep.y) + center;
-					Point2f diff = gridPt - imgPts[index];
+					Point2f diff = gridImgPts[index] - imgPts[index];
 					double  e2 = diff.x*(double)diff.x + diff.y*(double)diff.y;
 					LOGTRACE4("calcGridness() r:%d c:%d diff:(%g,%g)", r, c, diff.x, diff.y);
 					totalSquaredError += e2;
@@ -638,7 +663,7 @@ typedef struct GridMatcher {
 		addSubImage(0, c2, rows, yw, minPts);
     }
 
-    bool subImageQuadrilateralFactory(Point2f scale) {
+    bool subImageQuadrilateralFactory(Point2f scale, int extension, bool centerPoint=false) {
         vector<Point2f> subImgPts;
         vector<Point3f> subObjPts;
         int rows = gridIndexes.rows;
@@ -649,24 +674,48 @@ typedef struct GridMatcher {
 		int cLast = cols-cStart-1;
 		Point2f oc((cols-1)/2.0, (rows-1)/2.0);
 
-        LOGTRACE2("subImageQuadrilateralFactory(%g,%g)", scale.x, scale.y);
+        LOGTRACE3("subImageQuadrilateralFactory(%d,%g,%g)", extension, scale.x, scale.y);
+
+		if (centerPoint) {
+			addSubImagePoint(oc.y, oc.x, oc, subImgPts, subObjPts, &subImgSet)
+			|| addSubImagePoint(oc.y+1, oc.x, oc, subImgPts, subObjPts, &subImgSet)
+			|| addSubImagePoint(oc.y, oc.x+1, oc, subImgPts, subObjPts, &subImgSet)
+			|| addSubImagePoint(oc.y+1, oc.x+1, oc, subImgPts, subObjPts, &subImgSet);
+		}
+
 		for (int r=rStart; r <= oc.y; r++) {
 			if (addSubImagePoint(r, r, oc, subImgPts, subObjPts, &subImgSet)) {
+				for (int i=1; i <= extension; i++) {
+					addSubImagePoint(r, r+i, oc, subImgPts, subObjPts, &subImgSet);
+					addSubImagePoint(r+i, r, oc, subImgPts, subObjPts, &subImgSet);
+				}
 				break;
             }
         }
 		for (int r=rStart; r <= oc.y; r++) {
 			if (addSubImagePoint(r, cLast-(r-rStart), oc, subImgPts, subObjPts, &subImgSet)) {
+				for (int i=1; i <= extension; i++) {
+					addSubImagePoint(r, cLast-(r-rStart)-i, oc, subImgPts, subObjPts, &subImgSet);
+					addSubImagePoint(r+i, cLast-(r-rStart), oc, subImgPts, subObjPts, &subImgSet);
+				}
 				break;
             }
         }
 		for (int r=rLast; oc.y < r; r--) {
 			if (addSubImagePoint(r, cStart+(rLast-r), oc, subImgPts, subObjPts, &subImgSet)) {
+				for (int i=1; i <= extension; i++) {
+					addSubImagePoint(r-i, cStart+(rLast-r), oc, subImgPts, subObjPts, &subImgSet);
+					addSubImagePoint(r, cStart+(rLast-r)+i, oc, subImgPts, subObjPts, &subImgSet);
+				}
 				break;
             }
         }
 		for (int r=rLast; oc.y < r; r--) {
 			if (addSubImagePoint(r, cLast-(rLast-r), oc, subImgPts, subObjPts, &subImgSet)) {
+				for (int i=1; i <= extension; i++) {
+					addSubImagePoint(r-i, cLast-(rLast-r), oc, subImgPts, subObjPts, &subImgSet);
+					addSubImagePoint(r, cLast-(rLast-r)-i, oc, subImgPts, subObjPts, &subImgSet);
+				}
 				break;
             }
         }
@@ -893,8 +942,14 @@ typedef struct GridMatcher {
             op = CAL_CORNERS;
         } else if (opStr.compare("diamond") == 0) {
             op = CAL_DIAMOND;
-        } else if (opStr.compare("quad") == 0) {
-            op = CAL_QUADRILATERAL;
+        } else if (opStr.compare("quad0") == 0) {
+            op = CAL_QUAD0;
+        } else if (opStr.compare("quad1") == 0) {
+            op = CAL_QUAD1;
+        } else if (opStr.compare("quad2") == 0) {
+            op = CAL_QUAD2;
+        } else if (opStr.compare("quad3") == 0) {
+            op = CAL_QUAD3;
         } else if (opStr.compare("ellipse") == 0) {
             op = CAL_ELLIPSE;
         } else if (opStr.compare("tile1") == 0) {
@@ -972,8 +1027,17 @@ typedef struct GridMatcher {
         case CAL_DIAMOND:
             subImageDiamondFactory(scale);
             break;
-        case CAL_QUADRILATERAL:
-            subImageQuadrilateralFactory(scale);
+        case CAL_QUAD0:
+            subImageQuadrilateralFactory(scale,0);
+            break;
+        case CAL_QUAD1:
+            subImageQuadrilateralFactory(scale,1);
+            break;
+        case CAL_QUAD2:
+            subImageQuadrilateralFactory(scale,2);
+            break;
+        case CAL_QUAD3:
+            subImageQuadrilateralFactory(scale,3);
             break;
         case CAL_ELLIPSE:
             subImageEllipseFactory(scale);

@@ -1,6 +1,7 @@
 #! /bin/bash
 
 IMAGE=img/10x10grid.png
+IMAGE=img/10x10grid-400.png
 IMAGE=img/cal-grid.png
 LOG=-info
 LOG=-trace
@@ -10,18 +11,21 @@ OP=diamond
 OP=ellipse
 OP=corners
 SCALE=[0.5,0.5]
-SCALE=[1,1]
-SCALE=[0.9,0.9]
-SCALE=[0.8,0.8]
 SCALE=[0.6,0.6]
 SCALE=[0.7,0.7]
-OP=tile2
+SCALE=[0.8,0.8]
+SCALE=[0.9,0.9]
+SCALE=[1,1]
 OP=tile4
-OP=tile3
 OP=xyaxes
 OP=cross
-OP=quad
 OP=none
+OP=quad0
+OP=quad3
+OP=quad1
+OP=tile2
+OP=quad2
+OP=tile3
 
 make
 if [ $? -eq 0 ]; then
