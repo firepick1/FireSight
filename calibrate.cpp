@@ -193,7 +193,7 @@ typedef struct GridMatcher {
 		vector<Point2f> gridImgPts = create_gridImgPts(imgPts);
 
 		if (gridImgPts.size() == 0) {
-			return nan("");
+			return Point2f(nanf(""),nanf(""));
 		}
 		for (int r=0; r < rows; r++) {
 			for (int c=0; c < cols; c++) {
@@ -1090,8 +1090,8 @@ typedef struct GridMatcher {
             }
         }
 
-		Point2f gridnessIn = Point2f(nandf(""),nanf(""));
-		Point2f gridnessOut = Point2f(nandf(""),nanf(""));
+		Point2f gridnessIn = Point2f(nanf(""),nanf(""));
+		Point2f gridnessOut = Point2f(nanf(""),nanf(""));
         if (errMsg.empty()) {
 			gridnessIn = calcGridness(imagePts);
 			if (rvecs.size() > 0) {
@@ -1101,7 +1101,8 @@ typedef struct GridMatcher {
 					projectPoints(objectPts, rvecs[i], tvecs[i], cameraMatrix, distCoeffs, projectedPts);
 					gridnessOut += calcGridness(projectedPts);
 				}
-				gridnessOut = gridnessOut/rvecs.size();
+				gridnessOut.x = gridnessOut.x/rvecs.size();
+				gridnessOut.y = gridnessOut.y/rvecs.size();
 			}
 
             Point3f objCentroid = getObjectCentroid();
@@ -1140,15 +1141,15 @@ typedef struct GridMatcher {
 		json_t * jgridnessIn = json_array();
         json_object_set(pCalibrate, "gridnessIn", jgridnessIn);
 		json_array_append(jgridnessIn, 
-			isnan(gridnessIn.x) ? json_string("NaN") : json_real(gridnessIn.x),
-			isnan(gridnessIn.y) ? json_string("NaN") : json_real(gridnessIn.y)
-			);
+			isnan(gridnessIn.x) ? json_string("NaN") : json_real(gridnessIn.x));
+		json_array_append(jgridnessIn, 
+			isnan(gridnessIn.y) ? json_string("NaN") : json_real(gridnessIn.y));
 		json_t * jgridnessOut = json_array();
         json_object_set(pCalibrate, "gridnessOut", jgridnessOut);
 		json_array_append(jgridnessOut, 
-			isnan(gridnessOut.x) ? json_strOutg("NaN") : json_real(gridnessOut.x),
-			isnan(gridnessOut.y) ? json_string("NaN") : json_real(gridnessOut.y)
-			);
+			isnan(gridnessOut.x) ? json_string("NaN") : json_real(gridnessOut.x));
+		json_array_append(jgridnessOut, 
+			isnan(gridnessOut.y) ? json_string("NaN") : json_real(gridnessOut.y));
 #ifdef RVECS_TVECS
         json_t *pRvecs = json_array();
         json_object_set(pCalibrate, "rvecs", pRvecs);

@@ -1,8 +1,8 @@
 #! /bin/bash
 
 IMAGE=img/10x10grid.png
-IMAGE=img/10x10grid-400.png
 IMAGE=img/cal-grid.png
+IMAGE=img/10x10grid-400.png
 LOG=-info
 LOG=-trace
 OP=tile1
@@ -24,8 +24,8 @@ OP=quad0
 OP=quad3
 OP=quad1
 OP=tile2
-OP=quad2
 OP=tile3
+OP=quad2
 
 make
 if [ $? -eq 0 ]; then
