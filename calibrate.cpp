@@ -411,11 +411,12 @@ typedef struct GridMatcher {
         int cols = gridIndexes.cols;
         int r2 = rows/2;
         int c2 = cols/2;
+		vector<Point2f> gridImgPts = create_gridImgPts(imagePts);
         for (int r=0; r <= r2; r++ ) {
             int index = gridIndexes.at<short>(r,(r*c2)/r2);
             if (0 <= index) {
                 perspectiveDst[0] = imagePts[index];
-                perspectiveSrc[0] = Point2f(grid.x*objectPts[index].x, grid.y*objectPts[index].y);
+                perspectiveSrc[0] = gridImgPts[index];
                 break;
             }
         }
@@ -423,7 +424,7 @@ typedef struct GridMatcher {
             int index = gridIndexes.at<short>(rows-r-1,(r*c2)/r2);
             if (0 <= index) {
                 perspectiveDst[1] = imagePts[index];
-                perspectiveSrc[1] = Point2f(grid.x*objectPts[index].x, grid.y*objectPts[index].y);
+                perspectiveSrc[1] = gridImgPts[index];
                 break;
             }
         }
@@ -431,7 +432,7 @@ typedef struct GridMatcher {
             int index = gridIndexes.at<short>(r,cols-1-(r*c2)/r2);
             if (0 <= index) {
                 perspectiveDst[2] = imagePts[index];
-                perspectiveSrc[2] = Point2f(grid.x*objectPts[index].x, grid.y*objectPts[index].y);
+                perspectiveSrc[2] = gridImgPts[index];
                 break;
             }
         }
@@ -439,7 +440,7 @@ typedef struct GridMatcher {
             int index = gridIndexes.at<short>(rows-r-1,cols-1-(r*c2)/r2);
             if (0 <= index) {
                 perspectiveDst[3] = imagePts[index];
-                perspectiveSrc[3] = Point2f(grid.x*objectPts[index].x, grid.y*objectPts[index].y);
+                perspectiveSrc[3] = gridImgPts[index];
                 break;
             }
         }

@@ -1,10 +1,10 @@
 #! /bin/bash
 
 IMAGE=img/10x10grid.png
-IMAGE=img/cal-grid.png
 IMAGE=img/10x10grid-400.png
-LOG=-info
+IMAGE=img/cal-grid.png
 LOG=-trace
+LOG=-info
 OP=tile1
 OP=tile5
 OP=diamond
@@ -26,10 +26,12 @@ OP=quad1
 OP=tile2
 OP=tile3
 OP=quad2
+TIME=time
+TIME=
 
 make
 if [ $? -eq 0 ]; then
-	time target/firesight \
+	$TIME target/firesight \
 		-i $IMAGE \
 		-p json/matchGrid.json \
 		-o ~/Downloads/grid1.jpg \
