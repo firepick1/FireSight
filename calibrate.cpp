@@ -34,6 +34,7 @@ enum CalibrateOp {
 	CAL_BEST,
 	CAL_I,
 	CAL_NONE,
+	CAL_PERSPECTIVE,
 	CAL_ELLIPSE,
 	CAL_CORNERS,
 	CAL_DIAMOND,
@@ -124,8 +125,6 @@ typedef struct GridMatcher {
 	Point2f grid;
     Size imgSize;
     Mat perspective;
-    Point2f perspectiveSrc[4];
-    Point2f perspectiveDst[4];
     Point2f imgSep;
     Point2f objSep;
     Mat gridIndexes;	// object grid matrix of imagePts/objectPts vector indexes or -1
@@ -142,7 +141,7 @@ typedef struct GridMatcher {
         this->imgRect = Rect(imgSize.width/2, imgSize.height/2, 0, 0);
 	}
 
-	vector<Point2f> create_gridImgPts(const vector<Point2f> &imgPts) {
+	vector<Point2f> create_gridImgPts(const vector<Point2f> &imgPts, string &errMsg) {
 		vector<Point2f> gridImgPts(imgPts.size());
 
         int rows = gridIndexes.rows;
@@ -150,21 +149,60 @@ typedef struct GridMatcher {
 		int r2 = rows/2;
 		int c2 = cols/2;
 		int index00 = gridIndexes.at<short>(r2,c2);
-		int index0x = gridIndexes.at<short>(r2,c2+1);
-		int indexy0 = gridIndexes.at<short>(r2+1,c2);
 		Point2f center(imgPts[index00]);
 		LOGTRACE2("create_gridImgPts() r2:%d c2:%d", r2, c2);
 		LOGTRACE3("create_gridImgPts() index00:%d imgPt:(%g,%g)", 
 			index00, imgPts[index00].x, imgPts[index00].y);
-		LOGTRACE3("create_gridImgPts() index0x:%d imgPt:(%g,%g)", 
-			index0x, imgPts[index0x].x, imgPts[index0x].y);
-		LOGTRACE3("create_gridImgPts() indexy0:%d imgPt:(%g,%g)", 
-			indexy0, imgPts[indexy0].x, imgPts[indexy0].y);
 
-		if (index00 < 0 || index0x < 0 || indexy0 < 0) {
-			LOGERROR("GridMatcher::create_gridImgPts() could not calculate grid separation");
+		float dxTot = 0;
+		float dxCount = 0;
+		for (int r=0; r < rows; r++) {
+			int prevIndex = gridIndexes.at<short>(r,0);
+			int n = 0;
+			float yTot = 0;
+			for (int c=1; c < cols; c++) {
+				int index = gridIndexes.at<short>(r,c);
+				if (index >= 0 && prevIndex >= 0) {
+					dxTot += imgPts[index].x - imgPts[prevIndex].x;
+					yTot += imgPts[index].y;
+					n++;
+				}
+				prevIndex = index;
+			}
+			dxCount += n;
+			if (r == r2) {
+				center.y = yTot/n;
+			}
+		}
+		float dyTot = 0;
+		float dyCount = 0;
+		for (int c=0; c < cols; c++) {
+			int prevIndex = gridIndexes.at<short>(0,c);
+			int n = 0;
+			float xTot = 0;
+			for (int r=1; r < rows; r++) {
+				int index = gridIndexes.at<short>(r,c);
+				if (index >= 0 && prevIndex >= 0) {
+					dyTot += imgPts[index].y - imgPts[prevIndex].y;
+					xTot += imgPts[index].x;
+					n++;
+				}
+				prevIndex = index;
+			}
+			dyCount += n;
+			if (c == c2) {
+				center.x = xTot/n;
+			}
+		}
+		Point2f gridSep(dxTot/dxCount, dyTot/dyCount);
+		LOGTRACE2("create_gridImgPts() dxTot:%g dxCount:%g", dxTot, dxCount);
+		LOGTRACE2("create_gridImgPts() dyTot:%g dyCount:%g", dyTot, dyCount);
+
+		if (index00 < 0 || gridSep.x == 0 || gridSep.y == 0) {
+			const char * msg = "GridMatcher::create_gridImgPts() could not calculate grid separation. ";
+			LOGERROR1("%s", msg);
+			errMsg += msg;
 		} else {  
-			Point2f gridSep(imgPts[index0x].x-center.x, imgPts[indexy0].y-center.y);
 			int n = 0;
 			double totalSquaredError = 0;
 
@@ -185,12 +223,12 @@ typedef struct GridMatcher {
 		return gridImgPts;
 	}
 
-	Point2f calcGridness(const vector<Point2f> &imgPts) {
+	Point2f calcGridness(const vector<Point2f> &imgPts, string &errMsg) {
         int rows = gridIndexes.rows;
         int cols = gridIndexes.cols;
 		int n = 0;
 		Point2f totalSquaredError;
-		vector<Point2f> gridImgPts = create_gridImgPts(imgPts);
+		vector<Point2f> gridImgPts = create_gridImgPts(imgPts, errMsg);
 
 		if (gridImgPts.size() == 0) {
 			return Point2f(nanf(""),nanf(""));
@@ -406,47 +444,51 @@ typedef struct GridMatcher {
         return Point3f((int)(dObjX), (int) (dObjY), 0);
     }
 
-    Mat calcPerspective() {
+    Mat calcPerspective(vector<Point2f> &srcPts, set<Point2f,ComparePoint2f> *pSubImgSet=NULL) {
+		Point2f perspectiveSrc[4];
+		Point2f perspectiveDst[4];
         int rows = gridIndexes.rows;
         int cols = gridIndexes.cols;
         int r2 = rows/2;
         int c2 = cols/2;
-		vector<Point2f> gridImgPts = create_gridImgPts(imagePts);
         for (int r=0; r <= r2; r++ ) {
             int index = gridIndexes.at<short>(r,(r*c2)/r2);
             if (0 <= index) {
+				if (pSubImgSet) { pSubImgSet->insert(imagePts[index]); }
                 perspectiveDst[0] = imagePts[index];
-                perspectiveSrc[0] = gridImgPts[index];
+                perspectiveSrc[0] = Point2f(srcPts[index].x, srcPts[index].y);
                 break;
             }
         }
         for (int r=0; r <= r2; r++ ) {
             int index = gridIndexes.at<short>(rows-r-1,(r*c2)/r2);
             if (0 <= index) {
+				if (pSubImgSet) { pSubImgSet->insert(imagePts[index]); }
                 perspectiveDst[1] = imagePts[index];
-                perspectiveSrc[1] = gridImgPts[index];
+                perspectiveSrc[1] = Point2f(srcPts[index].x, srcPts[index].y);
                 break;
             }
         }
         for (int r=0; r <= r2; r++ ) {
             int index = gridIndexes.at<short>(r,cols-1-(r*c2)/r2);
             if (0 <= index) {
+				if (pSubImgSet) { pSubImgSet->insert(imagePts[index]); }
                 perspectiveDst[2] = imagePts[index];
-                perspectiveSrc[2] = gridImgPts[index];
+                perspectiveSrc[2] = Point2f(srcPts[index].x, srcPts[index].y);
                 break;
             }
         }
         for (int r=0; r <= r2; r++ ) {
             int index = gridIndexes.at<short>(rows-r-1,cols-1-(r*c2)/r2);
             if (0 <= index) {
+				if (pSubImgSet) { pSubImgSet->insert(imagePts[index]); }
                 perspectiveDst[3] = imagePts[index];
-                perspectiveSrc[3] = gridImgPts[index];
+                perspectiveSrc[3] = Point2f(srcPts[index].x, srcPts[index].y);
                 break;
             }
         }
 
-        perspective = getPerspectiveTransform(perspectiveDst, perspectiveSrc);
-        return perspective;
+        return getPerspectiveTransform(perspectiveDst, perspectiveSrc);
     }
 
     void matchPoints(Point2f dmedian, vector<Point2f> &pointsYX, vector<Point2f> &pointsXY) {
@@ -938,6 +980,8 @@ typedef struct GridMatcher {
             op = CAL_NONE;
         } else if (opStr.compare("I") == 0) {
             op = CAL_I;
+        } else if (opStr.compare("perspective") == 0) {
+            op = CAL_PERSPECTIVE;
         } else if (opStr.compare("corners") == 0) {
             op = CAL_CORNERS;
         } else if (opStr.compare("diamond") == 0) {
@@ -980,25 +1024,25 @@ typedef struct GridMatcher {
         return op;
     }
 
-    string calibrateImage(json_t *pStageModel, Mat &cameraMatrix, Mat &distCoeffs,
-                          Mat &image, string opStr, Scalar color, Point2f scale)
-    {
-        json_t *pRects = json_array();
-        json_object_set(pStageModel, "rects", pRects);
-        json_t *pCalibrate = json_object();
-        json_object_set(pStageModel, "calibrate", pCalibrate);
-        string errMsg;
-        vObjectPts.clear();
-        vImagePts.clear();
+	void initCameraMatrix(Mat &cameraMatrix, Mat &distCoeffs, 
+		vector<Mat> &rvecs, vector<Mat> &tvecs, Mat image) 
+	{
+		vector<double> cmDefault;
+		vector<double> dcDefault;
+		initCameraVectors(cmDefault, dcDefault, image);
+		cameraMatrix = Mat(3, 3, CV_64F);
+		for (int i=0; i<cmDefault.size(); i++) {
+			cameraMatrix.at<double>(i/3, i%3) = cmDefault[i];
+		}
+		distCoeffs = Mat(4, 1, CV_64F);
+		for (int i=0; i<dcDefault.size(); i++) {
+			distCoeffs.at<double>(i,0) = dcDefault[i];
+		}
+		rvecs.push_back(Mat::zeros(3, 1, CV_64F));
+		tvecs.push_back(Mat::zeros(3, 1, CV_64F));
+	}
 
-        calcGridIndexes();
-
-        calcPerspective();
-
-        CalibrateOp op = parseCalibrateOp(opStr, errMsg);
-        if (!errMsg.empty()) {
-            return errMsg;
-        }
+	void createSubimages(CalibrateOp op, Point2f scale) {
         if (op == CAL_BEST) { 
             op = CAL_TILE3; // may change to best available
         }
@@ -1020,6 +1064,9 @@ typedef struct GridMatcher {
             break;
         case CAL_I:
             subImageIFactory(scale);
+            break;
+        case CAL_PERSPECTIVE:
+            subImageTileFactory(1);
             break;
         case CAL_CORNERS:
             subImageCornersFactory(scale);
@@ -1058,49 +1105,64 @@ typedef struct GridMatcher {
             subImageTileFactory(5);
             break;
         }
+	}
 
-        double rmserror = 0;
+    string calibrateImage(json_t *pStageModel, Mat &cameraMatrix, Mat &distCoeffs,
+                          Mat &image, string opStr, Scalar color, Point2f scale)
+    {
+        json_t *pRects = json_array();
+        json_object_set(pStageModel, "rects", pRects);
+        json_t *pCalibrate = json_object();
+        json_object_set(pStageModel, "calibrate", pCalibrate);
+        string errMsg;
+        vObjectPts.clear();
+        vImagePts.clear();
+
+        calcGridIndexes();
+
+        CalibrateOp op = parseCalibrateOp(opStr, errMsg);
+        if (!errMsg.empty()) {
+            return errMsg;
+        }
+		createSubimages(op, scale);
+
+        double rmserror = nan("");
         vector<Mat> rvecs;
         vector<Mat> tvecs;
 
-        if (op == CAL_NONE) {
-            vector<double> cmDefault;
-            vector<double> dcDefault;
-            initCameraVectors(cmDefault, dcDefault, image);
-            cameraMatrix = Mat(3, 3, CV_64F);
-            for (int i=0; i<cmDefault.size(); i++) {
-                cameraMatrix.at<double>(i/3, i%3) = cmDefault[i]+1;
-            }
-            distCoeffs = Mat(4, 1, CV_64F);
-			for (int i=0; i<dcDefault.size(); i++) {
-				distCoeffs.at<double>(i,0) = dcDefault[i];
+		try {
+			if (op == CAL_NONE) {
+				initCameraMatrix(cameraMatrix, distCoeffs, rvecs, tvecs, image);
+				subImgSet = imgSet;
+			} else if (op == CAL_PERSPECTIVE) {
+				initCameraMatrix(cameraMatrix, distCoeffs, rvecs, tvecs, image);
+				vector<Point2f> gridImgPts = create_gridImgPts(imagePts, errMsg);
+				perspective = calcPerspective(gridImgPts, &subImgSet);
+				int flags = 0; // CV_CALIB_USE_INTRINSIC_GUESS;
+				//rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize, cameraMatrix, distCoeffs, rvecs, tvecs, flags);
+				cameraMatrix = perspective;
+			} else {
+				rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize,
+										   cameraMatrix, distCoeffs, rvecs, tvecs);
+					
 			}
-			rvecs.push_back(Mat(3, 1, CV_64F));
-			tvecs.push_back(Mat(3, 1, CV_64F));
-			subImgSet = imgSet;
-        } else {
-            try {
-                rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize,
-                                           cameraMatrix, distCoeffs, rvecs, tvecs);
-				
-            } catch (cv::Exception ex) {
-                errMsg = "calibrateImage(FAILED) ";
-                errMsg += ex.msg;
-            } catch (...) {
-                errMsg = "calibrateImage(FAILED...)";
-            }
-        }
+		} catch (cv::Exception ex) {
+			errMsg = "calibrateImage(FAILED) ";
+			errMsg += ex.msg;
+		} catch (...) {
+			errMsg = "calibrateImage(FAILED...)";
+		}
 
 		Point2f gridnessIn = Point2f(nanf(""),nanf(""));
 		Point2f gridnessOut = Point2f(nanf(""),nanf(""));
         if (errMsg.empty()) {
-			gridnessIn = calcGridness(imagePts);
+			gridnessIn = calcGridness(imagePts, errMsg);
 			if (rvecs.size() > 0) {
 				gridnessOut = Point2f();
 				for (int i=0; i < rvecs.size(); i++) {
 					vector<Point2f> projectedPts;
 					projectPoints(objectPts, rvecs[i], tvecs[i], cameraMatrix, distCoeffs, projectedPts);
-					gridnessOut += calcGridness(projectedPts);
+					gridnessOut += calcGridness(projectedPts, errMsg);
 				}
 				gridnessOut.x = gridnessOut.x/rvecs.size();
 				gridnessOut.y = gridnessOut.y/rvecs.size();

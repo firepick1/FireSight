@@ -3,8 +3,8 @@
 IMAGE=img/10x10grid.png
 IMAGE=img/10x10grid-400.png
 IMAGE=img/cal-grid.png
-LOG=-trace
 LOG=-info
+LOG=-trace
 OP=tile1
 OP=tile5
 OP=diamond
@@ -13,29 +13,32 @@ OP=corners
 SCALE=[0.5,0.5]
 SCALE=[0.6,0.6]
 SCALE=[0.7,0.7]
-SCALE=[0.8,0.8]
-SCALE=[0.9,0.9]
 SCALE=[1,1]
+SCALE=[0.9,0.9]
+SCALE=[0.8,0.8]
 MATRIX=[1,0,0,0,1,0,0,0,1]
 MATRIX=[1.0607967128675548,0.028493745902572951,-7.1703410533895173,0.026587775192913436,1.1255262314607453,-19.981908384664415,-1.3832327695678588e-5,0.00027923340765283015,1.0]
 OP=tile4
 OP=xyaxes
 OP=cross
-OP=none
 OP=quad0
-OP=quad3
-OP=quad1
 OP=tile2
-OP=tile3
+OP=perspective
+OP=quad3
+OP=none
+OP=quad1
 OP=quad2
+OP=tile3
 TIME=time
 TIME=
+JSON=json/warpPerspective.json
+JSON=json/matchGrid.json
 
 make
 if [ $? -eq 0 ]; then
 	$TIME target/firesight \
 		-i $IMAGE \
-		-p json/matchGrid.json \
+		-p $JSON \
 		-o ~/Downloads/grid1.jpg \
 		-Dtemplate=img/cross32.png \
 		-Dmatrix=$MATRIX \
