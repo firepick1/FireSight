@@ -1138,10 +1138,11 @@ typedef struct GridMatcher {
 				initCameraMatrix(cameraMatrix, distCoeffs, rvecs, tvecs, image);
 				vector<Point2f> gridImgPts = create_gridImgPts(imagePts, errMsg);
 				perspective = calcPerspective(gridImgPts, &subImgSet);
-				int flags = 0; // CV_CALIB_USE_INTRINSIC_GUESS;
-				//rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize, cameraMatrix, distCoeffs, rvecs, tvecs, flags);
-				cameraMatrix = perspective;
+				rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize, 
+					cameraMatrix, distCoeffs, rvecs, tvecs);
 			} else {
+				vector<Point2f> gridImgPts = create_gridImgPts(imagePts, errMsg);
+				perspective = calcPerspective(gridImgPts);
 				rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize,
 										   cameraMatrix, distCoeffs, rvecs, tvecs);
 					
