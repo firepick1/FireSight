@@ -112,8 +112,9 @@ static void initCameraVectors(vector<double> &cmDefault, vector<double> &dcDefau
 }
 
 typedef struct GridMatcher {
-    vector<Point2f> imagePts;
-    vector<Point3f> objectPts;
+    vector<Point2f> imagePts;		// input image 
+	vector<Point2f> calibrationPts;	// image calibration points (post-perspective)	
+    vector<Point3f> objectPts;		// 
     Point3f objTotals;
     Point2f imgTotals;
     Rect imgRect;
@@ -1326,6 +1327,7 @@ bool Pipeline::apply_undistort(const char *pName, json_t *pStage, json_t *pStage
     string errMsg;
     string modelName = jo_string(pStage, "model", pName, model.argMap);
     vector<double> cm;
+    vector<double> pm;
     vector<double> dc;
     vector<double> cmDefault;
     vector<double> dcDefault;
@@ -1349,8 +1351,26 @@ bool Pipeline::apply_undistort(const char *pName, json_t *pStage, json_t *pStage
 
     if (errMsg.empty()) {
         cm = jo_vectord(pCalibrate, "cameraMatrix", cmDefault, model.argMap);
+        pm = jo_vectord(pCalibrate, "perspective", cmDefault, model.argMap);
         dc = jo_vectord(pCalibrate, "distCoeffs", dcDefault, model.argMap);
 
+		if (pm.size() == 9) {
+            Mat perspective = Mat(3, 3, CV_64F);
+            for (int i=0; i<pm.size(); i++) {
+                perspective.at<double>(i/3, i%3) = pm[i];
+            }
+			Mat dst;
+            undistort(model.image, dst, perspective, Mat());
+			model.image = dst;
+        } else if (pm.size() == 0) {
+			// no perspective
+		} else {
+			char buf[255];
+			snprintf(buf, sizeof(buf), "apply_undistort() invalid perspective matrix. Elements expected:9 actual:%d",
+				(int) pm.size());
+			LOGERROR1("%s", buf);
+			errMsg = buf;
+		}
         if (cm.size() == 9) {
             cameraMatrix = Mat(3, 3, CV_64F);
             for (int i=0; i<cm.size(); i++) {

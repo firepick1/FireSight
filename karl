@@ -4,8 +4,8 @@ IMAGE=img/10x10grid.png
 IMAGE=img/10x10grid-400.png
 IMAGE=img/cal-grid.png
 
-LOG=-trace
 LOG=-info
+LOG=-trace
 
 SCALE=-Dscale=[0.5,0.5]
 SCALE=-Dscale=[0.6,0.6]
@@ -46,6 +46,8 @@ OUTPUT=~/Downloads/grid1.jpg
 CORR=-Dcorr=0.8
 CORR=
 
+COLOR="-DcolorUndistort=[32,255,32] -DcolorMatch=[32,32,255]"
+
 make
 if [ $? -eq 0 ]; then
 	$TIME target/firesight \
@@ -58,5 +60,6 @@ if [ $? -eq 0 ]; then
 		$CORR \
 		$SCALE \
 		$LOG \
+		$COLOR \
 		|& tee target/out
 fi

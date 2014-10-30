@@ -320,7 +320,7 @@ const vector<int> jo_vectori(const json_t *pObj, const char *key,
 }
 
 Scalar jo_Scalar(const json_t *pObj, const char *key, const Scalar &defaultValue, ArgMap &argMap) {
-    Scalar result;
+    Scalar result = defaultValue;
     vector<int> vDefault;
     for (int i = 0; i < 4; i++) {
         vDefault.push_back(defaultValue[i]);

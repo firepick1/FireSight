@@ -581,8 +581,8 @@ bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model)
 
 bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model) {
   const char *errMsg = NULL;
-  Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
-  int radius = jo_int(pStage, "radius", 5, model.argMap);
+  Scalar color = jo_Scalar(pStage, "color", Scalar(-1,-1,-1,255), model.argMap);
+  int radius = jo_int(pStage, "radius", 0, model.argMap);
   int thickness = jo_int(pStage, "thickness", 2, model.argMap);
   string rectsModelName = jo_string(pStage, "model", "", model.argMap);
   json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName.c_str());
@@ -625,26 +625,32 @@ bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model
         red = (index & 1) ? 0 : 255;
         green = (index & 2) ? 128 : 192;
         blue = (index & 1) ? 255 : 0;
-        rectColor = Scalar(blue, green, red);
+        rectColor = Scalar(blue, green, red, 255);
       }
       rectColor = jo_Scalar(pRect, "color", rectColor, model.argMap);
       if (x == SHRT_MAX || y == SHRT_MAX || width == SHRT_MAX || height == SHRT_MAX) {
         LOGERROR("apply_drawRects() x, y, width, height are required values");
         break;
       }
-      if (angle == FLT_MAX) {
-	  	int r = radius;
-		if (width > 0 && height > 0) {
-			r = (int)(0.5+min(width,height)/2.0);
-		}
-        circle(model.image, Point(x,y), r, rectColor, thickness);
-      } else {
-        RotatedRect rect(Point(x,y), Size(width, height), angle);
-        rect.points(vertices);
-        for (int i = 0; i < 4; i++) {
-          line(model.image, vertices[i], vertices[(i+1)%4], rectColor, thickness);
-        }
-      }
+	  if (rectColor[3] != 0) {	// alpha=0 implies non-display
+		  if (angle == FLT_MAX || radius > 0) {
+			int r;
+			if (radius > 0) {
+				r = radius;
+			} else if (width > 0 && height > 0) {
+				r = (int)(0.5+min(width,height)/2.0);
+			} else {
+				r = 5;
+			}
+			circle(model.image, Point(x,y), r, rectColor, thickness);
+		  } else {
+			RotatedRect rect(Point(x,y), Size(width, height), angle);
+			rect.points(vertices);
+			for (int i = 0; i < 4; i++) {
+			  line(model.image, vertices[i], vertices[(i+1)%4], rectColor, thickness);
+			}
+		  }
+	  }
     }
   }
 
