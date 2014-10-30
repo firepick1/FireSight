@@ -128,7 +128,7 @@ typedef struct GridMatcher {
     Mat perspective;
     Point2f imgSep;
     Point2f objSep;
-    Mat gridIndexes;	// object grid matrix of imagePts/objectPts vector indexes or -1
+    Mat gridIndexes;	// object grid matrix of imagePts/calibrationPts/objectPts vector indexes or -1
 	double tolerance;
     GridMatcher(Size imgSize, Point2f objSep, double tolerance)
         : cmpYX(ComparePoint2f(COMPARE_YX)),
@@ -445,6 +445,20 @@ typedef struct GridMatcher {
         return Point3f((int)(dObjX), (int) (dObjY), 0);
     }
 
+	bool initPerspective(int r, int c, vector<Point2f> srcPts,
+		Point2f &perspectiveDst, Point2f &perspectiveSrc, 
+		set<Point2f,ComparePoint2f> *pSubImgSet) 
+	{
+		int index = gridIndexes.at<short>(r,c);
+		if (0 <= index) {
+			if (pSubImgSet) { pSubImgSet->insert(imagePts[index]); }
+			perspectiveDst = imagePts[index];
+			perspectiveSrc = Point2f(srcPts[index].x, srcPts[index].y);
+			return true;
+		}
+		return false;
+	}
+
     Mat calcPerspective(vector<Point2f> &srcPts, set<Point2f,ComparePoint2f> *pSubImgSet=NULL) {
 		Point2f perspectiveSrc[4];
 		Point2f perspectiveDst[4];
@@ -453,38 +467,22 @@ typedef struct GridMatcher {
         int r2 = rows/2;
         int c2 = cols/2;
         for (int r=0; r <= r2; r++ ) {
-            int index = gridIndexes.at<short>(r,(r*c2)/r2);
-            if (0 <= index) {
-				if (pSubImgSet) { pSubImgSet->insert(imagePts[index]); }
-                perspectiveDst[0] = imagePts[index];
-                perspectiveSrc[0] = Point2f(srcPts[index].x, srcPts[index].y);
-                break;
-            }
+			if (initPerspective(r,(r*c2)/r2, srcPts, perspectiveDst[0], perspectiveSrc[0], pSubImgSet)) {
+				break;
+			}
         }
         for (int r=0; r <= r2; r++ ) {
-            int index = gridIndexes.at<short>(rows-r-1,(r*c2)/r2);
-            if (0 <= index) {
-				if (pSubImgSet) { pSubImgSet->insert(imagePts[index]); }
-                perspectiveDst[1] = imagePts[index];
-                perspectiveSrc[1] = Point2f(srcPts[index].x, srcPts[index].y);
-                break;
-            }
+			if (initPerspective(rows-r-1,(r*c2)/r2, srcPts, perspectiveDst[1], perspectiveSrc[1], pSubImgSet)) {
+				break;
+			}
         }
         for (int r=0; r <= r2; r++ ) {
-            int index = gridIndexes.at<short>(r,cols-1-(r*c2)/r2);
-            if (0 <= index) {
-				if (pSubImgSet) { pSubImgSet->insert(imagePts[index]); }
-                perspectiveDst[2] = imagePts[index];
-                perspectiveSrc[2] = Point2f(srcPts[index].x, srcPts[index].y);
-                break;
-            }
+			if (initPerspective(r,cols-1-(r*c2)/r2, srcPts, perspectiveDst[2], perspectiveSrc[2], pSubImgSet)) {
+				break;
+			}
         }
         for (int r=0; r <= r2; r++ ) {
-            int index = gridIndexes.at<short>(rows-r-1,cols-1-(r*c2)/r2);
-            if (0 <= index) {
-				if (pSubImgSet) { pSubImgSet->insert(imagePts[index]); }
-                perspectiveDst[3] = imagePts[index];
-                perspectiveSrc[3] = Point2f(srcPts[index].x, srcPts[index].y);
+			if (initPerspective(rows-r-1,cols-1-(r*c2)/r2, srcPts, perspectiveDst[3], perspectiveSrc[3], pSubImgSet)) {
                 break;
             }
         }
@@ -577,7 +575,7 @@ typedef struct GridMatcher {
         short index = gridIndexes.at<short>(r, c);
 		bool added = false;
         if (0 <= index) {
-            Point2f ptImg = imagePts[index];
+            Point2f ptImg = calibrationPts[index];
             Point3f ptObj = objectPts[index];
             //Point3f subObjPt(objSep.x*(ptObj.x-objCenter.x), objSep.y*(ptObj.y-objCenter.y), 0);
             Point3f subObjPt(ptObj);
@@ -1124,7 +1122,6 @@ typedef struct GridMatcher {
         if (!errMsg.empty()) {
             return errMsg;
         }
-		createSubimages(op, scale);
 
         double rmserror = nan("");
         vector<Mat> rvecs;
@@ -1138,14 +1135,13 @@ typedef struct GridMatcher {
 				initCameraMatrix(cameraMatrix, distCoeffs, rvecs, tvecs, image);
 				vector<Point2f> gridImgPts = create_gridImgPts(imagePts, errMsg);
 				perspective = calcPerspective(gridImgPts, &subImgSet);
-				vector<Point2f> perspectiveImgPts;
-				perspectiveTransform(imagePts, perspectiveImgPts, perspective);
-				imagePts = perspectiveImgPts;
+				perspectiveTransform(imagePts, calibrationPts, perspective);
 				subImageTileFactory(1);
 				rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize, 
 					cameraMatrix, distCoeffs, rvecs, tvecs);
 			} else {
-				vector<Point2f> gridImgPts = create_gridImgPts(imagePts, errMsg);
+				calibrationPts = imagePts;
+				createSubimages(op, scale);
 				rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize,
 										   cameraMatrix, distCoeffs, rvecs, tvecs);
 					
@@ -1166,7 +1162,14 @@ typedef struct GridMatcher {
 				for (int i=0; i < rvecs.size(); i++) {
 					vector<Point2f> projectedPts;
 					projectPoints(objectPts, rvecs[i], tvecs[i], cameraMatrix, distCoeffs, projectedPts);
-					gridnessOut += calcGridness(projectedPts, errMsg);
+					if (op == CAL_PERSPECTIVE) {
+						// NOTE: we are reversing the order of perspective and undistort
+						vector<Point2f> perspectivePts;
+						perspectiveTransform(projectedPts, perspectivePts, perspective);
+						gridnessOut += calcGridness(perspectivePts, errMsg);
+					} else {
+						gridnessOut += calcGridness(projectedPts, errMsg);
+					}
 				}
 				gridnessOut.x = gridnessOut.x/rvecs.size();
 				gridnessOut.y = gridnessOut.y/rvecs.size();
@@ -1181,7 +1184,7 @@ typedef struct GridMatcher {
                 json_object_set(pRect, "objX", json_real(objSep.x*(objectPts[i].x-objCentroid.x)));
                 json_object_set(pRect, "objY", json_real(objSep.y*(objectPts[i].y-objCentroid.y)));
                 json_array_append(pRects, pRect);
-                set<Point2f,ComparePoint2f>::iterator it = subImgSet.find(imagePts[i]);
+                set<Point2f,ComparePoint2f>::iterator it = subImgSet.find(calibrationPts[i]);
                 if (it == subImgSet.end()) { // color marks points not used in calibration
                     json_t *pBGR = json_array();
                     json_object_set(pRect,"color", pBGR);
