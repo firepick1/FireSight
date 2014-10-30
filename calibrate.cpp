@@ -434,6 +434,12 @@ typedef struct GridMatcher {
             assert( 0 <= r && r < gridIndexes.rows);
             assert( 0 <= c && c < gridIndexes.cols);
             gridIndexes.at<short>(r,c) = i;
+			if (logLevel == FIRELOG_TRACE) {
+				char buf[255];
+				snprintf(buf, sizeof(buf), "r:%d c:%d objectPts[%d]:(%g,%g) imagePts[%d]:(%g,%g)",
+					r, c, i, objectPts[i].x, objectPts[i].y, i, imagePts[i].x, imagePts[i].y);
+				LOGTRACE1("calcGridIndexes() %s", buf);
+			}
         }
     }
 
@@ -445,18 +451,48 @@ typedef struct GridMatcher {
         return Point3f((int)(dObjX), (int) (dObjY), 0);
     }
 
-	bool initPerspective(int r, int c, vector<Point2f> srcPts,
+	bool initPerspective(int r, int c, int dr, int dc, vector<Point2f> srcPts,
 		Point2f &perspectiveDst, Point2f &perspectiveSrc, 
 		set<Point2f,ComparePoint2f> *pSubImgSet) 
 	{
-		int index = gridIndexes.at<short>(r,c);
-		if (0 <= index) {
-			if (pSubImgSet) { pSubImgSet->insert(imagePts[index]); }
-			perspectiveDst = imagePts[index];
-			perspectiveSrc = Point2f(srcPts[index].x, srcPts[index].y);
-			return true;
+		int found = 0;
+		int index;
+		Point2f pDst(0,0);
+		Point2f pSrc(0,0);
+
+		if (gridIndexes.at<short>(r,c) < 0) {
+			return false;
 		}
-		return false;
+
+		int n = 1;	
+		for (int i=0; i <= n+dr; i++) {
+			for (int j=0; j <= n+dc; j++) {
+				if (0 <= r+i && r+i < gridIndexes.rows && 0 <= c+j && c+j < gridIndexes.cols) {
+					index = gridIndexes.at<short>(r+i,c+j);
+					if (0 <= index) {
+						if (pSubImgSet) { pSubImgSet->insert(imagePts[index]); }
+						pDst += imagePts[index];
+						pSrc += Point2f(srcPts[index].x, srcPts[index].y);
+						if (logLevel == FIRELOG_TRACE) {
+							char buf[255];
+							snprintf(buf, sizeof(buf), "r:%d c:%d index:%d dst:(%g,%g) src:(%g,%g)", 
+								r+i, c+j, index, pDst.x, pDst.y, pSrc.x, pSrc.y);
+								LOGTRACE1("initPerspective() %s", buf);
+						}
+						found++;
+					}
+				}
+			}
+		}
+		if (!found) {
+			return false;
+		}
+
+		perspectiveDst = Point2f(pDst.x/found, pDst.y/found);
+		perspectiveSrc = Point2f(pSrc.x/found, pSrc.y/found);
+		LOGTRACE4("initPerspective() dst:(%g,%g) src:(%g,%g)", 
+			perspectiveDst.x, perspectiveDst.y, perspectiveSrc.x, perspectiveSrc.y);
+		return true;
 	}
 
     Mat calcPerspective(vector<Point2f> &srcPts, set<Point2f,ComparePoint2f> *pSubImgSet=NULL) {
@@ -467,22 +503,22 @@ typedef struct GridMatcher {
         int r2 = rows/2;
         int c2 = cols/2;
         for (int r=0; r <= r2; r++ ) {
-			if (initPerspective(r,(r*c2)/r2, srcPts, perspectiveDst[0], perspectiveSrc[0], pSubImgSet)) {
+			if (initPerspective(r,(r*c2)/r2, 1, 1, srcPts, perspectiveDst[0], perspectiveSrc[0], pSubImgSet)) {
 				break;
 			}
         }
         for (int r=0; r <= r2; r++ ) {
-			if (initPerspective(rows-r-1,(r*c2)/r2, srcPts, perspectiveDst[1], perspectiveSrc[1], pSubImgSet)) {
+			if (initPerspective(rows-r-1,(r*c2)/r2, -1, 1, srcPts, perspectiveDst[1], perspectiveSrc[1], pSubImgSet)) {
 				break;
 			}
         }
         for (int r=0; r <= r2; r++ ) {
-			if (initPerspective(r,cols-1-(r*c2)/r2, srcPts, perspectiveDst[2], perspectiveSrc[2], pSubImgSet)) {
+			if (initPerspective(r,cols-1-(r*c2)/r2, 1, -1, srcPts, perspectiveDst[2], perspectiveSrc[2], pSubImgSet)) {
 				break;
 			}
         }
         for (int r=0; r <= r2; r++ ) {
-			if (initPerspective(rows-r-1,cols-1-(r*c2)/r2, srcPts, perspectiveDst[3], perspectiveSrc[3], pSubImgSet)) {
+			if (initPerspective(rows-r-1,cols-1-(r*c2)/r2, -1, -1, srcPts, perspectiveDst[3], perspectiveSrc[3], pSubImgSet)) {
                 break;
             }
         }
