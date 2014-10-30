@@ -115,8 +115,6 @@ typedef struct GridMatcher {
     vector<Point2f> imagePts;		// input image 
 	vector<Point2f> calibrationPts;	// image calibration points (post-perspective)	
     vector<Point3f> objectPts;		// 
-    Point3f objTotals;
-    Point2f imgTotals;
     Rect imgRect;
     const ComparePoint2f cmpYX;
     set<Point2f,ComparePoint2f> imgSet;
@@ -416,8 +414,6 @@ typedef struct GridMatcher {
         }
         objectPts.push_back(ptObj);
         imagePts.push_back(ptImg);
-        objTotals += ptObj;
-        imgTotals += ptImg;
         imgSet.insert(ptImg);
         return true;
     }
@@ -680,16 +676,6 @@ typedef struct GridMatcher {
 
     int size() {
         return objectPts.size();
-    }
-
-    Point2f getImageCentroid() {
-        int n = objectPts.size();
-        return Point2f(imgTotals.x/n, imgTotals.y/n);
-    }
-
-    Point3f getObjectCentroid() {
-        int n = objectPts.size();
-        return Point3f(objTotals.x/n, objTotals.y/n, objTotals.z/n);
     }
 
     void subImageCornersFactory(Point2f scale) {
@@ -1196,14 +1182,13 @@ typedef struct GridMatcher {
 			if (rvecs.size() > 0) {
 				gridnessOut = Point2f();
 				for (int i=0; i < rvecs.size(); i++) {
-					vector<Point2f> projectedPts;
-					projectPoints(objectPts, rvecs[i], tvecs[i], cameraMatrix, distCoeffs, projectedPts);
 					if (op == CAL_PERSPECTIVE) {
-						// NOTE: we are reversing the order of perspective and undistort
 						vector<Point2f> perspectivePts;
-						perspectiveTransform(projectedPts, perspectivePts, perspective);
+						perspectiveTransform(imagePts, perspectivePts, perspective);
 						gridnessOut += calcGridness(perspectivePts, errMsg);
 					} else {
+						vector<Point2f> projectedPts;
+						projectPoints(objectPts, rvecs[i], tvecs[i], cameraMatrix, distCoeffs, projectedPts);
 						gridnessOut += calcGridness(projectedPts, errMsg);
 					}
 				}
@@ -1211,14 +1196,12 @@ typedef struct GridMatcher {
 				gridnessOut.y = gridnessOut.y/rvecs.size();
 			}
 
-            Point3f objCentroid = getObjectCentroid();
-            Point2f imgCentroid = getImageCentroid();
             for (int i=0; i < size(); i++) {
                 json_t *pRect = json_object();
                 json_object_set(pRect, "x", json_real(imagePts[i].x));
                 json_object_set(pRect, "y", json_real(imagePts[i].y));
-                json_object_set(pRect, "objX", json_real(objSep.x*(objectPts[i].x-objCentroid.x)));
-                json_object_set(pRect, "objY", json_real(objSep.y*(objectPts[i].y-objCentroid.y)));
+                json_object_set(pRect, "objX", json_real(objSep.x*(objectPts[i].x)));
+                json_object_set(pRect, "objY", json_real(objSep.y*(objectPts[i].y)));
                 json_array_append(pRects, pRect);
                 set<Point2f,ComparePoint2f>::iterator it = subImgSet.find(calibrationPts[i]);
                 if (it == subImgSet.end()) { // color marks points not used in calibration
@@ -1388,26 +1371,8 @@ bool Pipeline::apply_undistort(const char *pName, json_t *pStage, json_t *pStage
 
     if (errMsg.empty()) {
         cm = jo_vectord(pCalibrate, "cameraMatrix", cmDefault, model.argMap);
-        pm = jo_vectord(pCalibrate, "perspective", cmDefault, model.argMap);
         dc = jo_vectord(pCalibrate, "distCoeffs", dcDefault, model.argMap);
 
-		if (pm.size() == 9) {
-            Mat perspective = Mat(3, 3, CV_64F);
-            for (int i=0; i<pm.size(); i++) {
-                perspective.at<double>(i/3, i%3) = pm[i];
-            }
-			Mat dst;
-            undistort(model.image, dst, perspective, Mat());
-			model.image = dst;
-        } else if (pm.size() == 0) {
-			// no perspective
-		} else {
-			char buf[255];
-			snprintf(buf, sizeof(buf), "apply_undistort() invalid perspective matrix. Elements expected:9 actual:%d",
-				(int) pm.size());
-			LOGERROR1("%s", buf);
-			errMsg = buf;
-		}
         if (cm.size() == 9) {
             cameraMatrix = Mat(3, 3, CV_64F);
             for (int i=0; i<cm.size(); i++) {

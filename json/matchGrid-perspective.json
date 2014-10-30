@@ -1,0 +1,19 @@
+[
+	{"op":"matchTemplate",
+		"name":"match",
+		"template":"{{template}}",
+		"corr":"{{corr||0.8}}",
+		"threshold":"{{threshold||0.6}}",
+		"method":"{{method}}",
+		"angle":"{{angle}}",
+		"output":"{{output}}" },
+	{"op":"matchGrid", 
+		"name":"grid1", 
+		"calibrate":"perspective", 
+		"scale":"{{scale}}",
+		"sep":"{{sep}}",
+		"model":"match" },
+	{"op":"drawRects", "name":"draw1", "radius":5, "model":"grid1", "color":"{{colorUndistort||[32,255,32]}}"},
+	{"op":"warpPerspective", "model":"grid1" },
+	{"op":"drawRects", "name":"draw2", "radius":2, "model":"match", "color":"{{colorMatch||[32,32,255]}}"}
+]
