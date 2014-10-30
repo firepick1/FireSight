@@ -1373,8 +1373,6 @@ bool Pipeline::apply_undistort(const char *pName, json_t *pStage, json_t *pStage
     Mat cameraMatrix;
     Mat distCoeffs;
 
-    //initCameraVectors(cmDefault, dcDefault, model.image);
-
     json_t *pCalibrate;
     json_t *pCalibrateModel = json_object_get(model.getJson(false), modelName.c_str());
     if (json_is_object(pCalibrateModel)) {
