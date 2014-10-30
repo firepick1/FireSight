@@ -1903,8 +1903,6 @@
     }
   },
   "draw1":{},
-  "undistort":{
-    "model":"grid1"
-  },
+  "s4":{},
   "draw2":{}
 }
