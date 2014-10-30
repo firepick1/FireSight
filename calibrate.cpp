@@ -1066,7 +1066,6 @@ typedef struct GridMatcher {
             subImageIFactory(scale);
             break;
         case CAL_PERSPECTIVE:
-            subImageTileFactory(1);
             break;
         case CAL_CORNERS:
             subImageCornersFactory(scale);
@@ -1138,11 +1137,14 @@ typedef struct GridMatcher {
 				initCameraMatrix(cameraMatrix, distCoeffs, rvecs, tvecs, image);
 				vector<Point2f> gridImgPts = create_gridImgPts(imagePts, errMsg);
 				perspective = calcPerspective(gridImgPts, &subImgSet);
+				vector<Point2f> perspectiveImgPts;
+				perspectiveTransform(imagePts, perspectiveImgPts, perspective);
+				imagePts = perspectiveImgPts;
+				subImageTileFactory(1);
 				rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize, 
 					cameraMatrix, distCoeffs, rvecs, tvecs);
 			} else {
 				vector<Point2f> gridImgPts = create_gridImgPts(imagePts, errMsg);
-				perspective = calcPerspective(gridImgPts);
 				rmserror = calibrateCamera(vObjectPts, vImagePts, imgSize,
 										   cameraMatrix, distCoeffs, rvecs, tvecs);
 					

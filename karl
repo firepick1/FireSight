@@ -7,22 +7,21 @@ IMAGE=img/cal-grid.png
 LOG=-trace
 LOG=-info
 
-SCALE=[0.5,0.5]
-SCALE=[0.6,0.6]
-SCALE=[0.7,0.7]
-SCALE=[0.8,0.8]
-SCALE=[0.9,0.9]
-SCALE=[1,1]
+SCALE=-Dscale=[0.5,0.5]
+SCALE=-Dscale=[0.6,0.6]
+SCALE=-Dscale=[0.7,0.7]
+SCALE=-Dscale=[0.8,0.8]
+SCALE=-Dscale=[0.9,0.9]
+SCALE=-Dscale=[1,1]
 
-MATRIX=[1,0,0,0,1,0,0,0,1]
 MATRIX=[1.0607967128675548,0.028493745902572951,-7.1703410533895173,0.026587775192913436,1.1255262314607453,-19.981908384664415,-1.3832327695678588e-5,0.00027923340765283015,1.0]
+MATRIX=[1,0,0,0,1,0,0,0,1]
 
 OP=diamond
 OP=tile4
 OP=xyaxes
 OP=cross
 OP=quad0
-OP=perspective
 OP=quad3
 OP=none
 OP=quad1
@@ -33,6 +32,7 @@ OP=tile3
 OP=tile5
 OP=quad2
 OP=tile1
+OP=perspective
 
 TIME=time
 TIME=
@@ -40,17 +40,23 @@ TIME=
 JSON=json/warpPerspective.json
 JSON=json/matchGrid.json
 
+OUTPUT=img/matchGrid-perspective.png
+OUTPUT=~/Downloads/grid1.jpg
+
+CORR=-Dcorr=0.8
+CORR=
+
 make
 if [ $? -eq 0 ]; then
 	$TIME target/firesight \
 		-i $IMAGE \
 		-p $JSON \
-		-o ~/Downloads/grid1.jpg \
+		-o $OUTPUT \
 		-Dtemplate=img/cross32.png \
 		-Dmatrix=$MATRIX \
 		-Dcalibrate=$OP \
-		-Dcorr=0.8 \
-		-Dscale=$SCALE \
+		$CORR \
+		$SCALE \
 		$LOG \
 		|& tee target/out
 fi

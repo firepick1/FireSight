@@ -23,6 +23,8 @@ echo "Machine platform is:" `uname -m`
 echo "Test suffix is:$suffix64"
 
 suffix=""
+test/test-one cal-grid.png matchGrid "-perspective" -Dcalibrate=perspective -Dtemplate=img/cross32.png
+if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one cal-grid.png matchGrid "$suffix" -Dcalibrate=tile3 -Dtemplate=img/cross32.png
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
