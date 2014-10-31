@@ -2,7 +2,8 @@
 
 IMAGE=img/10x10grid.png
 IMAGE=img/10x10grid-400.png
-IMAGE=img/cal-grid.png
+IMAGE=img/cal-grid-h.png
+IMAGE=img/cal-grid-v.png
 
 LOG=-trace
 LOG=-info

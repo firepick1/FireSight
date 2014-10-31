@@ -1,5 +1,6 @@
 [
   {"op":"warpAffine", 
+	"name":"warpAffine",
   	"angle":"{{angle}}",
 	"scale":"{{scale}}",
 	"width":"{{width}}",
