@@ -1,0 +1,15 @@
+[
+  {"op":"warpAffine", 
+  	"angle":"{{angle}}",
+	"scale":"{{scale}}",
+	"width":"{{width}}",
+	"height":"{{height}}",
+	"cx":"{{cx}}",
+	"cy":"{{cy}}",
+	"dx":"{{dx}}",
+	"dy":"{{dy}}",
+	"reflect":"{{reflect}}",
+	"borderValue":"{{borderValue}}"
+	}
+]
+

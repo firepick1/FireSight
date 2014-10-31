@@ -143,8 +143,13 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
     float angle = jo_float(pStage, "angle", 0, model.argMap);
     int dx = jo_int(pStage, "dx", (int)((scale-1)*model.image.cols/2.0+.5), model.argMap);
     int dy = jo_int(pStage, "dy", (int)((scale-1)*model.image.rows/2.0+.5), model.argMap);
+    Point2f reflect = jo_Point2f(pStage, "reflect", Point(0,0), model.argMap);
     string  borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
     int borderMode;
+
+	if (reflect.x && reflect.y && reflect.x != reflect.y) {
+		errMsg = "warpAffine only handles reflections around x- or y-axes";
+	}
 
     if (!errMsg) {
         if (borderModeStr.compare("BORDER_CONSTANT") == 0) {
@@ -175,7 +180,9 @@ bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &mode
 
     if (!errMsg) {
         Mat result;
-        matWarpAffine(model.image, result, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), borderMode, borderValue);
+		int flags=cv::INTER_LINEAR || WARP_INVERSE_MAP;
+        matWarpAffine(model.image, result, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), 
+			borderMode, borderValue, reflect, flags);
         model.image = result;
     }
 

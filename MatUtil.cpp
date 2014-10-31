@@ -54,7 +54,7 @@ Mat matRotateSize(Size sizeIn, Point2f center, float angle, float &minx, float &
 }
 
 void matWarpAffine(const Mat &image, Mat &result, Point2f center, float angle, float scale,
-                   Point2f offset, Size size, int borderMode, Scalar borderValue, Point2f flip, int flags)
+                   Point2f offset, Size size, int borderMode, Scalar borderValue, Point2f reflect, int flags)
 {
     float minx;
     float maxx;
@@ -74,13 +74,14 @@ void matWarpAffine(const Mat &image, Mat &result, Point2f center, float angle, f
         resultSize.height = (int)(maxy - miny + 1.5);
         transform.at<float>(1,2) += (resultSize.height-1)/2.0f - center.y;
     }
+
     if (logLevel >= FIRELOG_TRACE) {
         char buf[200];
         LOGTRACE4("matWarpAffine() minx:%f, maxx:%f, %s-width:%d",
                   minx, maxx, (size.width <= 0 ? "auto" : "fixed"), resultSize.width);
         LOGTRACE4("matWarpAffine() miny:%f, maxy:%f, %s-height:%d",
                   miny, maxy, (size.height <= 0 ? "auto" : "fixed"), resultSize.height);
-        snprintf(buf, sizeof(buf),"matWarpAffine() transform:[%f,%f,%f; %f,%f,%f]",
+        snprintf(buf, sizeof(buf),"matWarpAffine() transform:[%g,%g,%g; %g,%g,%g]",
                  transform.at<float>(0,0), transform.at<float>(0,1), transform.at<float>(0,2),
                  transform.at<float>(1,0), transform.at<float>(1,1), transform.at<float>(1,2));
         LOGTRACE(buf);
@@ -88,6 +89,24 @@ void matWarpAffine(const Mat &image, Mat &result, Point2f center, float angle, f
 
     Mat resultLocal;
     warpAffine( image, resultLocal, transform, resultSize, flags, borderMode, borderValue );
+	
+	double normReflect = norm(reflect);
+	LOGTRACE3("matWarpAffine() reflect:(%g,%g) norm:%g", reflect.x, reflect.y, normReflect);
+	if (normReflect != 0) {
+		Mat mReflect = Mat::eye(3,3,CV_32F);
+		mReflect.at<float>(0,0) = (reflect.x*reflect.x-reflect.y*reflect.y)/normReflect;
+		mReflect.at<float>(1,1) = (reflect.y*reflect.y-reflect.x*reflect.x)/normReflect;
+		mReflect.at<float>(0,1) = mReflect.at<float>(1,0) = 2*reflect.x*reflect.y/normReflect;
+		// warpAffine does not work properly with reflection. maybe one day it will
+		if (reflect.x == 0) {
+			flip(resultLocal, resultLocal, 1);	// reflect in y-axis
+		} else if (reflect.y == 0) {
+			flip(resultLocal, resultLocal, 0);	// reflect in x-axis
+		} else if (reflect.x == reflect.y) {
+			flip(resultLocal, resultLocal, -1);	// reflect in x- and y-axes
+		}
+	}
+
     result = resultLocal;
 }
 
