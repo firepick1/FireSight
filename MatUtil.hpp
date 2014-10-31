@@ -29,6 +29,7 @@ CLASS_DECLSPEC void matWarpAffine(
 		cv::Size size, 
 		int borderMode=cv::BORDER_REPLICATE, 
 		cv::Scalar borderValue=cv::Scalar::all(0), 
+		cv::Point2f reflect=cv::Point2f(0,0),
 		int flags=cv::INTER_LINEAR);
 
 #endif

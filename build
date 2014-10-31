@@ -195,8 +195,16 @@ cmake \
   -DBUILD_LGPL2_1=$LGPL2_1 \
   -DCMAKE_INSTALL_PREFIX:PATH=$installPrefix "$@" \
   .
+RC=$?; if [ $RC -ne 0 ]; then
+	echo "ERROR	: cmake failed (RC=$RC)"
+	exit -1
+fi
 echo "STATUS	: building and installing FireSight..."
 make
+RC=$?; if [ $RC -ne 0 ]; then
+	echo "ERROR	: make failed (RC=$RC)"
+	exit -1
+fi
 sudo -E make install
 if [ $? -ne 0 ]; then
   echo "ERROR	: make failed"
