@@ -4,6 +4,7 @@ IMAGE=img/10x10grid.png
 IMAGE=img/10x10grid-400.png
 IMAGE=img/cal-grid-h.png
 IMAGE=img/cal-grid-v.png
+IMAGE=img/cal-grid.png
 
 LOG=-trace
 LOG=-info
@@ -43,8 +44,8 @@ TIME=
 
 JSON=json/warpPerspective.json
 JSON=json/matchGrid.json
-JSON=json/matchGrid-calibrate.json
 JSON=json/matchGrid-perspective.json
+JSON=json/matchGrid-calibrate.json
 
 OUTPUT=img/matchGrid-perspective.png
 OUTPUT=~/Downloads/grid1.jpg
