@@ -5,8 +5,8 @@
 #include <errno.h>
 #include <time.h>
 #ifdef WIN32
-  #include <Winsock2.h>
-  #include <Windows.h>
+  #include <winsock2.h>
+  #include <windows.h>
 #else
   #define LOG_THREAD_ID
   #include <sys/time.h>
