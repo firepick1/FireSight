@@ -24,7 +24,7 @@
 		"output":"{{output}}" },
 	{"op":"matchGrid", 
 		"name":"grid2", 
-		"calibrate":"{{calibrate}}", 
+		"calibrate":"{{calibrate||tile1}}", 
 		"scale":"{{scale}}",
 		"sep":"{{sep}}",
 		"model":"match2" },
