@@ -102,6 +102,7 @@ set(FIRESIGHT_LIB_FILES
   Pipeline.cpp 
   Pt2Res_RANSAC.cpp
   proto.cpp 
+  Sharpness.cpp
   warpRing.cpp
   )
 

@@ -258,6 +258,7 @@ namespace firesight {
       bool apply_threshold(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_warpRing(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model);
+      bool apply_sharpness(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_split(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_transparent(json_t *pStage, json_t *pStageModel, Model &model);
