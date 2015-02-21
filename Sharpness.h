@@ -36,6 +36,17 @@ class Sharpness {
      */
     static double LAPE(cv::Mat & image);
 
+    /**
+     * LAPM - Modified Laplacian [Nayar89]
+     *
+     * MATLAB:
+     * M = [-1 2 -1];        
+     * Lx = imfilter(Image, M, 'replicate', 'conv');
+     * Ly = imfilter(Image, M', 'replicate', 'conv');
+     * FM = abs(Lx) + abs(Ly);
+     * FM = mean2(FM);
+     */
+    static double LAPM(cv::Mat & image);
 };
 
 #endif
