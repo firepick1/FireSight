@@ -60,6 +60,8 @@ static void help() {
   cout << "    Start logging at TRACE log level" << endl;
   cout << " -warn " << endl;
   cout << "    Start logging at WARN log level" << endl;
+  cout << " -version " << endl;
+  cout << "    Print out FireSight version" << endl;
 }
 
 bool parseArgs(int argc, char *argv[], 
@@ -100,6 +102,9 @@ bool parseArgs(int argc, char *argv[],
       }
       outputPath = argv[++i];
       LOGTRACE1("parseArgs(-o) \"%s\" is output image path", outputPath);
+    } else if (strcmp("-version",argv[i]) == 0) {
+	  cout << "{\"version\":\"" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << "\"}" << endl;
+	  exit(0);
     } else if (strcmp("-time",argv[i]) == 0) {
       isTime = true;
     } else if (strncmp("-D",argv[i],2) == 0) {
