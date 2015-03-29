@@ -991,6 +991,8 @@ bool Pipeline::apply_sharpness(json_t *pStage, json_t *pStageModel, Model &model
         sharpness = Sharpness::GRAS(model.image);
     } else if (strcmp("LAPE", methodStr.c_str()) == 0) {
         sharpness = Sharpness::LAPE(model.image);
+    } else if (strcmp("LAPM", methodStr.c_str()) == 0) {
+        sharpness = Sharpness::LAPM(model.image);
     }
 
     json_object_set(pStageModel, "sharpness", json_real(sharpness));

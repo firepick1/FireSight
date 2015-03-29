@@ -29,9 +29,9 @@ double Sharpness::GRAS(Mat & image) {
 
 double Sharpness::LAPE(Mat & image) {
 
-    Mat src, dst;
+    Mat src, dst, kernel;
 
-    const int kernel_size = 3;
+    const int kernel_size = 1;
     const int scale = 1;
     const int delta = 0;
     const int ddepth = CV_16S;
@@ -44,8 +44,22 @@ double Sharpness::LAPE(Mat & image) {
     else
         cvtColor(image, src, CV_RGB2GRAY);
 
+    // Laplace operator according to MATLAB: fspecial('laplacian')
+    kernel = Mat::zeros(3, 3, CV_32F);
+    const double alpha = 0.2;
+    kernel.at<float>(0,0) = 4.0 / (alpha+1) * alpha / 4;
+    kernel.at<float>(0,1) = 4.0 / (alpha+1) * (1-alpha)/4;;
+    kernel.at<float>(0,2) = 4.0 / (alpha+1) * alpha / 4;
+    kernel.at<float>(1,0) = 4.0 / (alpha+1) * (1-alpha) / 4;
+    kernel.at<float>(1,1) = -4.0 / (alpha+1);
+    kernel.at<float>(1,2) = 4.0 / (alpha+1) * (1-alpha) / 4;
+    kernel.at<float>(2,0) = 4.0 / (alpha+1) * alpha / 4;
+    kernel.at<float>(2,1) = 4.0 / (alpha+1) * (1-alpha)/4;;
+    kernel.at<float>(2,2) = 4.0 / (alpha+1) * alpha / 4;
+
     /// Apply Laplace function
-    Laplacian(src, dst, ddepth, kernel_size, scale, delta, BORDER_DEFAULT);
+    filter2D(src, dst, ddepth, kernel, Point(-1, -1), delta, BORDER_REPLICATE);
+
   
     int32_t sum = 0;
     for (int r = 0; r < dst.rows; r++) {
@@ -58,3 +72,49 @@ double Sharpness::LAPE(Mat & image) {
     return ((double) sum / (dst.cols * dst.rows));;
 }
 
+double Sharpness::LAPM(Mat & image) {
+    Mat src, dst;
+  
+    Mat kernel;
+    Point anchor = Point(-1, -1);;
+    const double delta = 0;
+    const int ddepth = CV_16S;
+
+    int32_t sum = 0;
+
+    if( !image.data )
+        { return 0; }
+  
+    if (image.channels() == 1)
+        src = image;
+    else
+        cvtColor(image, src, CV_RGB2GRAY);
+
+    kernel = Mat::zeros(3, 3, CV_32F);
+    kernel.at<float>(0,1) = -1;
+    kernel.at<float>(1,1) = 2;
+    kernel.at<float>(2,1) = -1;
+    filter2D(src, dst, ddepth, kernel, anchor, delta, BORDER_REPLICATE);
+
+    for (int r = 0; r < dst.rows; r++) {
+        for (int c = 0; c < dst.cols; c++) {
+            const int16_t x = abs(dst.at<int16_t>(r, c));
+            sum += (int32_t) x;
+        }
+    }
+
+    kernel = Mat::zeros(3, 3, CV_32F);
+    kernel.at<float>(1,0) = -1;
+    kernel.at<float>(1,1) = 2;
+    kernel.at<float>(1,2) = -1;
+    filter2D(src, dst, ddepth, kernel, anchor, delta, BORDER_REPLICATE);
+
+    for (int r = 0; r < dst.rows; r++) {
+        for (int c = 0; c < dst.cols; c++) {
+            const int16_t x = abs(dst.at<int16_t>(r, c));
+            sum += (int32_t) x;
+        }
+    }
+
+    return ((double) sum / (dst.cols * dst.rows));;
+}
