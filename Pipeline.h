@@ -38,10 +38,6 @@ namespace firesight {
   } MatchedRegion;
 
 
-//  typedef struct Stage {
-//	  virtual bool apply(json_t *pStage, json_t *pStageModel, Model &model) = 0;
-//  } Stage;
-
   typedef class HoleRecognizer {
 #define HOLE_SHOW_NONE 0 /* do not show matches */
 #define HOLE_SHOW_MSER 1 /* show all MSER matches */
@@ -210,6 +206,10 @@ namespace firesight {
       map<string, StageDataPtr> stageDataMap;
       ArgMap argMap;
   } Model;
+
+  typedef struct Stage {
+  	  virtual bool apply(json_t *pStage, json_t *pStageModel, Model &model) = 0;
+  } Stage;
 
   typedef class CLASS_DECLSPEC Pipeline {
     protected:
