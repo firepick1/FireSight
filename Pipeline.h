@@ -37,12 +37,21 @@ namespace firesight {
     json_t *as_json_t();
   } MatchedRegion;
 
+
+//  typedef struct Stage {
+//	  virtual bool apply(json_t *pStage, json_t *pStageModel, Model &model) = 0;
+//  } Stage;
+
   typedef class HoleRecognizer {
 #define HOLE_SHOW_NONE 0 /* do not show matches */
 #define HOLE_SHOW_MSER 1 /* show all MSER matches */
 #define HOLE_SHOW_MATCHES 2 /* only show MSER matches that meet hole criteria */
     public:
       HoleRecognizer(float minDiameter, float maxDiameter);
+
+//      bool apply(json_t *pStage, json_t *pStageModel, Model &model) {
+//    	  return apply_absdiff(pStage, pStageModel, model);
+//      }
 
       /**
        * Update the working image to show MSER matches.
