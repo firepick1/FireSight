@@ -26,7 +26,7 @@ IF(WIN32)
   SET(FIRESIGHT_DLL "_firesight.dll")
 ELSE(WIN32)
   MESSAGE(STATUS "Detecting LINUX build")
-  SET(JANSSON_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/jannson/src")
+  SET(JANSSON_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/jannson/src/")
   SET(JANSSON_LIB "libjansson.so")
   SET(FIRESIGHT_LIB "lib_firesight.so")
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g -Wno-format-extra-args")
@@ -82,27 +82,19 @@ message("CMAKE_PREFIX_PATH:${CMAKE_PREFIX_PATH}")
 
 link_directories( ${BUILD_TARGET_DIR} /usr/lib /usr/local/lib )
 
+
+# files
+file(GLOB STAGE_FILES "stages/*.cpp")
+
 set(FIRESIGHT_LIB_FILES
-  bgSub.cpp
-  calcOffset.cpp
-  calcHist.cpp
-  calibrate.cpp
-  dft.cpp 
+  ${STAGE_FILES}
   FireLog.cpp 
   generated_code.cpp
-  HoleRecognizer.cpp 
-  HoughCircle.cpp
   jo_util.cpp 
   MatchedRegion.cpp 
   MatUtil.cpp
   Model.cpp 
-  morph.cpp
-  MSER.cpp 
-  normalize.cpp
   Pipeline.cpp 
-  Pt2Res_RANSAC.cpp
-  proto.cpp 
-  warpRing.cpp
   )
 
 # conditinally included sources with LGPL 2.1 license
@@ -110,7 +102,7 @@ if(BUILD_LGPL2_1)
     find_package( ZBar0 REQUIRED )
 
     set(FIRESIGHT_LIB_FILES ${FIRESIGHT_LIB_FILES}
-      ZbarQrDecode.cpp
+      stages/lgpl/ZbarQrDecode.cpp
     )
 endif(BUILD_LGPL2_1)
 
@@ -160,6 +152,9 @@ if(WIN32)
         "${PROJECT_SOURCE_DIR}/target/firesight.exe" 
         )
 endif(WIN32)
+
+add_executable(firesightgui FireSightGui.cpp)
+target_link_libraries(firesightgui ${JANSSON_LIB} ${FIRESIGHT_LIB} ${OpenCV_LIBS})
 
 add_executable(test 
   test/test_calibrate.cpp
