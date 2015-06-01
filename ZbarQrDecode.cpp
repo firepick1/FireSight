@@ -4,7 +4,7 @@
  */
 
 #include "FireLog.h"
-#include "FireSight.hpp"
+#include "Pipeline.h"
 #include "jansson.h"
 
 #include "opencv2/imgproc/imgproc.hpp"

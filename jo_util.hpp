@@ -4,7 +4,7 @@
 #include "opencv2/features2d/features2d.hpp"
 #include <vector>
 #include "jansson.h"
-#include "FireSight.hpp"
+#include "Pipeline.h"
 #include "winjunk.hpp"
 
 using namespace cv;

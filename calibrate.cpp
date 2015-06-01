@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "FireLog.h"
-#include "FireSight.hpp"
+#include "Pipeline.h"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
