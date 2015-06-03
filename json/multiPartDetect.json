@@ -1,0 +1,8 @@
+[
+  {"op":"cvtColor", "code":"CV_BGR2GRAY"},
+  {"op":"blur","ksize.width":5, "ksize.height":5},
+  {"op":"Canny","threshold1":1,"threshold2":100,"apertureSize":3,"L2gradient":false},
+  {"op":"minAreaRect", "name":"singleBlob"},
+  {"op":"drawRects", "model":"singleBlob", "thickness":"1", "color":"white"}
+]
+
