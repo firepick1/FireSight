@@ -6,7 +6,7 @@
 #include <string.h>
 #include <math.h>
 #include "FireLog.h"
-#include "FireSight.hpp"
+#include "Pipeline.h"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
 

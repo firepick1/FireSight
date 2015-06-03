@@ -2,7 +2,7 @@
 #include <iostream>
 #include <math.h>
 #include "FireLog.h"
-#include "FireSight.hpp"
+#include "Pipeline.h"
 #include "version.h"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"

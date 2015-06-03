@@ -7,7 +7,7 @@
 #include <math.h>
 #include <stdexcept>
 #include "FireLog.h"
-#include "FireSight.hpp"
+#include "Pipeline.h"
 #include "jansson.h"
 
 using namespace std;

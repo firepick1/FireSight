@@ -4,7 +4,7 @@
 #include <sstream>
 #include <math.h>
 #include "FireLog.h"
-#include "FireSight.hpp"
+#include "FireSightGui.hpp"
 #include "Pipeline.h"
 #include "version.h"
 #include "jo_util.hpp"
@@ -16,14 +16,6 @@
 using namespace cv;
 using namespace std;
 using namespace firesight;
-
-#ifdef _MSC_VER
-#include "winjunk.hpp"
-#else
-#define CLASS_DECLSPEC
-#endif
-#include "jansson.h"
-#include "Pipeline.h"
 
 typedef enum{UI_STILL, UI_VIDEO} UIMode;
 

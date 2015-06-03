@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "FireLog.h"
-#include "FireSight.hpp"
+#include "Pipeline.h"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -12,8 +12,8 @@
 #include "jo_util.hpp"
 #include "MatUtil.hpp"
 #include "version.h"
-#include "Sharpness.h"
-#include "PartDetector.h"
+#include "stages/Sharpness.h"
+#include "stages/PartDetector.h"
 
 using namespace cv;
 using namespace std;
