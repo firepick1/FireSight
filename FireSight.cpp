@@ -157,7 +157,7 @@ bool parseArgs(int argc, char *argv[],
 static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool isTime, int jsonIndent) {
   Pipeline pipeline(pipelinePath, Pipeline::PATH);
   
-  json_t *pModel = pipeline.process(image, argMap);
+  json_t *pModel = pipeline.process(image, argMap, false);
 
   if (isTime) {
     long long tickStart = cvGetTickCount();
@@ -166,7 +166,7 @@ static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool i
     int iterations = 100;
     for (int i=0; i < iterations; i++) {
       json_decref(pModel);
-      pModel = pipeline.process(image, argMap);
+      pModel = pipeline.process(image, argMap, false);
     }
     float ticksElapsed = cvGetTickCount() - tickStart;
     //cout << "ticksElapsed:" << ticksElapsed << endl;
@@ -206,7 +206,7 @@ static int uiVideo(const char * pipelinePath, ArgMap &argMap) {
     Mat frame;
     cap >> frame; // get a new frame from camera
 
-    json_t *pModel = pipeline.process(frame, argMap);
+    json_t *pModel = pipeline.process(frame, argMap, false);
 
     // Display pipeline output
     imshow("image", frame);

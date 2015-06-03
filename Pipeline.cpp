@@ -1629,19 +1629,19 @@ void Pipeline::validateImage(Mat &image) {
     }
 }
 
-json_t *Pipeline::process(Mat &workingImage, ArgMap &argMap) {
+json_t *Pipeline::process(Mat &workingImage, ArgMap &argMap, bool gui = false) {
     Model model(argMap);
     json_t *pModelJson = model.getJson(true);
 
     model.image = workingImage;
     model.imageMap["input"] = model.image.clone();
-    bool ok = processModel(model);
+    bool ok = processModel(model, gui);
     workingImage = model.image;
 
     return pModelJson;
 }
 
-bool Pipeline::processModel(Model &model) {
+bool Pipeline::processModel(Model &model, bool gui = false) {
     if (!json_is_array(pPipeline)) {
         const char * errMsg = "Pipeline::process expected json array for pipeline definition";
         LOGERROR1(errMsg, "");
@@ -1653,7 +1653,14 @@ bool Pipeline::processModel(Model &model) {
     json_t *pStage;
     char debugBuf[255];
     long long tickStart = cvGetTickCount();
-    json_array_foreach(pPipeline, index, pStage) {
+
+    vector<Model> history;
+    if (gui) {
+        cv::namedWindow("model.image", cv::WINDOW_OPENGL);
+        history.push_back(model);
+    }
+    for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); ) {
+        printf("index = %lu\n", index);
         string pOp = jo_string(pStage, "op", "", model.argMap);
         string pName = jo_string(pStage, "name");
         bool isSaveImage = true;
@@ -1680,11 +1687,36 @@ bool Pipeline::processModel(Model &model) {
         } else {
             LOGDEBUG1("%s", debugBuf);
             try {
+                if (gui) {
+                    cv::imshow("model.image", model.image);
+                    printf("Name:  %s\n", pName.c_str());
+                    printf("Stage: %s\n", pOp.c_str());
+
+                    int key = cv::waitKey(0);
+
+                    if (key == 'n') {
+                        printf("[n]ext\n");
+                        index++;
+                    } else if (key == 'p') {
+                        printf("[p]revious\n");
+                        if (index > 0) {
+                            index--;
+                            history.pop_back();
+                            model = history.back();
+                        }
+                        continue;
+                    } else if (key == 27) {
+                        return ok;
+                    } else {
+                        continue;
+                    }
+                }
                 const char *errMsg = dispatch(pName.c_str(), pOp.c_str(), pStage, pStageModel, model);
                 ok = logErrorMessage(errMsg, pName.c_str(), pStage, pStageModel);
                 if (isSaveImage) {
                     model.imageMap[pName.c_str()] = model.image.clone();
                 }
+                history.push_back(model);
             } catch (runtime_error &ex) {
                 ok = logErrorMessage(ex.what(), pName.c_str(), pStage, pStageModel);
             } catch (cv::Exception &ex) {
@@ -1701,7 +1733,16 @@ bool Pipeline::processModel(Model &model) {
             ok = false;
             break;
         }
+        if (!gui)
+            index++;
     } // json_array_foreach
+
+    if (gui) {
+        printf("Final image:\n");
+        cv::imshow("model.image", model.image);
+        cv::waitKey(0);
+        cv::destroyWindow("model.image");
+    }
 
     float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000;
     LOGDEBUG3("Pipeline::processModel(stages:%d) -> %s %.1fms",

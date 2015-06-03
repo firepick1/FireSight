@@ -207,13 +207,71 @@ namespace firesight {
       ArgMap argMap;
   } Model;
 
-  typedef struct Stage {
-  	  virtual bool apply(json_t *pStage, json_t *pStageModel, Model &model) = 0;
-  } Stage;
+    class Stage;
+
+    class Parameter {
+    public:
+        Parameter(Stage * stage);
+    };
+
+    class IntParameter : public Parameter {
+    public:
+        IntParameter(Stage * stage, int &value);
+    private:
+        int &value;
+    };
+
+    class BoolParameter : public Parameter {
+    public:
+        BoolParameter(Stage * stage, bool &value);
+    private:
+        bool &value;
+    };
+
+    class DoubleParameter : public Parameter {
+    public:
+        DoubleParameter(Stage * stage, double &value);
+    private:
+        double &value;
+    };
+
+    class StringParameter : public Parameter {
+    public:
+        StringParameter(Stage * stage, string &value);
+    private:
+        string &value;
+    };
+
+    class SizeParameter : public Parameter {
+    public:
+        SizeParameter(Stage * stage, Size &value);
+    private:
+        Size &value;
+    };
+
+    class EnumParameter : public Parameter {
+    public:
+        EnumParameter(Stage * stage, int &v, map<int, string> m);
+    private:
+        int &value;
+        map<int, string> _map;
+    };
+
+
+
+
+
+    class Stage {
+    public:
+        virtual bool apply(json_t *pStage, json_t *pStageModel, Model &model) = 0;
+
+    private:
+        map<string, Parameter*> _params;
+    };
 
   typedef class CLASS_DECLSPEC Pipeline {
     protected:
-      bool processModel(Model &model);
+      bool processModel(Model &model, bool gui);
       bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
       KeyPoint _regionKeypoint(const vector<Point> &region);
       void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
@@ -306,7 +364,7 @@ namespace firesight {
        * @param mat initial and transformed working image
        * @return pointer to jansson root node of JSON object that has a field for each recognized stage model. E.g., {s1:{...}, s2:{...}, ... , sN:{...}}
        */
-      json_t *process(Mat &mat, ArgMap &argMap);
+      json_t *process(Mat &mat, ArgMap &argMap, bool gui);
 
   } Pipeline;
 

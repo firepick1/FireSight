@@ -18,8 +18,6 @@ RotatedRect PartDetector::detect(Mat& image) {
     else
         cvtColor(image, img, CV_RGB2GRAY);
 
-    cv::Size size(3,3);  
-    cv::GaussianBlur(img,img,size,0);  
     adaptiveThreshold(img, img,255,CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY,75,10);  
 
     // compute mask (you could use a simple threshold if the image is always as good as the one you provided)
@@ -67,7 +65,7 @@ RotatedRect PartDetector::detect(Mat& image) {
     cv::line(drawing, corners[1], corners[2], cv::Scalar(255,255,255));
     cv::line(drawing, corners[2], corners[3], cv::Scalar(255,255,255));
     cv::line(drawing, corners[3], corners[0], cv::Scalar(255,255,255));
-    imshow("drawing", drawing);
+    //imshow("drawing", drawing);
 
     image = drawing;
 //    cv::waitKey(0);
