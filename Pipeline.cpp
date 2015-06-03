@@ -13,6 +13,7 @@
 #include "MatUtil.hpp"
 #include "version.h"
 #include "Sharpness.h"
+#include "PartDetector.h"
 
 using namespace cv;
 using namespace std;
@@ -1001,6 +1002,24 @@ bool Pipeline::apply_sharpness(json_t *pStage, json_t *pStageModel, Model &model
 
 }
 
+bool Pipeline::apply_detectParts(json_t *pStage, json_t *pStageModel, Model &model) {
+    const char *errMsg = NULL;
+
+    RotatedRect rect = PartDetector::detect(model.image);
+
+    json_t *pRects = json_array();
+    json_object_set(pStageModel, "rects", pRects);
+    json_t *pRect = json_object();
+    json_object_set(pRect, "x", json_real(rect.center.x));
+    json_object_set(pRect, "y", json_real(rect.center.y));
+    json_object_set(pRect, "width", json_real(rect.size.width));
+    json_object_set(pRect, "height", json_real(rect.size.height));
+    json_object_set(pRect, "angle", json_real(rect.angle));
+    json_array_append(pRects, pRect);
+
+    return stageOK("apply_detectParts(%s) %s", errMsg, pStage, pStageModel);
+}
+
 bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model) {
     int x = jo_int(pStage, "x", 0, model.argMap);
     int y = jo_int(pStage, "y", 0, model.argMap);
@@ -1777,6 +1796,8 @@ const char * Pipeline::dispatch(const char *pName, const char *pOp, json_t *pSta
         ok = apply_resize(pStage, pStageModel, model);
     } else if (strcmp(pOp, "sharpness")==0) {
         ok = apply_sharpness(pStage, pStageModel, model);
+    } else if (strcmp(pOp, "detectParts")==0) {
+        ok = apply_detectParts(pStage, pStageModel, model);
     } else if (strcmp(pOp, "SimpleBlobDetector")==0) {
         ok = apply_SimpleBlobDetector(pStage, pStageModel, model);
     } else if (strcmp(pOp, "split")==0) {

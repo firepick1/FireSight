@@ -99,6 +99,7 @@ set(FIRESIGHT_LIB_FILES
   morph.cpp
   MSER.cpp 
   normalize.cpp
+  PartDetector.cpp
   Pipeline.cpp 
   Pt2Res_RANSAC.cpp
   proto.cpp 
