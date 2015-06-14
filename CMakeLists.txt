@@ -48,7 +48,7 @@ SET(EXECUTABLE_OUTPUT_PATH "${BUILD_TARGET_DIR}")
 SET(RUNTIME_OUTPUT_NAME firesight)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR}/include ${JANSSON_INCLUDE_DIRS} )
+include_directories( ${PROJECT_SOURCE_DIR} ${BUILD_TARGET_DIR} ${BUILD_TARGET_DIR}/include ${JANSSON_INCLUDE_DIRS} )
 include_directories( /usr/local/include )
 include_directories( /usr/include )
 
