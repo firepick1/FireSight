@@ -16,9 +16,7 @@ using namespace cv;
 
 struct PipelineViewer {
     PipelineViewer(const int width) :
-        width(width),
-        imgsInRow(1),
-        imgsInCol(1)
+        width(width)
     {
         namedWindow("pipeline", WINDOW_NORMAL);
         setMouseCallback("pipeline", CallBackFunc, this);
@@ -68,15 +66,12 @@ struct PipelineViewer {
 
     // --------------------------------------------------------------
     // Function to draw several images to one image.
-    // Small images draws into cells of size cellSize.
-    // If image larger than size of cell ot will be trimmed.
-    // If image smaller than cellSize there will be gap between cells.
     // --------------------------------------------------------------
     void showImages(const vector<Mat>& imgs)
     {
         float nImgs=imgs.size();
-        imgsInRow=ceil(sqrt(nImgs));
-        imgsInCol=ceil(nImgs/imgsInRow);
+        int imgsInRow=ceil(sqrt(nImgs));
+        int imgsInCol=ceil(nImgs/imgsInRow);
 
         int resultImgW=width*imgsInRow;
         int resultImgH=height*imgsInCol;
@@ -124,7 +119,6 @@ struct PipelineViewer {
     float scale; // how much is every image scaled to fit into width?
     Rect roi;
     int x0, y0;
-    int imgsInRow, imgsInCol;
 };
 
 }

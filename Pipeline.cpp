@@ -1653,7 +1653,9 @@ bool Pipeline::processModel(Model &model, bool gui = false) {
         throw errMsg;
     }
 
-    PipelineViewer pv(500);
+    PipelineViewer * pv = NULL;
+    if (gui)
+        pv = new PipelineViewer(500);
 
     bool ok = 1;
     size_t index;
@@ -1716,12 +1718,10 @@ bool Pipeline::processModel(Model &model, bool gui = false) {
     } // json_array_foreach
 
     if (gui) {
-
-
         while (cv::waitKey(1) != 27)
-            pv.update(history);
+            pv->update(history);
 
-
+        delete(pv);
     }
 
     float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000;
