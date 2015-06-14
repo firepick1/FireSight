@@ -8,12 +8,23 @@
 #ifndef PIPELINE_H_
 #define PIPELINE_H_
 
-#include "opencv2/features2d/features2d.hpp"
+#include <cv.h>
+#include <cvaux.h>
+#include <highgui.h>
+
 #include <vector>
 #include <map>
 #include <string>
 
 #include "jansson.h"
+
+#ifdef _MSC_VER
+#include "winjunk.hpp"
+#else
+#ifndef CLASS_DECLSPEC
+#define CLASS_DECLSPEC
+#endif
+#endif
 
 using namespace cv;
 using namespace std;
@@ -211,7 +222,11 @@ namespace firesight {
 
     class Parameter {
     public:
-        Parameter(Stage * stage);
+        Parameter(Stage * stage) :
+            stage(stage)
+        {}
+    private:
+        Stage * stage;
     };
 
     class IntParameter : public Parameter {
@@ -223,35 +238,46 @@ namespace firesight {
 
     class BoolParameter : public Parameter {
     public:
-        BoolParameter(Stage * stage, bool &value);
+        BoolParameter(Stage * stage, bool &value) :
+            Parameter(stage), value(value)
+        {}
     private:
         bool &value;
     };
 
     class DoubleParameter : public Parameter {
     public:
-        DoubleParameter(Stage * stage, double &value);
+        DoubleParameter(Stage * stage, double &value) :
+            Parameter(stage), value(value)
+        {}
     private:
         double &value;
     };
 
     class StringParameter : public Parameter {
     public:
-        StringParameter(Stage * stage, string &value);
+        StringParameter(Stage * stage, string &value) :
+            Parameter(stage), value(value)
+        {}
     private:
         string &value;
     };
 
     class SizeParameter : public Parameter {
     public:
-        SizeParameter(Stage * stage, Size &value);
+        SizeParameter(Stage * stage, Size &value) :
+            Parameter(stage), value(value)
+        {}
     private:
         Size &value;
     };
 
     class EnumParameter : public Parameter {
     public:
-        EnumParameter(Stage * stage, int &v, map<int, string> m);
+        EnumParameter(Stage * stage, int &v, map<int, string> m) :
+            Parameter(stage), value(v), _map(m)
+        {}
+
     private:
         int &value;
         map<int, string> _map;
@@ -264,15 +290,18 @@ namespace firesight {
     class Stage {
     public:
         virtual bool apply(json_t *pStage, json_t *pStageModel, Model &model) = 0;
+        static bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
 
-    private:
+    protected:
         map<string, Parameter*> _params;
     };
 
   typedef class CLASS_DECLSPEC Pipeline {
+    public:
+      static void validateImage(Mat &image);
+      bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
     protected:
       bool processModel(Model &model, bool gui);
-      bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
       KeyPoint _regionKeypoint(const vector<Point> &region);
       void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
       void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
@@ -335,7 +364,6 @@ namespace firesight {
       void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
       void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);
       int parseCvType(const char *typeName, const char *&errMsg);
-      void validateImage(Mat &image);
       json_t *pPipeline;
 
     public:

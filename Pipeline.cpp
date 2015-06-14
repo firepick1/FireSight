@@ -14,6 +14,7 @@
 #include "version.h"
 #include "stages/Sharpness.h"
 #include "stages/PartDetector.h"
+#include "gui.h"
 
 using namespace cv;
 using namespace std;
@@ -27,7 +28,7 @@ StageData::~StageData() {
     LOGTRACE("StageData destructor");
 }
 
-bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
+bool Stage::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
     if (errMsg && *errMsg) {
         char *pStageJson = json_dumps(pStage, JSON_COMPACT|JSON_PRESERVE_ORDER);
         LOGERROR2(fmt, pStageJson, errMsg);
@@ -46,6 +47,10 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
     }
 
     return true;
+}
+
+bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
+    return Stage::stageOK(fmt, errMsg, pStage, pStageModel);
 }
 
 bool Pipeline::apply_model(json_t *pStage, json_t *pStageModel, Model &model) {
@@ -1648,19 +1653,17 @@ bool Pipeline::processModel(Model &model, bool gui = false) {
         throw errMsg;
     }
 
+    PipelineViewer pv(500);
+
     bool ok = 1;
     size_t index;
     json_t *pStage;
     char debugBuf[255];
     long long tickStart = cvGetTickCount();
 
-    vector<Model> history;
-    if (gui) {
-        cv::namedWindow("model.image", cv::WINDOW_OPENGL);
-        history.push_back(model);
-    }
+    vector<Mat> history;
+    history.push_back(model.image.clone());
     for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); ) {
-        printf("index = %lu\n", index);
         string pOp = jo_string(pStage, "op", "", model.argMap);
         string pName = jo_string(pStage, "name");
         bool isSaveImage = true;
@@ -1687,36 +1690,12 @@ bool Pipeline::processModel(Model &model, bool gui = false) {
         } else {
             LOGDEBUG1("%s", debugBuf);
             try {
-                if (gui) {
-                    cv::imshow("model.image", model.image);
-                    printf("Name:  %s\n", pName.c_str());
-                    printf("Stage: %s\n", pOp.c_str());
-
-                    int key = cv::waitKey(0);
-
-                    if (key == 'n') {
-                        printf("[n]ext\n");
-                        index++;
-                    } else if (key == 'p') {
-                        printf("[p]revious\n");
-                        if (index > 0) {
-                            index--;
-                            history.pop_back();
-                            model = history.back();
-                        }
-                        continue;
-                    } else if (key == 27) {
-                        return ok;
-                    } else {
-                        continue;
-                    }
-                }
                 const char *errMsg = dispatch(pName.c_str(), pOp.c_str(), pStage, pStageModel, model);
                 ok = logErrorMessage(errMsg, pName.c_str(), pStage, pStageModel);
                 if (isSaveImage) {
                     model.imageMap[pName.c_str()] = model.image.clone();
                 }
-                history.push_back(model);
+                history.push_back(model.image.clone());
             } catch (runtime_error &ex) {
                 ok = logErrorMessage(ex.what(), pName.c_str(), pStage, pStageModel);
             } catch (cv::Exception &ex) {
@@ -1733,15 +1712,16 @@ bool Pipeline::processModel(Model &model, bool gui = false) {
             ok = false;
             break;
         }
-        if (!gui)
-            index++;
+        index++;
     } // json_array_foreach
 
     if (gui) {
-        printf("Final image:\n");
-        cv::imshow("model.image", model.image);
-        cv::waitKey(0);
-        cv::destroyWindow("model.image");
+
+
+        while (cv::waitKey(1) != 27)
+            pv.update(history);
+
+
     }
 
     float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000;
