@@ -1640,93 +1640,123 @@ json_t *Pipeline::process(Mat &workingImage, ArgMap &argMap, bool gui = false) {
 
     model.image = workingImage;
     model.imageMap["input"] = model.image.clone();
-    bool ok = processModel(model, gui);
+    bool ok;
+    if (gui)
+        ok = processModelGUI(model);
+    else
+        ok = processModel(model);
     workingImage = model.image;
 
     return pModelJson;
 }
 
-bool Pipeline::processModel(Model &model, bool gui = false) {
+bool Pipeline::processModel(Model &model) {
     if (!json_is_array(pPipeline)) {
         const char * errMsg = "Pipeline::process expected json array for pipeline definition";
         LOGERROR1(errMsg, "");
         throw errMsg;
     }
 
-    PipelineViewer * pv = NULL;
-    if (gui)
-        pv = new PipelineViewer(500);
-
     bool ok = 1;
     size_t index;
     json_t *pStage;
-    char debugBuf[255];
     long long tickStart = cvGetTickCount();
 
-    vector<Mat> history;
-    history.push_back(model.image.clone());
-    for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); ) {
-        string pOp = jo_string(pStage, "op", "", model.argMap);
-        string pName = jo_string(pStage, "name");
-        bool isSaveImage = true;
-        if (pName.empty()) {
-            char defaultName[100];
-            snprintf(defaultName, sizeof(defaultName), "s%d", (int)index+1);
-            pName = defaultName;
-            isSaveImage = false;
-        }
-        string comment = jo_string(pStage, "comment", "", model.argMap);
-        json_t *pStageModel = json_object();
-        json_t *jmodel = model.getJson(false);
-        json_object_set(jmodel, pName.c_str(), pStageModel);
-        if (logLevel >= FIRELOG_DEBUG) {
-            string stageDump = jo_object_dump(pStage, model.argMap);
-            snprintf(debugBuf,sizeof(debugBuf), "process() %s %s",
-                     matInfo(model.image).c_str(), stageDump.c_str());
-        }
-        if (strncmp(pOp.c_str(), "nop", 3)==0) {
-            LOGDEBUG1("%s (NO ACTION TAKEN)", debugBuf);
-        } else if (pName.compare("input")==0) {
-            ok = logErrorMessage("\"input\" is the reserved stage name for the input image",
-                                 pName.c_str(), pStage, pStageModel);
-        } else {
-            LOGDEBUG1("%s", debugBuf);
-            try {
-                const char *errMsg = dispatch(pName.c_str(), pOp.c_str(), pStage, pStageModel, model);
-                ok = logErrorMessage(errMsg, pName.c_str(), pStage, pStageModel);
-                if (isSaveImage) {
-                    model.imageMap[pName.c_str()] = model.image.clone();
-                }
-                history.push_back(model.image.clone());
-            } catch (runtime_error &ex) {
-                ok = logErrorMessage(ex.what(), pName.c_str(), pStage, pStageModel);
-            } catch (cv::Exception &ex) {
-                ok = logErrorMessage(ex.what(), pName.c_str(), pStage, pStageModel);
-            }
-        } //if-else (pOp)
-        if (!ok) {
-            LOGERROR("cancelled pipeline execution");
-            ok = false;
+    for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); index++) {
+        if (!processStage(index, pStage, model))
             break;
-        }
-        if (model.image.cols <=0 || model.image.rows<=0) {
-            LOGERROR2("Empty working image: %dr x %dc", model.image.rows, model.image.cols);
-            ok = false;
-            break;
-        }
-        index++;
     } // json_array_foreach
 
-    if (gui) {
-        while (cv::waitKey(1) != 27)
-            pv->update(history);
-
-        delete(pv);
-    }
 
     float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000;
     LOGDEBUG3("Pipeline::processModel(stages:%d) -> %s %.1fms",
               (int)json_array_size(pPipeline), matInfo(model.image).c_str(), msElapsed);
+
+    return ok;
+}
+
+bool Pipeline::processModelGUI(Model &model) {
+    if (!json_is_array(pPipeline)) {
+        const char * errMsg = "Pipeline::process expected json array for pipeline definition";
+        LOGERROR1(errMsg, "");
+        throw errMsg;
+    }
+
+    PipelineViewer pv(500);
+
+    bool ok = 1;
+    size_t index;
+    json_t *pStage;
+    long long tickStart = cvGetTickCount();
+
+    vector<Mat> history;
+    history.push_back(model.image.clone());
+    for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); index++) {
+        if (!processStage(index, pStage, model))
+            break;
+
+        history.push_back(model.image.clone());
+    } // json_array_foreach
+
+    while (cv::waitKey(1) != 27)
+        pv.update(history);
+
+
+    float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000;
+    LOGDEBUG3("Pipeline::processModel(stages:%d) -> %s %.1fms",
+              (int)json_array_size(pPipeline), matInfo(model.image).c_str(), msElapsed);
+
+    return ok;
+}
+
+bool Pipeline::processStage(int index, json_t * pStage, Model &model) {
+    bool ok = 1;
+    char debugBuf[255];
+    string pOp = jo_string(pStage, "op", "", model.argMap);
+    string pName = jo_string(pStage, "name");
+    bool isSaveImage = true;
+    if (pName.empty()) {
+        char defaultName[100];
+        snprintf(defaultName, sizeof(defaultName), "s%d", (int)index+1);
+        pName = defaultName;
+        isSaveImage = false;
+    }
+    string comment = jo_string(pStage, "comment", "", model.argMap);
+    json_t *pStageModel = json_object();
+    json_t *jmodel = model.getJson(false);
+    json_object_set(jmodel, pName.c_str(), pStageModel);
+    if (logLevel >= FIRELOG_DEBUG) {
+        string stageDump = jo_object_dump(pStage, model.argMap);
+        snprintf(debugBuf,sizeof(debugBuf), "process() %s %s",
+                 matInfo(model.image).c_str(), stageDump.c_str());
+    }
+    if (strncmp(pOp.c_str(), "nop", 3)==0) {
+        LOGDEBUG1("%s (NO ACTION TAKEN)", debugBuf);
+    } else if (pName.compare("input")==0) {
+        ok = logErrorMessage("\"input\" is the reserved stage name for the input image",
+                             pName.c_str(), pStage, pStageModel);
+    } else {
+        LOGDEBUG1("%s", debugBuf);
+        try {
+            const char *errMsg = dispatch(pName.c_str(), pOp.c_str(), pStage, pStageModel, model);
+            ok = logErrorMessage(errMsg, pName.c_str(), pStage, pStageModel);
+            if (isSaveImage) {
+                model.imageMap[pName.c_str()] = model.image.clone();
+            }
+        } catch (runtime_error &ex) {
+            ok = logErrorMessage(ex.what(), pName.c_str(), pStage, pStageModel);
+        } catch (cv::Exception &ex) {
+            ok = logErrorMessage(ex.what(), pName.c_str(), pStage, pStageModel);
+        }
+    } //if-else (pOp)
+    if (!ok) {
+        LOGERROR("cancelled pipeline execution");
+        return false;
+    }
+    if (model.image.cols <=0 || model.image.rows<=0) {
+        LOGERROR2("Empty working image: %dr x %dc", model.image.rows, model.image.cols);
+        return false;
+    }
 
     return ok;
 }

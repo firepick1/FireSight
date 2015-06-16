@@ -301,7 +301,9 @@ namespace firesight {
       static void validateImage(Mat &image);
       bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
     protected:
-      bool processModel(Model &model, bool gui);
+      bool processModel(Model &model);
+      bool processModelGUI(Model &model);
+      bool processStage(int index, json_t *pStage, Model &model);
       KeyPoint _regionKeypoint(const vector<Point> &region);
       void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
       void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
