@@ -368,245 +368,6 @@ bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &mode
     return stageOK("apply_stageImage(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    string codeStr = jo_string(pStage, "code", "CV_BGR2GRAY", model.argMap);
-    int dstCn = jo_int(pStage, "dstCn", 0, model.argMap);
-    const char *errMsg = NULL;
-    int code = CV_BGR2GRAY;
-
-    if (codeStr.compare("CV_BGR2BGRA")==0) {
-        code = CV_BGR2BGRA;
-    } else if (codeStr.compare("CV_RGB2RGBA")==0) {
-        code = CV_RGB2RGBA;
-    } else if (codeStr.compare("CV_BGRA2BGR")==0) {
-        code = CV_BGRA2BGR;
-    } else if (codeStr.compare("CV_RGBA2RGB")==0) {
-        code = CV_RGBA2RGB;
-    } else if (codeStr.compare("CV_BGR2RGBA")==0) {
-        code = CV_BGR2RGBA;
-    } else if (codeStr.compare("CV_RGB2BGRA")==0) {
-        code = CV_RGB2BGRA;
-    } else if (codeStr.compare("CV_RGBA2BGR")==0) {
-        code = CV_RGBA2BGR;
-    } else if (codeStr.compare("CV_BGRA2RGB")==0) {
-        code = CV_BGRA2RGB;
-    } else if (codeStr.compare("CV_BGR2RGB")==0) {
-        code = CV_BGR2RGB;
-    } else if (codeStr.compare("CV_RGB2BGR")==0) {
-        code = CV_RGB2BGR;
-    } else if (codeStr.compare("CV_BGRA2RGBA")==0) {
-        code = CV_BGRA2RGBA;
-    } else if (codeStr.compare("CV_RGBA2BGRA")==0) {
-        code = CV_RGBA2BGRA;
-    } else if (codeStr.compare("CV_BGR2GRAY")==0) {
-        code = CV_BGR2GRAY;
-    } else if (codeStr.compare("CV_RGB2GRAY")==0) {
-        code = CV_RGB2GRAY;
-    } else if (codeStr.compare("CV_GRAY2BGR")==0) {
-        code = CV_GRAY2BGR;
-    } else if (codeStr.compare("CV_GRAY2RGB")==0) {
-        code = CV_GRAY2RGB;
-    } else if (codeStr.compare("CV_GRAY2BGRA")==0) {
-        code = CV_GRAY2BGRA;
-    } else if (codeStr.compare("CV_GRAY2RGBA")==0) {
-        code = CV_GRAY2RGBA;
-    } else if (codeStr.compare("CV_BGRA2GRAY")==0) {
-        code = CV_BGRA2GRAY;
-    } else if (codeStr.compare("CV_RGBA2GRAY")==0) {
-        code = CV_RGBA2GRAY;
-    } else if (codeStr.compare("CV_BGR2BGR565")==0) {
-        code = CV_BGR2BGR565;
-    } else if (codeStr.compare("CV_RGB2BGR565")==0) {
-        code = CV_RGB2BGR565;
-    } else if (codeStr.compare("CV_BGR5652BGR")==0) {
-        code = CV_BGR5652BGR;
-    } else if (codeStr.compare("CV_BGR5652RGB")==0) {
-        code = CV_BGR5652RGB;
-    } else if (codeStr.compare("CV_BGRA2BGR565")==0) {
-        code = CV_BGRA2BGR565;
-    } else if (codeStr.compare("CV_RGBA2BGR565")==0) {
-        code = CV_RGBA2BGR565;
-    } else if (codeStr.compare("CV_BGR5652BGRA")==0) {
-        code = CV_BGR5652BGRA;
-    } else if (codeStr.compare("CV_BGR5652RGBA")==0) {
-        code = CV_BGR5652RGBA;
-    } else if (codeStr.compare("CV_GRAY2BGR565")==0) {
-        code = CV_GRAY2BGR565;
-    } else if (codeStr.compare("CV_BGR5652GRAY")==0) {
-        code = CV_BGR5652GRAY;
-    } else if (codeStr.compare("CV_BGR2BGR555")==0) {
-        code = CV_BGR2BGR555;
-    } else if (codeStr.compare("CV_RGB2BGR555")==0) {
-        code = CV_RGB2BGR555;
-    } else if (codeStr.compare("CV_BGR5552BGR")==0) {
-        code = CV_BGR5552BGR;
-    } else if (codeStr.compare("CV_BGR5552RGB")==0) {
-        code = CV_BGR5552RGB;
-    } else if (codeStr.compare("CV_BGRA2BGR555")==0) {
-        code = CV_BGRA2BGR555;
-    } else if (codeStr.compare("CV_RGBA2BGR555")==0) {
-        code = CV_RGBA2BGR555;
-    } else if (codeStr.compare("CV_BGR5552BGRA")==0) {
-        code = CV_BGR5552BGRA;
-    } else if (codeStr.compare("CV_BGR5552RGBA")==0) {
-        code = CV_BGR5552RGBA;
-    } else if (codeStr.compare("CV_GRAY2BGR555")==0) {
-        code = CV_GRAY2BGR555;
-    } else if (codeStr.compare("CV_BGR5552GRAY")==0) {
-        code = CV_BGR5552GRAY;
-    } else if (codeStr.compare("CV_BGR2XYZ")==0) {
-        code = CV_BGR2XYZ;
-    } else if (codeStr.compare("CV_RGB2XYZ")==0) {
-        code = CV_RGB2XYZ;
-    } else if (codeStr.compare("CV_XYZ2BGR")==0) {
-        code = CV_XYZ2BGR;
-    } else if (codeStr.compare("CV_XYZ2RGB")==0) {
-        code = CV_XYZ2RGB;
-    } else if (codeStr.compare("CV_BGR2YCrCb")==0) {
-        code = CV_BGR2YCrCb;
-    } else if (codeStr.compare("CV_RGB2YCrCb")==0) {
-        code = CV_RGB2YCrCb;
-    } else if (codeStr.compare("CV_YCrCb2BGR")==0) {
-        code = CV_YCrCb2BGR;
-    } else if (codeStr.compare("CV_YCrCb2RGB")==0) {
-        code = CV_YCrCb2RGB;
-    } else if (codeStr.compare("CV_BGR2HSV")==0) {
-        code = CV_BGR2HSV;
-    } else if (codeStr.compare("CV_RGB2HSV")==0) {
-        code = CV_RGB2HSV;
-    } else if (codeStr.compare("CV_BGR2Lab")==0) {
-        code = CV_BGR2Lab;
-    } else if (codeStr.compare("CV_RGB2Lab")==0) {
-        code = CV_RGB2Lab;
-    } else if (codeStr.compare("CV_BayerBG2BGR")==0) {
-        code = CV_BayerBG2BGR;
-    } else if (codeStr.compare("CV_BayerGB2BGR")==0) {
-        code = CV_BayerGB2BGR;
-    } else if (codeStr.compare("CV_BayerRG2BGR")==0) {
-        code = CV_BayerRG2BGR;
-    } else if (codeStr.compare("CV_BayerGR2BGR")==0) {
-        code = CV_BayerGR2BGR;
-    } else if (codeStr.compare("CV_BayerBG2RGB")==0) {
-        code = CV_BayerBG2RGB;
-    } else if (codeStr.compare("CV_BayerGB2RGB")==0) {
-        code = CV_BayerGB2RGB;
-    } else if (codeStr.compare("CV_BayerRG2RGB")==0) {
-        code = CV_BayerRG2RGB;
-    } else if (codeStr.compare("CV_BayerGR2RGB")==0) {
-        code = CV_BayerGR2RGB;
-    } else if (codeStr.compare("CV_BGR2Luv")==0) {
-        code = CV_BGR2Luv;
-    } else if (codeStr.compare("CV_RGB2Luv")==0) {
-        code = CV_RGB2Luv;
-    } else if (codeStr.compare("CV_BGR2HLS")==0) {
-        code = CV_BGR2HLS;
-    } else if (codeStr.compare("CV_RGB2HLS")==0) {
-        code = CV_RGB2HLS;
-    } else if (codeStr.compare("CV_HSV2BGR")==0) {
-        code = CV_HSV2BGR;
-    } else if (codeStr.compare("CV_HSV2RGB")==0) {
-        code = CV_HSV2RGB;
-    } else if (codeStr.compare("CV_Lab2BGR")==0) {
-        code = CV_Lab2BGR;
-    } else if (codeStr.compare("CV_Lab2RGB")==0) {
-        code = CV_Lab2RGB;
-    } else if (codeStr.compare("CV_Luv2BGR")==0) {
-        code = CV_Luv2BGR;
-    } else if (codeStr.compare("CV_Luv2RGB")==0) {
-        code = CV_Luv2RGB;
-    } else if (codeStr.compare("CV_HLS2BGR")==0) {
-        code = CV_HLS2BGR;
-    } else if (codeStr.compare("CV_HLS2RGB")==0) {
-        code = CV_HLS2RGB;
-    } else if (codeStr.compare("CV_BayerBG2BGR_VNG")==0) {
-        code = CV_BayerBG2BGR_VNG;
-    } else if (codeStr.compare("CV_BayerGB2BGR_VNG")==0) {
-        code = CV_BayerGB2BGR_VNG;
-    } else if (codeStr.compare("CV_BayerRG2BGR_VNG")==0) {
-        code = CV_BayerRG2BGR_VNG;
-    } else if (codeStr.compare("CV_BayerGR2BGR_VNG")==0) {
-        code = CV_BayerGR2BGR_VNG;
-    } else if (codeStr.compare("CV_BayerBG2RGB_VNG")==0) {
-        code = CV_BayerBG2RGB_VNG;
-    } else if (codeStr.compare("CV_BayerGB2RGB_VNG")==0) {
-        code = CV_BayerGB2RGB_VNG;
-    } else if (codeStr.compare("CV_BayerRG2RGB_VNG")==0) {
-        code = CV_BayerRG2RGB_VNG;
-    } else if (codeStr.compare("CV_BayerGR2RGB_VNG")==0) {
-        code = CV_BayerGR2RGB_VNG;
-    } else if (codeStr.compare("CV_BGR2HSV_FULL")==0) {
-        code = CV_BGR2HSV_FULL;
-    } else if (codeStr.compare("CV_RGB2HSV_FULL")==0) {
-        code = CV_RGB2HSV_FULL;
-    } else if (codeStr.compare("CV_BGR2HLS_FULL")==0) {
-        code = CV_BGR2HLS_FULL;
-    } else if (codeStr.compare("CV_RGB2HLS_FULL")==0) {
-        code = CV_RGB2HLS_FULL;
-    } else if (codeStr.compare("CV_HSV2BGR_FULL")==0) {
-        code = CV_HSV2BGR_FULL;
-    } else if (codeStr.compare("CV_HSV2RGB_FULL")==0) {
-        code = CV_HSV2RGB_FULL;
-    } else if (codeStr.compare("CV_HLS2BGR_FULL")==0) {
-        code = CV_HLS2BGR_FULL;
-    } else if (codeStr.compare("CV_HLS2RGB_FULL")==0) {
-        code = CV_HLS2RGB_FULL;
-    } else if (codeStr.compare("CV_LBGR2Lab")==0) {
-        code = CV_LBGR2Lab;
-    } else if (codeStr.compare("CV_LRGB2Lab")==0) {
-        code = CV_LRGB2Lab;
-    } else if (codeStr.compare("CV_LBGR2Luv")==0) {
-        code = CV_LBGR2Luv;
-    } else if (codeStr.compare("CV_LRGB2Luv")==0) {
-        code = CV_LRGB2Luv;
-    } else if (codeStr.compare("CV_Lab2LBGR")==0) {
-        code = CV_Lab2LBGR;
-    } else if (codeStr.compare("CV_Lab2LRGB")==0) {
-        code = CV_Lab2LRGB;
-    } else if (codeStr.compare("CV_Luv2LBGR")==0) {
-        code = CV_Luv2LBGR;
-    } else if (codeStr.compare("CV_Luv2LRGB")==0) {
-        code = CV_Luv2LRGB;
-    } else if (codeStr.compare("CV_BGR2YUV")==0) {
-        code = CV_BGR2YUV;
-    } else if (codeStr.compare("CV_RGB2YUV")==0) {
-        code = CV_RGB2YUV;
-    } else if (codeStr.compare("CV_YUV2BGR")==0) {
-        code = CV_YUV2BGR;
-    } else if (codeStr.compare("CV_YUV2RGB")==0) {
-        code = CV_YUV2RGB;
-    } else if (codeStr.compare("CV_BayerBG2GRAY")==0) {
-        code = CV_BayerBG2GRAY;
-    } else if (codeStr.compare("CV_BayerGB2GRAY")==0) {
-        code = CV_BayerGB2GRAY;
-    } else if (codeStr.compare("CV_BayerRG2GRAY")==0) {
-        code = CV_BayerRG2GRAY;
-    } else if (codeStr.compare("CV_BayerGR2GRAY")==0) {
-        code = CV_BayerGR2GRAY;
-#ifdef CV_YUV420i2RGB
-    } else if (codeStr.compare("CV_YUV420i2RGB")==0) {
-        code = CV_YUV420i2RGB;
-    } else if (codeStr.compare("CV_YUV420i2BGR")==0) {
-        code = CV_YUV420i2BGR;
-#endif
-    } else if (codeStr.compare("CV_YUV420sp2RGB")==0) {
-        code = CV_YUV420sp2RGB;
-    } else if (codeStr.compare("CV_YUV420sp2BGR")==0) {
-        code = CV_YUV420sp2BGR;
-    } else {
-        errMsg = "Unknown cvtColor conversion code";
-    }
-    if (dstCn < 0) {
-        errMsg = "expected 0<dstCn";
-    }
-
-    if (!errMsg) {
-        cvtColor(model.image, model.image, code, dstCn);
-    }
-
-    return stageOK("apply_cvtColor(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model) {
 
     char *errMsg = NULL;
@@ -1706,20 +1467,15 @@ bool Pipeline::processStage(int index, json_t * pStage, Model &model) {
         LOGDEBUG1("%s", debugBuf);
         try {
             Stage * stage = nullptr;
-            const char *errMsg = nullptr;
-            try {
-                stage = StageFactory::getStage(pOp.c_str(), pStage, model);
-                if (stage) {
-                    ok = stage->apply(pStage, pStageModel, model);
-                    if (!ok)
-                        errMsg = "Pipeline stage failed";
-                } else {
-                    ok = false;
-                    errMsg = "unknown stage";
-                }
-            } catch (std::invalid_argument &e) {
+            const char *errMsg = NULL;
+            stage = StageFactory::getStage(pOp.c_str(), pStage, model);
+            if (stage) {
+                ok = stage->apply(pStage, pStageModel, model);
+                if (!ok)
+                    errMsg = "Pipeline stage failed";
+            } else {
                 ok = false;
-                errMsg = e.what();
+                errMsg = "unknown stage";
             }
 
             ok = logErrorMessage(errMsg, pName.c_str(), pStage, pStageModel);
@@ -1746,6 +1502,7 @@ bool Pipeline::processStage(int index, json_t * pStage, Model &model) {
 
 Stage *StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
 {
+    try {
 //    if (strcmp(pOp, "absdiff")==0)
 //        ok = apply_absdiff(pStage, pStageModel, model);
 //    if (strcmp(pOp, "backgroundSubtractor")==0)
@@ -1766,8 +1523,8 @@ Stage *StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
 //        ok = apply_cout(pStage, pStageModel, model);
 //    if (strcmp(pOp, "Canny")==0) {
 //        ok = apply_Canny(pStage, pStageModel, model);
-//    if (strcmp(pOp, "cvtColor")==0) {
-//        ok = apply_cvtColor(pStage, pStageModel, model);
+    if (strcmp(pOp, "cvtColor")==0)
+        return new CvtColor(pStage, model);
 //    if (strcmp(pOp, "dft")==0) {
 //        ok = apply_dft(pStage, pStageModel, model);
 //    if (strcmp(pOp, "dftSpectrum")==0) {
@@ -1851,6 +1608,15 @@ Stage *StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
 
 //    if (strncmp(pOp, "nop", 3)==0) {
 //        LOGDEBUG("Skipping nop...");
+
+    } catch (invalid_argument &e) {
+        string pName = jo_string(pStage, "name");
+        json_t *pStageModel = json_object();
+        json_t *jmodel = model.getJson(false);
+        json_object_set(jmodel, pName.c_str(), pStageModel);
+
+        logErrorMessage(e.what(), pName.c_str(), pStage, pStageModel);
+    }
 
     return nullptr;
 }

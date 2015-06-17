@@ -68,7 +68,7 @@ public:
 
         /* Border type */
         map<int, string> mapBorder;
-        mapBorder[cv::BORDER_DEFAULT]	= "Default";
+        mapBorder[BORDER_DEFAULT]	= "Default";
         //mapBorder[BORDER_CONSTANT]	= "Constant";
         //mapBorder[BORDER_REPLICATE] = "Replicate";
         mapBorder[BORDER_ISOLATED]	= "Isolated";
@@ -107,6 +107,7 @@ public:
 
     }
 
+private:
     bool apply_internal(json_t *pStage, json_t *pStageModel, Model &model)
     {
         const char *errMsg = NULL;

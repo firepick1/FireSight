@@ -24,6 +24,7 @@ public:
         path = jo_string(pStage, "path");
     }
 
+private:
     bool apply_internal(json_t *pStage, json_t *pStageModel, Model &model) {
         Pipeline::validateImage(model.image);
 
