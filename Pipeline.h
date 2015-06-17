@@ -231,7 +231,9 @@ namespace firesight {
 
     class IntParameter : public Parameter {
     public:
-        IntParameter(Stage * stage, int &value);
+        IntParameter(Stage * stage, int &value) :
+            Parameter(stage), value(value)
+        {}
     private:
         int &value;
     };
@@ -389,7 +391,6 @@ namespace firesight {
       bool apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_warpPerspective(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
 
-      const char * dispatch(const char *pName, const char *pOp, json_t *pStage, json_t *pStageModel, Model &model);
       void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
       void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);
       int parseCvType(const char *typeName, const char *&errMsg);

@@ -368,41 +368,6 @@ bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &mode
     return stageOK("apply_stageImage(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_imread(json_t *pStage, json_t *pStageModel, Model &model) {
-    string path = jo_string(pStage, "path", "", model.argMap);
-    const char *errMsg = NULL;
-
-    if (path.empty()) {
-        errMsg = "expected path for imread";
-    } else {
-        model.image = imread(path.c_str(), CV_LOAD_IMAGE_COLOR);
-        if (model.image.data) {
-            json_object_set(pStageModel, "rows", json_integer(model.image.rows));
-            json_object_set(pStageModel, "cols", json_integer(model.image.cols));
-        } else {
-            LOGERROR1("imread(%s) failed", path.c_str());
-            errMsg = "apply_imread() failed";
-        }
-    }
-
-    return stageOK("apply_imread(%s) %s", errMsg, pStage, pStageModel);
-}
-
-bool Pipeline::apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    string path = jo_string(pStage, "path");
-    const char *errMsg = NULL;
-
-    if (path.empty()) {
-        errMsg = "Expected path for imwrite";
-    } else {
-        bool result = imwrite(path.c_str(), model.image);
-        json_object_set(pStageModel, "result", json_boolean(result));
-    }
-
-    return stageOK("apply_imwrite(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
     string codeStr = jo_string(pStage, "code", "CV_BGR2GRAY", model.argMap);
@@ -1740,7 +1705,23 @@ bool Pipeline::processStage(int index, json_t * pStage, Model &model) {
     } else {
         LOGDEBUG1("%s", debugBuf);
         try {
-            const char *errMsg = dispatch(pName.c_str(), pOp.c_str(), pStage, pStageModel, model);
+            Stage * stage = nullptr;
+            const char *errMsg = nullptr;
+            try {
+                stage = StageFactory::getStage(pOp.c_str(), pStage, model);
+                if (stage) {
+                    ok = stage->apply(pStage, pStageModel, model);
+                    if (!ok)
+                        errMsg = "Pipeline stage failed";
+                } else {
+                    ok = false;
+                    errMsg = "unknown stage";
+                }
+            } catch (std::invalid_argument &e) {
+                ok = false;
+                errMsg = e.what();
+            }
+
             ok = logErrorMessage(errMsg, pName.c_str(), pStage, pStageModel);
             if (isSaveImage) {
                 model.imageMap[pName.c_str()] = model.image.clone();
@@ -1763,132 +1744,8 @@ bool Pipeline::processStage(int index, json_t * pStage, Model &model) {
     return ok;
 }
 
-const char * Pipeline::dispatch(const char *pName, const char *pOp, json_t *pStage, json_t *pStageModel, Model &model) {
-    bool ok = true;
-    const char *errMsg = NULL;
-
-    if (strcmp(pOp, "absdiff")==0) {
-        ok = apply_absdiff(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "backgroundSubtractor")==0) {
-        ok = apply_backgroundSubtractor(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "bgsub")==0) {
-        ok = apply_backgroundSubtractor(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "blur")==0) {
-        ok = apply_blur(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "calcHist")==0) {
-        ok = apply_calcHist(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "calcOffset")==0) {
-        ok = apply_calcOffset(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "circle")==0) {
-        ok = apply_circle(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "convertTo")==0) {
-        ok = apply_convertTo(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "cout")==0) {
-        ok = apply_cout(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "Canny")==0) {
-        ok = apply_Canny(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "cvtColor")==0) {
-        ok = apply_cvtColor(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "dft")==0) {
-        ok = apply_dft(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "dftSpectrum")==0) {
-        ok = apply_dftSpectrum(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "dilate")==0) {
-        ok = apply_dilate(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "drawKeypoints")==0) {
-        ok = apply_drawKeypoints(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "drawRects")==0) {
-        ok = apply_drawRects(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "equalizeHist")==0) {
-        ok = apply_equalizeHist(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "erode")==0) {
-        ok = apply_erode(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "FireSight")==0) {
-        ok = apply_FireSight(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "HoleRecognizer")==0) {
-        ok = apply_HoleRecognizer(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "HoughCircles")==0) {
-        ok = apply_HoughCircles(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "points2resolution_RANSAC")==0) {
-        ok = apply_points2resolution_RANSAC(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "imread")==0) {
-        ok = apply_imread(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "imwrite")==0) {
-        ok = apply_imwrite(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "Mat")==0) {
-        ok = apply_Mat(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "matchGrid")==0) {
-        ok = apply_matchGrid(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "matchTemplate")==0) {
-        ok = apply_matchTemplate(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "meanStdDev")==0) {
-        ok = apply_meanStdDev(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "minAreaRect")==0) {
-        ok = apply_minAreaRect(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "model")==0) {
-        ok = apply_model(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "morph")==0) {
-        ok = apply_morph(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "MSER")==0) {
-        ok = apply_MSER(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "normalize")==0) {
-        ok = apply_normalize(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "PSNR")==0) {
-        ok = apply_PSNR(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "proto")==0) {
-        ok = apply_proto(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "putText")==0) {
-        ok = apply_putText(pStage, pStageModel, model);
-#ifdef LGPL2_1
-    } else if (strcmp(pOp, "qrDecode")==0) {
-        ok = apply_qrdecode(pStage, pStageModel, model);
-#endif // LGPL2_1
-    } else if (strcmp(pOp, "rectangle")==0) {
-        ok = apply_rectangle(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "resize")==0) {
-        ok = apply_resize(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "sharpness")==0) {
-        ok = apply_sharpness(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "detectParts")==0) {
-        ok = apply_detectParts(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "SimpleBlobDetector")==0) {
-        ok = apply_SimpleBlobDetector(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "split")==0) {
-        ok = apply_split(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "stageImage")==0) {
-        ok = apply_stageImage(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "transparent")==0) {
-        ok = apply_transparent(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "threshold")==0) {
-        ok = apply_threshold(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "undistort")==0) {
-        ok = apply_undistort(pName, pStage, pStageModel, model);
-    } else if (strcmp(pOp, "warpAffine")==0) {
-        ok = apply_warpAffine(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "warpRing")==0) {
-        ok = apply_warpRing(pStage, pStageModel, model);
-    } else if (strcmp(pOp, "warpPerspective")==0) {
-        ok = apply_warpPerspective(pName, pStage, pStageModel, model);
-
-    } else if (strncmp(pOp, "nop", 3)==0) {
-        LOGDEBUG("Skipping nop...");
-    } else {
-        errMsg = "unknown op";
-    }
-
-    if (!ok) {
-        errMsg = "Pipeline stage failed";
-    }
-
-    return errMsg;
-}
-
-
 Stage *StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
 {
-    bool ok = true;
-    const char *errMsg = NULL;
-
 //    if (strcmp(pOp, "absdiff")==0)
 //        ok = apply_absdiff(pStage, pStageModel, model);
 //    if (strcmp(pOp, "backgroundSubtractor")==0)
@@ -1933,10 +1790,10 @@ Stage *StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
 //        ok = apply_HoughCircles(pStage, pStageModel, model);
 //    if (strcmp(pOp, "points2resolution_RANSAC")==0) {
 //        ok = apply_points2resolution_RANSAC(pStage, pStageModel, model);
-//    if (strcmp(pOp, "imread")==0) {
-//        ok = apply_imread(pStage, pStageModel, model);
-//    if (strcmp(pOp, "imwrite")==0) {
-//        ok = apply_imwrite(pStage, pStageModel, model);
+    if (strcmp(pOp, "imread")==0)
+        return new ImRead(pStage, model);
+    if (strcmp(pOp, "imwrite")==0)
+        return new ImWrite(pStage, model);
 //    if (strcmp(pOp, "Mat")==0) {
 //        ok = apply_Mat(pStage, pStageModel, model);
 //    if (strcmp(pOp, "matchGrid")==0) {
@@ -1995,6 +1852,5 @@ Stage *StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
 //    if (strncmp(pOp, "nop", 3)==0) {
 //        LOGDEBUG("Skipping nop...");
 
-
-    errMsg = "unknown op";
+    return nullptr;
 }
