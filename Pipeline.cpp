@@ -16,6 +16,8 @@
 #include "stages/PartDetector.h"
 #include "gui.h"
 
+#include "stages.h"
+
 using namespace cv;
 using namespace std;
 using namespace firesight;
@@ -1879,4 +1881,120 @@ const char * Pipeline::dispatch(const char *pName, const char *pOp, json_t *pSta
     }
 
     return errMsg;
+}
+
+
+Stage *StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
+{
+    bool ok = true;
+    const char *errMsg = NULL;
+
+//    if (strcmp(pOp, "absdiff")==0)
+//        ok = apply_absdiff(pStage, pStageModel, model);
+//    if (strcmp(pOp, "backgroundSubtractor")==0)
+//        ok = apply_backgroundSubtractor(pStage, pStageModel, model);
+//    if (strcmp(pOp, "bgsub")==0)
+//        ok = apply_backgroundSubtractor(pStage, pStageModel, model);
+    if (strcmp(pOp, "blur")==0)
+        return new Blur(pStage, model);
+//    if (strcmp(pOp, "calcHist")==0)
+//        ok = apply_calcHist(pStage, pStageModel, model);
+//    if (strcmp(pOp, "calcOffset")==0)
+//        ok = apply_calcOffset(pStage, pStageModel, model);
+//    if (strcmp(pOp, "circle")==0)
+//        ok = apply_circle(pStage, pStageModel, model);
+//    if (strcmp(pOp, "convertTo")==0)
+//        ok = apply_convertTo(pStage, pStageModel, model);
+//    if (strcmp(pOp, "cout")==0)
+//        ok = apply_cout(pStage, pStageModel, model);
+//    if (strcmp(pOp, "Canny")==0) {
+//        ok = apply_Canny(pStage, pStageModel, model);
+//    if (strcmp(pOp, "cvtColor")==0) {
+//        ok = apply_cvtColor(pStage, pStageModel, model);
+//    if (strcmp(pOp, "dft")==0) {
+//        ok = apply_dft(pStage, pStageModel, model);
+//    if (strcmp(pOp, "dftSpectrum")==0) {
+//        ok = apply_dftSpectrum(pStage, pStageModel, model);
+//    if (strcmp(pOp, "dilate")==0) {
+//        ok = apply_dilate(pStage, pStageModel, model);
+//    if (strcmp(pOp, "drawKeypoints")==0) {
+//        ok = apply_drawKeypoints(pStage, pStageModel, model);
+//    if (strcmp(pOp, "drawRects")==0) {
+//        ok = apply_drawRects(pStage, pStageModel, model);
+//    if (strcmp(pOp, "equalizeHist")==0) {
+//        ok = apply_equalizeHist(pStage, pStageModel, model);
+//    if (strcmp(pOp, "erode")==0) {
+//        ok = apply_erode(pStage, pStageModel, model);
+//    if (strcmp(pOp, "FireSight")==0) {
+//        ok = apply_FireSight(pStage, pStageModel, model);
+//    if (strcmp(pOp, "HoleRecognizer")==0) {
+//        ok = apply_HoleRecognizer(pStage, pStageModel, model);
+//    if (strcmp(pOp, "HoughCircles")==0) {
+//        ok = apply_HoughCircles(pStage, pStageModel, model);
+//    if (strcmp(pOp, "points2resolution_RANSAC")==0) {
+//        ok = apply_points2resolution_RANSAC(pStage, pStageModel, model);
+//    if (strcmp(pOp, "imread")==0) {
+//        ok = apply_imread(pStage, pStageModel, model);
+//    if (strcmp(pOp, "imwrite")==0) {
+//        ok = apply_imwrite(pStage, pStageModel, model);
+//    if (strcmp(pOp, "Mat")==0) {
+//        ok = apply_Mat(pStage, pStageModel, model);
+//    if (strcmp(pOp, "matchGrid")==0) {
+//        ok = apply_matchGrid(pStage, pStageModel, model);
+//    if (strcmp(pOp, "matchTemplate")==0) {
+//        ok = apply_matchTemplate(pStage, pStageModel, model);
+//    if (strcmp(pOp, "meanStdDev")==0) {
+//        ok = apply_meanStdDev(pStage, pStageModel, model);
+//    if (strcmp(pOp, "minAreaRect")==0) {
+//        ok = apply_minAreaRect(pStage, pStageModel, model);
+//    if (strcmp(pOp, "model")==0) {
+//        ok = apply_model(pStage, pStageModel, model);
+//    if (strcmp(pOp, "morph")==0) {
+//        ok = apply_morph(pStage, pStageModel, model);
+//    if (strcmp(pOp, "MSER")==0) {
+//        ok = apply_MSER(pStage, pStageModel, model);
+//    if (strcmp(pOp, "normalize")==0) {
+//        ok = apply_normalize(pStage, pStageModel, model);
+//    if (strcmp(pOp, "PSNR")==0) {
+//        ok = apply_PSNR(pStage, pStageModel, model);
+//    if (strcmp(pOp, "proto")==0) {
+//        ok = apply_proto(pStage, pStageModel, model);
+//    if (strcmp(pOp, "putText")==0) {
+//        ok = apply_putText(pStage, pStageModel, model);
+//#ifdef LGPL2_1
+//    if (strcmp(pOp, "qrDecode")==0) {
+//        ok = apply_qrdecode(pStage, pStageModel, model);
+//#endif // LGPL2_1
+//    if (strcmp(pOp, "rectangle")==0) {
+//        ok = apply_rectangle(pStage, pStageModel, model);
+//    if (strcmp(pOp, "resize")==0) {
+//        ok = apply_resize(pStage, pStageModel, model);
+//    if (strcmp(pOp, "sharpness")==0) {
+//        ok = apply_sharpness(pStage, pStageModel, model);
+//    if (strcmp(pOp, "detectParts")==0) {
+//        ok = apply_detectParts(pStage, pStageModel, model);
+//    if (strcmp(pOp, "SimpleBlobDetector")==0) {
+//        ok = apply_SimpleBlobDetector(pStage, pStageModel, model);
+//    if (strcmp(pOp, "split")==0) {
+//        ok = apply_split(pStage, pStageModel, model);
+//    if (strcmp(pOp, "stageImage")==0) {
+//        ok = apply_stageImage(pStage, pStageModel, model);
+//    if (strcmp(pOp, "transparent")==0) {
+//        ok = apply_transparent(pStage, pStageModel, model);
+//    if (strcmp(pOp, "threshold")==0) {
+//        ok = apply_threshold(pStage, pStageModel, model);
+//    if (strcmp(pOp, "undistort")==0) {
+//        ok = apply_undistort(pName, pStage, pStageModel, model);
+//    if (strcmp(pOp, "warpAffine")==0) {
+//        ok = apply_warpAffine(pStage, pStageModel, model);
+//    if (strcmp(pOp, "warpRing")==0) {
+//        ok = apply_warpRing(pStage, pStageModel, model);
+//    if (strcmp(pOp, "warpPerspective")==0) {
+//        ok = apply_warpPerspective(pName, pStage, pStageModel, model);
+
+//    if (strncmp(pOp, "nop", 3)==0) {
+//        LOGDEBUG("Skipping nop...");
+
+
+    errMsg = "unknown op";
 }

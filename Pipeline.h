@@ -272,6 +272,15 @@ namespace firesight {
         Size &value;
     };
 
+    class PointParameter : public Parameter {
+    public:
+        PointParameter(Stage * stage, Point &value) :
+            Parameter(stage), value(value)
+        {}
+    private:
+        Point &value;
+    };
+
     class EnumParameter : public Parameter {
     public:
         EnumParameter(Stage * stage, int &v, map<int, string> m) :
@@ -284,16 +293,34 @@ namespace firesight {
     };
 
 
-
-
-
     class Stage {
     public:
-        virtual bool apply(json_t *pStage, json_t *pStageModel, Model &model) = 0;
+        bool apply(json_t *pStage, json_t *pStageModel, Model &model) {
+            bool result;
+
+            //timer.start();
+
+            result = apply_internal(pStage, pStageModel, model);
+
+            //time = timer.nsecsElapsed();
+
+            return result;
+        }
+
+        virtual bool apply_internal(json_t *pStage, json_t *pStageModel, Model &model) = 0;
+
         static bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
+
+        map<string, Parameter*> getParams() const;
+        void setParameter(string name, Parameter * value);
 
     protected:
         map<string, Parameter*> _params;
+    };
+
+    class StageFactory {
+    public:
+        static Stage *getStage(const char *pOp, json_t *pStage, Model &model);
     };
 
   typedef class CLASS_DECLSPEC Pipeline {

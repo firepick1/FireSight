@@ -1226,19 +1226,19 @@ typedef struct GridMatcher {
         json_object_set(pCalibrate, "matched", json_integer(subImgSet.size()));
         json_object_set(pCalibrate, "images", json_real(vImagePts.size()));
         json_object_set(pCalibrate, "rmserror", 
-			isnan(rmserror) ? json_string("NaN") : json_real(rmserror));
+            std::isnan(rmserror) ? json_string("NaN") : json_real(rmserror));
 		json_t * jgridnessIn = json_array();
         json_object_set(pCalibrate, "gridnessIn", jgridnessIn);
 		json_array_append(jgridnessIn, 
-			isnan(gridnessIn.x) ? json_string("NaN") : json_real(gridnessIn.x));
+            std::isnan(gridnessIn.x) ? json_string("NaN") : json_real(gridnessIn.x));
 		json_array_append(jgridnessIn, 
-			isnan(gridnessIn.y) ? json_string("NaN") : json_real(gridnessIn.y));
+            std::isnan(gridnessIn.y) ? json_string("NaN") : json_real(gridnessIn.y));
 		json_t * jgridnessOut = json_array();
         json_object_set(pCalibrate, "gridnessOut", jgridnessOut);
 		json_array_append(jgridnessOut, 
-			isnan(gridnessOut.x) ? json_string("NaN") : json_real(gridnessOut.x));
+            std::isnan(gridnessOut.x) ? json_string("NaN") : json_real(gridnessOut.x));
 		json_array_append(jgridnessOut, 
-			isnan(gridnessOut.y) ? json_string("NaN") : json_real(gridnessOut.y));
+            std::isnan(gridnessOut.y) ? json_string("NaN") : json_real(gridnessOut.y));
 #ifdef RVECS_TVECS
         json_t *pRvecs = json_array();
         json_object_set(pCalibrate, "rvecs", pRvecs);
