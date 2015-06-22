@@ -26,7 +26,7 @@ struct PipelineViewer {
         destroyWindow("pipeline");
     }
 
-    void update(const vector<Mat>& images) {
+    void update(vector<unique_ptr<Stage> >& stages, const vector<Mat>& images) {
         if (images.size() == 0)
             return;
 

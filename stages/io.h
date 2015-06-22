@@ -20,12 +20,14 @@ using namespace cv;
 class ImWrite : public Stage
 {
 public:
-    ImWrite(json_t *pStage, Model &model) {
+    ImWrite(json_t *pStage, Model &model) : Stage(pStage) {
         path = jo_string(pStage, "path");
     }
 
+    string getName() const { return "ImWrite"; }
+
 private:
-    bool apply_internal(json_t *pStage, json_t *pStageModel, Model &model) {
+    bool apply_internal(json_t *pStageModel, Model &model) {
         Pipeline::validateImage(model.image);
 
         const char *errMsg = NULL;
@@ -47,11 +49,13 @@ protected:
 class ImRead : public Stage
 {
 public:
-    ImRead(json_t *pStage, Model &model) {
+    ImRead(json_t *pStage, Model &model) : Stage(pStage) {
         path = jo_string(pStage, "path", "", model.argMap);
     }
 
-    bool apply_internal(json_t *pStage, json_t *pStageModel, Model &model) {
+    string getName() const { return "ImRead"; }
+
+    bool apply_internal(json_t *pStageModel, Model &model) {
         const char *errMsg = NULL;
 
         if (path.empty()) {

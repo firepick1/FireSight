@@ -51,6 +51,7 @@ bool Stage::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t 
     return true;
 }
 
+// TODO remove call to Pipeline::stageOK
 bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
     return Stage::stageOK(fmt, errMsg, pStage, pStageModel);
 }
@@ -609,25 +610,6 @@ bool Pipeline::apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &mo
     return stageOK("apply_equalizeHist(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_blur(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    const char *errMsg = NULL;
-    int width = jo_int(pStage, "ksize.width", 3, model.argMap);
-    int height = jo_int(pStage, "ksize.height", 3, model.argMap);
-    int anchorx = jo_int(pStage, "anchor.x", -1, model.argMap);
-    int anchory = jo_int(pStage, "anchor.y", -1, model.argMap);
-
-    if (width <= 0 || height <= 0) {
-        errMsg = "expected 0<width and 0<height";
-    }
-
-    if (!errMsg) {
-        blur(model.image, model.image, Size(width,height));
-    }
-
-    return stageOK("apply_blur(%s) %s", errMsg, pStage, pStageModel);
-}
-
 static void modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &keyPoints) {
     json_t *pKeyPoints = json_array();
     json_object_set(pStageModel, "keypoints", pKeyPoints);
@@ -1075,21 +1057,6 @@ bool Pipeline::apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model) {
     return stageOK("apply_PSNR(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_Canny(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    float threshold1 = jo_float(pStage, "threshold1", 0, model.argMap);
-    float threshold2 = jo_float(pStage, "threshold2", 50, model.argMap);
-    int apertureSize = jo_int(pStage, "apertureSize", 3, model.argMap);
-    bool L2gradient = jo_bool(pStage, "L2gradient", false);
-    const char *errMsg = NULL;
-
-    if (!errMsg) {
-        Canny(model.image, model.image, threshold1, threshold2, apertureSize, L2gradient);
-    }
-
-    return stageOK("apply_Canny(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_absdiff(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
     string img2_path = jo_string(pStage, "path", "", model.argMap);
@@ -1391,7 +1358,24 @@ bool Pipeline::processModel(Model &model) {
     long long tickStart = cvGetTickCount();
 
     for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); index++) {
-        if (!processStage(index, pStage, model))
+        unique_ptr<Stage> stage = parseStage(index, pStage, model);
+
+        string pName = jo_string(pStage, "name");
+        bool isSaveImage = true;
+        if (pName.empty()) {
+            char defaultName[100];
+            snprintf(defaultName, sizeof(defaultName), "s%d", (int)index+1);
+            pName = defaultName;
+            isSaveImage = false;
+        }
+
+        json_t *pStageModel = json_object();
+        json_t *jmodel = model.getJson(false);
+        json_object_set(jmodel, pName.c_str(), pStageModel);
+
+        ok = stage->apply(pStageModel, model);
+
+        if (!ok)
             break;
     } // json_array_foreach
 
@@ -1415,31 +1399,47 @@ bool Pipeline::processModelGUI(Model &model) {
     bool ok = 1;
     size_t index;
     json_t *pStage;
-    long long tickStart = cvGetTickCount();
 
-    vector<Mat> history;
-    history.push_back(model.image.clone());
-    for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); index++) {
-        if (!processStage(index, pStage, model))
-            break;
+    vector<unique_ptr<Stage> > stages;
 
+
+    for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); index++)
+        stages.push_back(parseStage(index, pStage, model));
+
+    int key = 0;
+    do {
+        vector<Mat> history;
         history.push_back(model.image.clone());
-    } // json_array_foreach
 
-    while (cv::waitKey(1) != 27)
-        pv.update(history);
+        for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); index++) {
+            json_t *pStageModel = json_object();
+            json_t *jmodel = model.getJson(false);
+            json_object_set(jmodel, stages[index]->getName().c_str(), pStageModel);
 
+            ok = stages[index]->apply(pStageModel, model);
 
-    float msElapsed = (cvGetTickCount() - tickStart)/cvGetTickFrequency()/1000;
-    LOGDEBUG3("Pipeline::processModel(stages:%d) -> %s %.1fms",
-              (int)json_array_size(pPipeline), matInfo(model.image).c_str(), msElapsed);
+            stages[index]->print();
+
+            if (!ok)
+                break;
+
+            history.push_back(model.image.clone());
+        } // json_array_foreach
+
+        key = cv::waitKey(1);
+
+        pv.update(stages, history);
+
+    } while (key != 27);
+
 
     return ok;
 }
 
-bool Pipeline::processStage(int index, json_t * pStage, Model &model) {
+unique_ptr<Stage> Pipeline::parseStage(int index, json_t * pStage, Model &model) {
     bool ok = 1;
     char debugBuf[255];
+    unique_ptr<Stage> stage = nullptr;
     string pOp = jo_string(pStage, "op", "", model.argMap);
     string pName = jo_string(pStage, "name");
     bool isSaveImage = true;
@@ -1466,21 +1466,13 @@ bool Pipeline::processStage(int index, json_t * pStage, Model &model) {
     } else {
         LOGDEBUG1("%s", debugBuf);
         try {
-            Stage * stage = nullptr;
-            const char *errMsg = NULL;
             stage = StageFactory::getStage(pOp.c_str(), pStage, model);
-            if (stage) {
-                ok = stage->apply(pStage, pStageModel, model);
-                if (!ok)
-                    errMsg = "Pipeline stage failed";
-            } else {
-                ok = false;
-                errMsg = "unknown stage";
-            }
+            if (!stage) {
 
-            ok = logErrorMessage(errMsg, pName.c_str(), pStage, pStageModel);
-            if (isSaveImage) {
-                model.imageMap[pName.c_str()] = model.image.clone();
+                const char *errMsg = "Failed to parse stage";
+
+                ok = logErrorMessage(errMsg, pName.c_str(), pStage, pStageModel);
+
             }
         } catch (runtime_error &ex) {
             ok = logErrorMessage(ex.what(), pName.c_str(), pStage, pStageModel);
@@ -1488,20 +1480,78 @@ bool Pipeline::processStage(int index, json_t * pStage, Model &model) {
             ok = logErrorMessage(ex.what(), pName.c_str(), pStage, pStageModel);
         }
     } //if-else (pOp)
-    if (!ok) {
-        LOGERROR("cancelled pipeline execution");
-        return false;
-    }
-    if (model.image.cols <=0 || model.image.rows<=0) {
-        LOGERROR2("Empty working image: %dr x %dc", model.image.rows, model.image.cols);
-        return false;
-    }
 
-    return ok;
+    return stage;
+
 }
 
-Stage *StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
+//bool Pipeline::processStage(int index, json_t * pStage, Model &model) {
+//    bool ok = 1;
+//    char debugBuf[255];
+//    string pOp = jo_string(pStage, "op", "", model.argMap);
+//    string pName = jo_string(pStage, "name");
+//    bool isSaveImage = true;
+//    if (pName.empty()) {
+//        char defaultName[100];
+//        snprintf(defaultName, sizeof(defaultName), "s%d", (int)index+1);
+//        pName = defaultName;
+//        isSaveImage = false;
+//    }
+//    string comment = jo_string(pStage, "comment", "", model.argMap);
+//    json_t *pStageModel = json_object();
+//    json_t *jmodel = model.getJson(false);
+//    json_object_set(jmodel, pName.c_str(), pStageModel);
+//    if (logLevel >= FIRELOG_DEBUG) {
+//        string stageDump = jo_object_dump(pStage, model.argMap);
+//        snprintf(debugBuf,sizeof(debugBuf), "process() %s %s",
+//                 matInfo(model.image).c_str(), stageDump.c_str());
+//    }
+//    if (strncmp(pOp.c_str(), "nop", 3)==0) {
+//        LOGDEBUG1("%s (NO ACTION TAKEN)", debugBuf);
+//    } else if (pName.compare("input")==0) {
+//        ok = logErrorMessage("\"input\" is the reserved stage name for the input image",
+//                             pName.c_str(), pStage, pStageModel);
+//    } else {
+//        LOGDEBUG1("%s", debugBuf);
+//        try {
+//            Stage * stage = nullptr;
+//            const char *errMsg = NULL;
+//            stage = StageFactory::getStage(pOp.c_str(), pStage, model);
+//            if (stage) {
+//                ok = stage->apply(pStage, pStageModel, model);
+//                if (!ok)
+//                    errMsg = "Pipeline stage failed";
+//            } else {
+//                ok = false;
+//                errMsg = "unknown stage";
+//            }
+
+//            ok = logErrorMessage(errMsg, pName.c_str(), pStage, pStageModel);
+//            if (isSaveImage) {
+//                model.imageMap[pName.c_str()] = model.image.clone();
+//            }
+//        } catch (runtime_error &ex) {
+//            ok = logErrorMessage(ex.what(), pName.c_str(), pStage, pStageModel);
+//        } catch (cv::Exception &ex) {
+//            ok = logErrorMessage(ex.what(), pName.c_str(), pStage, pStageModel);
+//        }
+//    } //if-else (pOp)
+//    if (!ok) {
+//        LOGERROR("cancelled pipeline execution");
+//        return false;
+//    }
+//    if (model.image.cols <=0 || model.image.rows<=0) {
+//        LOGERROR2("Empty working image: %dr x %dc", model.image.rows, model.image.cols);
+//        return false;
+//    }
+
+//    return ok;
+//}
+
+std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
 {
+    static int id = 0;
+    unique_ptr<Stage> stage = nullptr;
     try {
 //    if (strcmp(pOp, "absdiff")==0)
 //        ok = apply_absdiff(pStage, pStageModel, model);
@@ -1510,7 +1560,7 @@ Stage *StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
 //    if (strcmp(pOp, "bgsub")==0)
 //        ok = apply_backgroundSubtractor(pStage, pStageModel, model);
     if (strcmp(pOp, "blur")==0)
-        return new Blur(pStage, model);
+        stage = unique_ptr<Stage>(new Blur(pStage, model));
 //    if (strcmp(pOp, "calcHist")==0)
 //        ok = apply_calcHist(pStage, pStageModel, model);
 //    if (strcmp(pOp, "calcOffset")==0)
@@ -1521,10 +1571,10 @@ Stage *StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
 //        ok = apply_convertTo(pStage, pStageModel, model);
 //    if (strcmp(pOp, "cout")==0)
 //        ok = apply_cout(pStage, pStageModel, model);
-//    if (strcmp(pOp, "Canny")==0) {
-//        ok = apply_Canny(pStage, pStageModel, model);
+    if (strcmp(pOp, "Canny")==0)
+        stage = unique_ptr<Stage>(new Canny(pStage, model));
     if (strcmp(pOp, "cvtColor")==0)
-        return new CvtColor(pStage, model);
+        stage = unique_ptr<Stage>(new CvtColor(pStage, model));
 //    if (strcmp(pOp, "dft")==0) {
 //        ok = apply_dft(pStage, pStageModel, model);
 //    if (strcmp(pOp, "dftSpectrum")==0) {
@@ -1548,9 +1598,9 @@ Stage *StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
 //    if (strcmp(pOp, "points2resolution_RANSAC")==0) {
 //        ok = apply_points2resolution_RANSAC(pStage, pStageModel, model);
     if (strcmp(pOp, "imread")==0)
-        return new ImRead(pStage, model);
+        stage = unique_ptr<Stage>(new ImRead(pStage, model));
     if (strcmp(pOp, "imwrite")==0)
-        return new ImWrite(pStage, model);
+        stage = unique_ptr<Stage>(new ImWrite(pStage, model));
 //    if (strcmp(pOp, "Mat")==0) {
 //        ok = apply_Mat(pStage, pStageModel, model);
 //    if (strcmp(pOp, "matchGrid")==0) {
@@ -1618,5 +1668,5 @@ Stage *StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
         logErrorMessage(e.what(), pName.c_str(), pStage, pStageModel);
     }
 
-    return nullptr;
+    return stage;
 }

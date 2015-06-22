@@ -29,7 +29,7 @@ public:
         MEDIAN
     };
 
-    Blur(json_t *pStage, Model &model) {
+    Blur(json_t *pStage, Model &model) : Stage(pStage) {
         /* Blur type */
         map<int, string> mapType;
         mapType[BILATERAL]			= "Bilateral";
@@ -44,7 +44,7 @@ public:
             return type.compare(pair.second) == 0;
         });
         if (findType != std::end(mapType))
-            _params["Type"] = new EnumParameter(this, (int&) findType->first, mapType);
+            _params["Type"] = new EnumParameter(this, findType->first, mapType);
         else
             throw std::invalid_argument("unknown 'type'");
 
@@ -81,12 +81,10 @@ public:
             return border.compare(pair.second) == 0;
         });
         if (findBorder != std::end(mapBorder))
-            _params["Border"] = new EnumParameter(this, (int&) findBorder->first, mapBorder);
-        else
-            throw std::invalid_argument("unknown 'border'");
+            _params["Border"] = new EnumParameter(this, findBorder->first, mapBorder);
 
         /* Bilateral filter */
-        diameter = jo_double(pStage, "diameter", 1, model.argMap);
+        diameter = jo_int(pStage, "diameter", 1, model.argMap);
         _params["diameter"] = new IntParameter(this, diameter);
 
         /* Adaptive Bilateral Filter */
@@ -107,8 +105,10 @@ public:
 
     }
 
+    string getName() const { return "Blur"; }
+
 private:
-    bool apply_internal(json_t *pStage, json_t *pStageModel, Model &model)
+    bool apply_internal(json_t *pStageModel, Model &model)
     {
         const char *errMsg = NULL;
         Pipeline::validateImage(model.image);

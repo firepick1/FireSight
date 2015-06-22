@@ -19,7 +19,7 @@ using namespace cv;
 
 class CvtColor : public Stage {
 public:
-    CvtColor(json_t *pStage, Model &model) {
+    CvtColor(json_t *pStage, Model &model) : Stage(pStage) {
         codeStr = jo_string(pStage, "code", "CV_BGR2GRAY", model.argMap);
         dstCn = jo_int(pStage, "dstCn", 0, model.argMap);
         if (dstCn < 0) {
@@ -27,8 +27,10 @@ public:
         }
     }
 
+    string getName() const { return "CvtColor"; }
+
 private:
-    bool apply_internal(json_t *pStage, json_t *pStageModel, Model &model) {
+    bool apply_internal(json_t *pStageModel, Model &model) {
         Pipeline::validateImage(model.image);
 
         const char *errMsg = NULL;

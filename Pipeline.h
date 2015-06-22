@@ -12,9 +12,10 @@
 #include <cvaux.h>
 #include <highgui.h>
 
-#include <vector>
 #include <map>
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "jansson.h"
 
@@ -225,91 +226,118 @@ namespace firesight {
         Parameter(Stage * stage) :
             stage(stage)
         {}
+        virtual string toString() const { return "dummy"; }
     private:
         Stage * stage;
     };
 
     class IntParameter : public Parameter {
     public:
-        IntParameter(Stage * stage, int &value) :
+        IntParameter(Stage * stage, int value) :
             Parameter(stage), value(value)
         {}
+        string toString() const { return std::to_string(value); }
     private:
-        int &value;
+        int value;
     };
 
     class BoolParameter : public Parameter {
     public:
-        BoolParameter(Stage * stage, bool &value) :
+        BoolParameter(Stage * stage, bool value) :
             Parameter(stage), value(value)
         {}
+        string toString() const { return (value ? "true" : "false"); }
     private:
-        bool &value;
+        bool value;
     };
 
     class DoubleParameter : public Parameter {
     public:
-        DoubleParameter(Stage * stage, double &value) :
+        DoubleParameter(Stage * stage, double value) :
             Parameter(stage), value(value)
         {}
+        string toString() const { return std::to_string(value); }
     private:
-        double &value;
+        double value;
+    };
+
+    class FloatParameter : public Parameter {
+    public:
+        FloatParameter(Stage * stage, float value) :
+            Parameter(stage), value(value)
+        {}
+        string toString() const { return std::to_string(value); }
+    private:
+        float value;
     };
 
     class StringParameter : public Parameter {
     public:
-        StringParameter(Stage * stage, string &value) :
+        StringParameter(Stage * stage, string value) :
             Parameter(stage), value(value)
         {}
+        string toString() const { return value; }
     private:
-        string &value;
+        string value;
     };
 
     class SizeParameter : public Parameter {
     public:
-        SizeParameter(Stage * stage, Size &value) :
+        SizeParameter(Stage * stage, Size value) :
             Parameter(stage), value(value)
         {}
+        string toString() const { return std::to_string(value.width) + "x" + std::to_string(value.height); }
     private:
-        Size &value;
+        Size value;
     };
 
     class PointParameter : public Parameter {
     public:
-        PointParameter(Stage * stage, Point &value) :
+        PointParameter(Stage * stage, Point value) :
             Parameter(stage), value(value)
         {}
+        string toString() const { return std::to_string(value.x) + ":" + std::to_string(value.y); }
     private:
-        Point &value;
+        Point value;
     };
 
     class EnumParameter : public Parameter {
     public:
-        EnumParameter(Stage * stage, int &v, map<int, string> m) :
+        EnumParameter(Stage * stage, int v, map<int, string> m) :
             Parameter(stage), value(v), _map(m)
         {}
-
+        string toString() const { return _map.at(value); }
     private:
-        int &value;
+        int value;
         map<int, string> _map;
     };
 
 
     class Stage {
     public:
-        bool apply(json_t *pStage, json_t *pStageModel, Model &model) {
+        Stage(json_t *pStage) : pStage(pStage) {}
+
+        bool apply(json_t *pStageModel, Model &model) {
             bool result;
 
             //timer.start();
 
-            result = apply_internal(pStage, pStageModel, model);
+            result = apply_internal(pStageModel, model);
 
             //time = timer.nsecsElapsed();
 
             return result;
         }
 
-        virtual bool apply_internal(json_t *pStage, json_t *pStageModel, Model &model) = 0;
+        virtual string getName() const = 0;
+
+        virtual void print() const {
+            printf("-- %s --\n", getName().c_str());
+            for (auto it : _params)
+                printf("%16s = %s\n", it.first.c_str(), it.second->toString().c_str());
+        }
+
+        virtual bool apply_internal(json_t *pStageModel, Model &model) = 0;
 
         static bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
 
@@ -318,11 +346,12 @@ namespace firesight {
 
     protected:
         map<string, Parameter*> _params;
+        json_t *pStage;
     };
 
     class StageFactory {
     public:
-        static Stage *getStage(const char *pOp, json_t *pStage, Model &model);
+        static unique_ptr<Stage> getStage(const char *pOp, json_t *pStage, Model &model);
     };
 
   typedef class CLASS_DECLSPEC Pipeline {
@@ -332,7 +361,8 @@ namespace firesight {
     protected:
       bool processModel(Model &model);
       bool processModelGUI(Model &model);
-      bool processStage(int index, json_t *pStage, Model &model);
+      unique_ptr<Stage> parseStage(int index, json_t * pStage, Model &model);
+//      bool processStage(int index, json_t *pStage, Model &model);
       KeyPoint _regionKeypoint(const vector<Point> &region);
       void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
       void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
@@ -340,15 +370,12 @@ namespace firesight {
 
       bool apply_absdiff(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_backgroundSubtractor(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_blur(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_calcOffset(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_Canny(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_circle(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_cout(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_detectParts(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_dft(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &model);
@@ -365,8 +392,6 @@ namespace firesight {
 #ifdef LGPL2_1
       bool apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model);
 #endif // LGPL2_1
-      bool apply_imread(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_imwrite(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_Mat(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model);
