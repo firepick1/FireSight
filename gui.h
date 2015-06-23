@@ -26,13 +26,13 @@ struct PipelineViewer {
         destroyWindow("pipeline");
     }
 
-    void update(vector<unique_ptr<Stage> >& stages, const vector<Mat>& images) {
+    void update(vector<unique_ptr<Stage> >& stages, const vector<Mat>& images, int sel_stage, int sel_param) {
         if (images.size() == 0)
             return;
 
         height = width * images[0].rows/images[0].cols;
 
-        showImages(images, stages);
+        showImages(images, stages, sel_stage, sel_param);
     }
 
     void static CallBackFunc(int event, int x, int y, int flags, void* userdata)
@@ -67,7 +67,7 @@ struct PipelineViewer {
     // --------------------------------------------------------------
     // Function to draw several images to one image.
     // --------------------------------------------------------------
-    void showImages(const vector<Mat>& imgs, vector<unique_ptr<Stage> >& stages)
+    void showImages(const vector<Mat>& imgs, vector<unique_ptr<Stage> >& stages, int sel_stage, int sel_param)
     {
         float nImgs=imgs.size();
         int imgsInRow=ceil(sqrt(nImgs));
@@ -106,13 +106,18 @@ struct PipelineViewer {
                 resize(tmp, tmp, Size(width, height), 1,1, INTER_CUBIC);
 
                 // print info into images
-                //stages[index]->print();
                 if (ind == 0) {
-                    putText(tmp, "input", Point(10, 10), FONT_HERSHEY_COMPLEX_SMALL, 0.6, cvScalar(255,255,255), 1, CV_AA);
+                    putText(tmp, "input", Point(10, 10), FONT_HERSHEY_PLAIN, 0.8, cvScalar(255,255,255), (sel_stage == ind ? 2 : 1), CV_AA);
                 } else {
                     vector<string> sinfo = stages[ind-1]->info();
+                    sinfo[0] = to_string(ind) + ": " + sinfo[0];
                     for (size_t i = 0; i < sinfo.size(); i++) {
-                        putText(tmp, sinfo[i].c_str(), Point(10, 10 + i * 10), FONT_HERSHEY_COMPLEX_SMALL, 0.6, cvScalar(255,255,255), 1, CV_AA);
+                        putText(tmp, sinfo[i].c_str(), Point(10, 10 + i * 10),
+                                FONT_HERSHEY_PLAIN,
+                                0.8,
+                                cvScalar(255,255,255),
+                                (sel_stage == ind && (i == 0 || sel_param == i-1) ? 2 : 1),
+                                CV_AA);
                     }
                 }
 

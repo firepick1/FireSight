@@ -227,6 +227,8 @@ namespace firesight {
             stage(stage)
         {}
         virtual string toString() const { return "dummy"; }
+        virtual void inc() = 0;
+        virtual void dec() = 0;
     private:
         Stage * stage;
     };
@@ -237,6 +239,8 @@ namespace firesight {
             Parameter(stage), value(value)
         {}
         string toString() const { return std::to_string(value); }
+        void inc() { value++; }
+        void dec() { value--; }
     private:
         int value;
     };
@@ -247,6 +251,8 @@ namespace firesight {
             Parameter(stage), value(value)
         {}
         string toString() const { return (value ? "true" : "false"); }
+        void inc() { value = !value; }
+        void dec() { inc(); }
     private:
         bool value;
     };
@@ -257,6 +263,8 @@ namespace firesight {
             Parameter(stage), value(value)
         {}
         string toString() const { return std::to_string(value); }
+        void inc() { value++; }
+        void dec() { value--; }
     private:
         double value;
     };
@@ -267,6 +275,8 @@ namespace firesight {
             Parameter(stage), value(value)
         {}
         string toString() const { return std::to_string(value); }
+        void inc() { value++; }
+        void dec() { value--; }
     private:
         float value;
     };
@@ -277,6 +287,8 @@ namespace firesight {
             Parameter(stage), value(value)
         {}
         string toString() const { return value; }
+        void inc() { }
+        void dec() { }
     private:
         string value;
     };
@@ -287,6 +299,8 @@ namespace firesight {
             Parameter(stage), value(value)
         {}
         string toString() const { return std::to_string(value.width) + "x" + std::to_string(value.height); }
+        void inc() { value.width++; value.height++; }
+        void dec() { value.width--; value.height--; }
     private:
         Size value;
     };
@@ -297,6 +311,8 @@ namespace firesight {
             Parameter(stage), value(value)
         {}
         string toString() const { return std::to_string(value.x) + ":" + std::to_string(value.y); }
+        void inc() { value.x++; value.y++; }
+        void dec() { value.x--; value.y--; }
     private:
         Point value;
     };
@@ -307,6 +323,8 @@ namespace firesight {
             Parameter(stage), value(v), _map(m)
         {}
         string toString() const { return _map.at(value); }
+        void inc() { value = (value + 1) % _map.size(); }
+        void dec() { value = (value + _map.size() - 1) % _map.size(); }
     private:
         int value;
         map<int, string> _map;
@@ -349,7 +367,7 @@ namespace firesight {
 
         static bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
 
-        map<string, Parameter*> getParams() const;
+        map<string, Parameter*>& getParams() { return _params; }
         void setParameter(string name, Parameter * value);
 
     protected:

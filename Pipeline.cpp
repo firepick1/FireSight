@@ -1408,8 +1408,14 @@ bool Pipeline::processModelGUI(Model &model) {
 
     bool go = true;
     int key = 0;
+    int sel_stage = -1;
+    int sel_param = -1;
+    bool rerunPipeline = false;
     do {
-        Model model0 = Model(model);
+        Model model0(model.argMap);
+
+        model0.image = model.image.clone();
+        model0.imageMap["input"] = model.image.clone();
         vector<Mat> history;
         history.push_back(model0.image.clone());
 
@@ -1427,13 +1433,68 @@ bool Pipeline::processModelGUI(Model &model) {
         } // json_array_foreach
 
         do {
-            pv.update(stages, history);
+            pv.update(stages, history, sel_stage, sel_param);
 
-            key = cv::waitKey(1);
+            key = cv::waitKey(5);
+            printf("key = %i\n", key);
 
-        } while (key != 27);
+            if (key == -1)
+                continue;
 
-        go = false;
+            if (key >= '0' && key <= '9') {
+                sel_stage = key - '0';
+                if (sel_stage > stages.size())
+                    sel_stage = stages.size();
+                sel_param = 0;
+                rerunPipeline = true;
+                break;
+            }
+
+            switch (key) {
+            case 65362: // up
+            case 'p':
+                sel_param = max(0, sel_param-1);
+                break;
+            case 65364: // down
+            case 'n':
+                sel_param = min((int) stages[sel_stage-1]->getParams().size()-1, sel_param+1);
+                break;
+            case 65361: // left
+            case '-':
+            {
+                map<string, Parameter*> params = stages[sel_stage-1]->getParams();
+                int idx = 0;
+                for (auto it : params) {
+                    if (idx == sel_param) {
+                        it.second->dec();
+                        break;
+                    }
+                    idx++;
+                }
+            }
+                break;
+            case 65363: // right
+            case '+':
+            {
+                map<string, Parameter*> params = stages[sel_stage-1]->getParams();
+                int idx = 0;
+                for (auto it : params) {
+                    if (idx == sel_param) {
+                        it.second->inc();
+                        break;
+                    }
+                    idx++;
+                }
+            }
+                break;
+            case 27:
+                go = false;
+                break;
+            }
+
+//            printf("sel_stage = %i\nsel_param = %i\n", sel_stage, sel_param);
+
+        } while (0);//key != 27);
     } while (go);
 
 
