@@ -254,7 +254,7 @@ namespace firesight {
         void inc() { value = !value; }
         void dec() { inc(); }
     private:
-        bool value;
+        bool& value;
     };
 
     class DoubleParameter : public Parameter {
@@ -266,7 +266,7 @@ namespace firesight {
         void inc() { value++; }
         void dec() { value--; }
     private:
-        double value;
+        double& value;
     };
 
     class FloatParameter : public Parameter {
@@ -278,7 +278,19 @@ namespace firesight {
         void inc() { value++; }
         void dec() { value--; }
     private:
-        float value;
+        float& value;
+    };
+
+    class ScalarParameter : public Parameter {
+    public:
+        ScalarParameter(Stage * stage, Scalar& value) :
+            Parameter(stage), value(value)
+        {}
+//        string toString() const { return "" }
+        void inc() { ; }
+        void dec() { ; }
+    private:
+        Scalar& value;
     };
 
     class StringParameter : public Parameter {
@@ -290,7 +302,7 @@ namespace firesight {
         void inc() { }
         void dec() { }
     private:
-        string value;
+        string& value;
     };
 
     class SizeParameter : public Parameter {
@@ -302,7 +314,7 @@ namespace firesight {
         void inc() { value.width++; value.height++; }
         void dec() { value.width--; value.height--; }
     private:
-        Size value;
+        Size& value;
     };
 
     class PointParameter : public Parameter {
@@ -314,19 +326,19 @@ namespace firesight {
         void inc() { value.x++; value.y++; }
         void dec() { value.x--; value.y--; }
     private:
-        Point value;
+        Point& value;
     };
 
     class EnumParameter : public Parameter {
     public:
-        EnumParameter(Stage * stage, int v, map<int, string> m) :
+        EnumParameter(Stage * stage, int& v, map<int, string> m) :
             Parameter(stage), value(v), _map(m)
         {}
         string toString() const { return _map.at(value); }
         void inc() { value = (value + 1) % _map.size(); }
         void dec() { value = (value + _map.size() - 1) % _map.size(); }
     private:
-        int value;
+        int& value;
         map<int, string> _map;
     };
 

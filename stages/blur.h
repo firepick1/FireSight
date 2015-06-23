@@ -31,21 +31,22 @@ public:
 
     Blur(json_t *pStage, Model &model) : Stage(pStage) {
         /* Blur type */
-        map<int, string> mapType;
+        type = GAUSSIAN;
         mapType[BILATERAL]			= "Bilateral";
         mapType[BILATERAL_ADAPTIVE] = "Adaptive Bilateral";
         mapType[BOX]				= "Box";
         mapType[BOX_NORMALIZED]		= "Box Normalized";
         mapType[GAUSSIAN]			= "Gaussian";
         mapType[MEDIAN]				= "Median";
-        string type = jo_string(pStage, "type", "Gaussian", model.argMap);
+        string stype = jo_string(pStage, "type", "Gaussian", model.argMap);
         auto findType = std::find_if(std::begin(mapType), std::end(mapType), [&](const std::pair<int, string> &pair)
         {
-            return type.compare(pair.second) == 0;
+            return stype.compare(pair.second) == 0;
         });
-        if (findType != std::end(mapType))
-            _params["Type"] = new EnumParameter(this, findType->first, mapType);
-        else
+        if (findType != std::end(mapType)) {
+            type = findType->first;
+            _params["Type"] = new EnumParameter(this, type, mapType);
+        } else
             throw std::invalid_argument("unknown 'type'");
 
 
@@ -55,19 +56,19 @@ public:
         if (width <= 0 || height <= 0) {
             throw std::invalid_argument("expected 0<width and 0<height");
         }
-        Size ks(width, height);
-        _params["Kernel Size"] = new SizeParameter(this, ks);
+        size = Size(width, height);
+        _params["Kernel Size"] = new SizeParameter(this, size);
 
 
         /* Anchor */
         int anchorx = jo_int(pStage, "anchor.x", -1, model.argMap);
         int anchory = jo_int(pStage, "anchor.y", -1, model.argMap);
-        Point anchor(anchorx, anchory);
+        anchor = Point(anchorx, anchory);
         _params["Anchor"] = new PointParameter(this, anchor);
 
 
         /* Border type */
-        map<int, string> mapBorder;
+        border = BORDER_DEFAULT;
         mapBorder[BORDER_DEFAULT]	= "Default";
         //mapBorder[BORDER_CONSTANT]	= "Constant";
         //mapBorder[BORDER_REPLICATE] = "Replicate";
@@ -75,13 +76,14 @@ public:
         mapBorder[BORDER_REFLECT]	= "Reflect";
         mapBorder[BORDER_REFLECT_101] = "Reflect 101";
         mapBorder[BORDER_WRAP]		= "Wrap";
-        string border = jo_string(pStage, "border", "Default", model.argMap);
+        string sborder = jo_string(pStage, "border", "Default", model.argMap);
         auto findBorder = std::find_if(std::begin(mapBorder), std::end(mapBorder), [&](const std::pair<int, string> &pair)
         {
-            return border.compare(pair.second) == 0;
+            return sborder.compare(pair.second) == 0;
         });
         if (findBorder != std::end(mapBorder))
-            _params["Border"] = new EnumParameter(this, findBorder->first, mapBorder);
+            border = findBorder->first;
+        _params["Border"] = new EnumParameter(this, border, mapBorder);
 
         /* Bilateral filter */
         diameter = jo_int(pStage, "diameter", 1, model.argMap);
@@ -164,11 +166,13 @@ private:
     }
 
 protected:
-    enum Blur::Type type;
+    int type;
+    map<int, string> mapType;
 
     Size size; //< Kernel size
     Point anchor; //< Anchor
     int border; //< Border type
+    map<int, string> mapBorder;
 
     int diameter; // bilateral filter
     double sigmaSpace; // sigmaSpace for (adaptive)BilateralFilter

@@ -288,52 +288,6 @@ bool Pipeline::apply_warpPerspective(const char *pName, json_t *pStage, json_t *
     return stageOK("apply_warpPerspective(%s) %s", errMsg.c_str(), pStage, pStageModel);
 }
 
-bool Pipeline::apply_putText(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    string text = jo_string(pStage, "text", "FireSight", model.argMap);
-    Scalar color = jo_Scalar(pStage, "color", Scalar(0,255,0), model.argMap);
-    string fontFaceName = jo_string(pStage, "fontFace", "FONT_HERSHEY_PLAIN", model.argMap);
-    int thickness = jo_int(pStage, "thickness", 1, model.argMap);
-    int fontFace = FONT_HERSHEY_PLAIN;
-    bool italic = jo_bool(pStage, "italic", false, model.argMap);
-    double fontScale = jo_double(pStage, "fontScale", 1, model.argMap);
-    Point org = jo_Point(pStage, "org", Point(5,-6), model.argMap);
-    if (org.y < 0) {
-        org.y = model.image.rows + org.y;
-    }
-    const char *errMsg = NULL;
-
-    if (fontFaceName.compare("FONT_HERSHEY_SIMPLEX") == 0) {
-        fontFace = FONT_HERSHEY_SIMPLEX;
-    } else if (fontFaceName.compare("FONT_HERSHEY_PLAIN") == 0) {
-        fontFace = FONT_HERSHEY_PLAIN;
-    } else if (fontFaceName.compare("FONT_HERSHEY_COMPLEX") == 0) {
-        fontFace = FONT_HERSHEY_COMPLEX;
-    } else if (fontFaceName.compare("FONT_HERSHEY_DUPLEX") == 0) {
-        fontFace = FONT_HERSHEY_DUPLEX;
-    } else if (fontFaceName.compare("FONT_HERSHEY_TRIPLEX") == 0) {
-        fontFace = FONT_HERSHEY_TRIPLEX;
-    } else if (fontFaceName.compare("FONT_HERSHEY_COMPLEX_SMALL") == 0) {
-        fontFace = FONT_HERSHEY_COMPLEX_SMALL;
-    } else if (fontFaceName.compare("FONT_HERSHEY_SCRIPT_SIMPLEX") == 0) {
-        fontFace = FONT_HERSHEY_SCRIPT_SIMPLEX;
-    } else if (fontFaceName.compare("FONT_HERSHEY_SCRIPT_COMPLEX") == 0) {
-        fontFace = FONT_HERSHEY_SCRIPT_COMPLEX;
-    } else {
-        errMsg = "Unknown fontFace (default is FONT_HERSHEY_PLAIN)";
-    }
-
-    if (!errMsg && italic) {
-        fontFace |= FONT_ITALIC;
-    }
-
-    if (!errMsg) {
-        putText(model.image, text.c_str(), org, fontFace, fontScale, color, thickness);
-    }
-
-    return stageOK("apply_putText(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_resize(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
     double fx = jo_float(pStage, "fx", 1, model.argMap);
@@ -1425,8 +1379,12 @@ bool Pipeline::processModelGUI(Model &model) {
             json_t *jmodel = model0.getJson(false);
             json_object_set(jmodel, stages[index]->getName().c_str(), pStageModel);
 
-//            stages[index]->print();
-            ok = stages[index]->apply(pStageModel, model0);
+            stages[index]->print();
+            try {
+                ok = stages[index]->apply(pStageModel, model0);
+            } catch (std::exception &e) {
+                model0.image = Mat::zeros(model0.image.size(), model0.image.type());
+            }
 
             if (!ok)
                 break;
@@ -1690,7 +1648,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_PSNR(pStage, pStageModel, model);
 //    if (strcmp(pOp, "proto")==0) {
 //        ok = apply_proto(pStage, pStageModel, model);
-//    if (strcmp(pOp, "putText")==0) {
+    if (strcmp(pOp, "putText")==0)
+        stage = unique_ptr<Stage>(new Text(pStage, model));
 //        ok = apply_putText(pStage, pStageModel, model);
 //#ifdef LGPL2_1
 //    if (strcmp(pOp, "qrDecode")==0) {

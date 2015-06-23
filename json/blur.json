@@ -1,6 +1,6 @@
 [
   {"op":"cvtColor", "code":"CV_BGR2GRAY"},
-  {"op":"blur","ksize.width":10,"ksize.height":10},
+  {"op":"blur","ksize.width":11,"ksize.height":11},
   {"op":"imwrite", "path":"target/blur.jpg"}
 ]
 
