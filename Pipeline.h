@@ -235,19 +235,19 @@ namespace firesight {
 
     class IntParameter : public Parameter {
     public:
-        IntParameter(Stage * stage, int value) :
+        IntParameter(Stage * stage, int& value) :
             Parameter(stage), value(value)
         {}
         string toString() const { return std::to_string(value); }
         void inc() { value++; }
         void dec() { value--; }
     private:
-        int value;
+        int& value;
     };
 
     class BoolParameter : public Parameter {
     public:
-        BoolParameter(Stage * stage, bool value) :
+        BoolParameter(Stage * stage, bool& value) :
             Parameter(stage), value(value)
         {}
         string toString() const { return (value ? "true" : "false"); }
@@ -259,7 +259,7 @@ namespace firesight {
 
     class DoubleParameter : public Parameter {
     public:
-        DoubleParameter(Stage * stage, double value) :
+        DoubleParameter(Stage * stage, double& value) :
             Parameter(stage), value(value)
         {}
         string toString() const { return std::to_string(value); }
@@ -271,7 +271,7 @@ namespace firesight {
 
     class FloatParameter : public Parameter {
     public:
-        FloatParameter(Stage * stage, float value) :
+        FloatParameter(Stage * stage, float& value) :
             Parameter(stage), value(value)
         {}
         string toString() const { return std::to_string(value); }
@@ -283,7 +283,7 @@ namespace firesight {
 
     class StringParameter : public Parameter {
     public:
-        StringParameter(Stage * stage, string value) :
+        StringParameter(Stage * stage, string& value) :
             Parameter(stage), value(value)
         {}
         string toString() const { return value; }
@@ -295,7 +295,7 @@ namespace firesight {
 
     class SizeParameter : public Parameter {
     public:
-        SizeParameter(Stage * stage, Size value) :
+        SizeParameter(Stage * stage, Size& value) :
             Parameter(stage), value(value)
         {}
         string toString() const { return std::to_string(value.width) + "x" + std::to_string(value.height); }
@@ -307,7 +307,7 @@ namespace firesight {
 
     class PointParameter : public Parameter {
     public:
-        PointParameter(Stage * stage, Point value) :
+        PointParameter(Stage * stage, Point& value) :
             Parameter(stage), value(value)
         {}
         string toString() const { return std::to_string(value.x) + ":" + std::to_string(value.y); }

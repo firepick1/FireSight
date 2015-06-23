@@ -1410,8 +1410,9 @@ bool Pipeline::processModelGUI(Model &model) {
     int key = 0;
     int sel_stage = -1;
     int sel_param = -1;
-    bool rerunPipeline = false;
+    bool rerunPipeline;
     do {
+        rerunPipeline = false;
         Model model0(model.argMap);
 
         model0.image = model.image.clone();
@@ -1424,6 +1425,7 @@ bool Pipeline::processModelGUI(Model &model) {
             json_t *jmodel = model0.getJson(false);
             json_object_set(jmodel, stages[index]->getName().c_str(), pStageModel);
 
+//            stages[index]->print();
             ok = stages[index]->apply(pStageModel, model0);
 
             if (!ok)
@@ -1436,7 +1438,6 @@ bool Pipeline::processModelGUI(Model &model) {
             pv.update(stages, history, sel_stage, sel_param);
 
             key = cv::waitKey(5);
-            printf("key = %i\n", key);
 
             if (key == -1)
                 continue;
@@ -1446,8 +1447,7 @@ bool Pipeline::processModelGUI(Model &model) {
                 if (sel_stage > stages.size())
                     sel_stage = stages.size();
                 sel_param = 0;
-                rerunPipeline = true;
-                break;
+                continue;
             }
 
             switch (key) {
@@ -1467,6 +1467,7 @@ bool Pipeline::processModelGUI(Model &model) {
                 for (auto it : params) {
                     if (idx == sel_param) {
                         it.second->dec();
+                        rerunPipeline = true;
                         break;
                     }
                     idx++;
@@ -1481,6 +1482,7 @@ bool Pipeline::processModelGUI(Model &model) {
                 for (auto it : params) {
                     if (idx == sel_param) {
                         it.second->inc();
+                        rerunPipeline = true;
                         break;
                     }
                     idx++;
@@ -1494,7 +1496,7 @@ bool Pipeline::processModelGUI(Model &model) {
 
 //            printf("sel_stage = %i\nsel_param = %i\n", sel_stage, sel_param);
 
-        } while (0);//key != 27);
+        } while (!rerunPipeline && go);//key != 27);
     } while (go);
 
 
