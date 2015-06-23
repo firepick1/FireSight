@@ -337,6 +337,14 @@ namespace firesight {
                 printf("%16s = %s\n", it.first.c_str(), it.second->toString().c_str());
         }
 
+        virtual vector<string> info() const {
+            vector<string> out;
+            out.push_back(getName());
+            for (auto it : _params)
+                out.push_back(it.first + " = " + it.second->toString());
+            return out;
+        }
+
         virtual bool apply_internal(json_t *pStageModel, Model &model) = 0;
 
         static bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);

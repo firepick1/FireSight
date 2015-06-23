@@ -20,11 +20,21 @@ using namespace cv;
 class CvtColor : public Stage {
 public:
     CvtColor(json_t *pStage, Model &model) : Stage(pStage) {
+        map<int, string> cvtCode;
+        cvtCode[CV_BGR2GRAY]	= "CV_BGR2GRAY";
         codeStr = jo_string(pStage, "code", "CV_BGR2GRAY", model.argMap);
+        auto findCode = std::find_if(std::begin(cvtCode), std::end(cvtCode), [&](const std::pair<int, string> &pair)
+        {
+            return codeStr.compare(pair.second) == 0;
+        });
+        if (findCode != std::end(cvtCode))
+            _params["code"] = new EnumParameter(this, findCode->first, cvtCode);
+
         dstCn = jo_int(pStage, "dstCn", 0, model.argMap);
         if (dstCn < 0) {
             throw invalid_argument("expected 0<dstCn");
         }
+        _params["dstCn"] = new IntParameter(this, dstCn);
     }
 
     string getName() const { return "CvtColor"; }

@@ -32,7 +32,7 @@ struct PipelineViewer {
 
         height = width * images[0].rows/images[0].cols;
 
-        showImages(images);
+        showImages(images, stages);
     }
 
     void static CallBackFunc(int event, int x, int y, int flags, void* userdata)
@@ -67,7 +67,7 @@ struct PipelineViewer {
     // --------------------------------------------------------------
     // Function to draw several images to one image.
     // --------------------------------------------------------------
-    void showImages(const vector<Mat>& imgs)
+    void showImages(const vector<Mat>& imgs, vector<unique_ptr<Stage> >& stages)
     {
         float nImgs=imgs.size();
         int imgsInRow=ceil(sqrt(nImgs));
@@ -104,6 +104,17 @@ struct PipelineViewer {
                 scale = 1.0 * width / tmp.cols;
 
                 resize(tmp, tmp, Size(width, height), 1,1, INTER_CUBIC);
+
+                // print info into images
+                //stages[index]->print();
+                if (ind == 0) {
+                    putText(tmp, "input", Point(10, 10), FONT_HERSHEY_COMPLEX_SMALL, 0.6, cvScalar(255,255,255), 1, CV_AA);
+                } else {
+                    vector<string> sinfo = stages[ind-1]->info();
+                    for (size_t i = 0; i < sinfo.size(); i++) {
+                        putText(tmp, sinfo[i].c_str(), Point(10, 10 + i * 10), FONT_HERSHEY_COMPLEX_SMALL, 0.6, cvScalar(255,255,255), 1, CV_AA);
+                    }
+                }
 
                 tmp.copyTo(resultImg(Range(cell_row,cell_row+tmp.rows),Range(cell_col,cell_col+tmp.cols)));
 

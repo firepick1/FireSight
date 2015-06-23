@@ -1406,31 +1406,35 @@ bool Pipeline::processModelGUI(Model &model) {
     for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); index++)
         stages.push_back(parseStage(index, pStage, model));
 
+    bool go = true;
     int key = 0;
     do {
+        Model model0 = Model(model);
         vector<Mat> history;
-        history.push_back(model.image.clone());
+        history.push_back(model0.image.clone());
 
         for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); index++) {
             json_t *pStageModel = json_object();
-            json_t *jmodel = model.getJson(false);
+            json_t *jmodel = model0.getJson(false);
             json_object_set(jmodel, stages[index]->getName().c_str(), pStageModel);
 
-            ok = stages[index]->apply(pStageModel, model);
-
-            stages[index]->print();
+            ok = stages[index]->apply(pStageModel, model0);
 
             if (!ok)
                 break;
 
-            history.push_back(model.image.clone());
+            history.push_back(model0.image.clone());
         } // json_array_foreach
 
-        key = cv::waitKey(1);
+        do {
+            pv.update(stages, history);
 
-        pv.update(stages, history);
+            key = cv::waitKey(1);
 
-    } while (key != 27);
+        } while (key != 27);
+
+        go = false;
+    } while (go);
 
 
     return ok;
