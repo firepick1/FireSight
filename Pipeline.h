@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "jansson.h"
+#include "input.h"
 
 #ifdef _MSC_VER
 #include "winjunk.hpp"
@@ -408,7 +409,7 @@ namespace firesight {
       bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
     protected:
       bool processModel(Model &model);
-      bool processModelGUI(Model &model);
+      bool processModelGUI(Input *input, Model &model);
       unique_ptr<Stage> parseStage(int index, json_t * pStage, Model &model);
 //      bool processStage(int index, json_t *pStage, Model &model);
       KeyPoint _regionKeypoint(const vector<Point> &region);
@@ -492,10 +493,10 @@ namespace firesight {
       /**
        * Process the given working image and return a JSON object that represents
        * the recognized model comprised of the individual stage models.
-       * @param mat initial and transformed working image
+       * @param input initial and transformed working image
        * @return pointer to jansson root node of JSON object that has a field for each recognized stage model. E.g., {s1:{...}, s2:{...}, ... , sN:{...}}
        */
-      json_t *process(Mat &mat, ArgMap &argMap, bool gui);
+      json_t *process(Input * input, ArgMap &argMap, Mat &output, bool gui = false);
 
   } Pipeline;
 

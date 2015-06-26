@@ -12,12 +12,13 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
+#include "input.h"
 
 using namespace cv;
 using namespace std;
 using namespace firesight;
 
-typedef enum{UI_STILL, UI_VIDEO} UIMode;
+typedef enum{UI_STILL, UI_VIDEO, UI_AMPHIBIOUS} UIMode;
 
 static void help() {
   cout << "FireSight image processing pipeline v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << endl;
@@ -125,6 +126,9 @@ bool parseArgs(int argc, char *argv[],
     } else if (strcmp("-video", argv[i]) == 0) {
       uimode = UI_VIDEO;
       LOGTRACE("parseArgs(-video) UI_VIDEO user interface selected");
+    } else if (strcmp("-amphibious", argv[i]) == 0) {
+        uimode = UI_AMPHIBIOUS;
+        LOGTRACE("parseArgs(-amphibious) UI_AMPHIBIOUS user interface selected");
     } else if (strcmp("-warn", argv[i]) == 0) {
       firelog_level(FIRELOG_WARN);
     } else if (strcmp("-error", argv[i]) == 0) {
@@ -144,12 +148,36 @@ bool parseArgs(int argc, char *argv[],
 }
 
 /**
+ * Amphibious image/video processing
+ */
+static int ui(const char * pipelinePath, Input * input, ArgMap &argMap, Mat& output) {
+    Pipeline pipeline(pipelinePath, Pipeline::PATH);
+    Mat image;
+
+    json_t *pModel = pipeline.process(input, argMap, image, true);
+
+    // Print out returned model
+    char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT);//|JSON_INDENT(jsonIndent));
+    cout << pModelStr << endl;
+    free(pModelStr);
+
+    // Free model
+    json_decref(pModel);
+
+    output = image;
+
+    return 0;
+
+}
+
+/**
  * Single image example of FireSight lib_firesight library use
  */
 static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool isTime, int jsonIndent) {
   Pipeline pipeline(pipelinePath, Pipeline::PATH);
+  Input * input = (Input *) new ImageInput(image);
   
-  json_t *pModel = pipeline.process(image, argMap, true);
+  json_t *pModel = pipeline.process(input, argMap, image, true);
 
   if (isTime) {
     long long tickStart = cvGetTickCount();
@@ -158,7 +186,7 @@ static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool i
     int iterations = 100;
     for (int i=0; i < iterations; i++) {
       json_decref(pModel);
-      pModel = pipeline.process(image, argMap, false);
+      pModel = pipeline.process(input, argMap, image, false);
     }
     float ticksElapsed = cvGetTickCount() - tickStart;
     //cout << "ticksElapsed:" << ticksElapsed << endl;
@@ -184,21 +212,16 @@ static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool i
  * Video capture example of FireSight lib_firesight library use
  */
 static int uiVideo(const char * pipelinePath, ArgMap &argMap) {
-  VideoCapture cap(0); // open the default camera
-  if(!cap.isOpened()) {  // check if we succeeded
-    LOGERROR("Could not open camera");
-    exit(-1);
-  }
+    Input * input = (Input *) new VideoInput();
 
   namedWindow("image",1);
 
   Pipeline pipeline(pipelinePath, Pipeline::PATH);
 
   for(;;) {
-    Mat frame;
-    cap >> frame; // get a new frame from camera
+      Mat frame = input->get(); // get a new frame from camera
 
-    json_t *pModel = pipeline.process(frame, argMap, true);
+    json_t *pModel = pipeline.process(input, argMap, frame, true);
 
     // Display pipeline output
     imshow("image", frame);
@@ -226,29 +249,27 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
-  Mat image;
-  if (imagePath) {
-    LOGTRACE1("Reading image: %s", imagePath);
-    image = imread(imagePath);
-    if (!image.data) {
-      LOGERROR1("main() imread(%s) failed", imagePath);
-      exit(-1);
-    }
-  } else {
-    LOGDEBUG("No image specified.");
-  }
+  Input * input;
+
+  if (!imagePath)
+      uimode = UI_VIDEO;
+  else
+      uimode = UI_STILL;
 
   switch (uimode) {
-    case UI_STILL: 
-      uiStill(pipelinePath.c_str(), image, argMap, isTime, jsonIndent);
+  case UI_STILL:
+      input = (Input *) new ImageInput(imagePath);
       break;
-    case UI_VIDEO: 
-      uiVideo(pipelinePath.c_str(), argMap); 
+  case UI_VIDEO:
+      input = (Input *) new VideoInput();
       break;
-    default: 
-      LOGERROR("Unknown UI mode");
-      exit(-1);
+  default:
+    LOGERROR("Unknown UI mode");
+    exit(-1);
   }
+
+  Mat image;
+  ui(pipelinePath.c_str(), input, argMap, image);
 
   if (outputPath) {
     if (!imwrite(outputPath, image)) {

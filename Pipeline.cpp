@@ -1211,19 +1211,19 @@ void Pipeline::validateImage(Mat &image) {
     }
 }
 
-json_t *Pipeline::process(Mat &workingImage, ArgMap &argMap, bool gui = false) {
+json_t *Pipeline::process(Input * input, ArgMap &argMap, Mat &output, bool gui) {
     Model model(argMap);
     json_t *pModelJson = model.getJson(true);
 
-    model.image = workingImage;
+    model.image = (input->get()).clone();
     model.imageMap["input"] = model.image.clone();
     bool ok;
     if (gui)
-        ok = processModelGUI(model);
+        ok = processModelGUI(input, model);
     else
         ok = processModel(model);
-    workingImage = model.image;
 
+    output = model.image;
     return pModelJson;
 }
 
@@ -1269,7 +1269,7 @@ bool Pipeline::processModel(Model &model) {
     return ok;
 }
 
-bool Pipeline::processModelGUI(Model &model) {
+bool Pipeline::processModelGUI(Input * input, Model &model) {
     if (!json_is_array(pPipeline)) {
         const char * errMsg = "Pipeline::process expected json array for pipeline definition";
         LOGERROR1(errMsg, "");
@@ -1294,6 +1294,9 @@ bool Pipeline::processModelGUI(Model &model) {
     int sel_param = -1;
     bool rerunPipeline;
     do {
+        // get current image from input
+        model.image = input->get().clone();
+        model.imageMap["input"] = model.image.clone();
         rerunPipeline = false;
         Model model0(model.argMap);
 
@@ -1307,15 +1310,12 @@ bool Pipeline::processModelGUI(Model &model) {
             json_t *jmodel = model0.getJson(false);
             json_object_set(jmodel, stages[index]->getName().c_str(), pStageModel);
 
-            stages[index]->print();
+//            stages[index]->print();
             try {
                 ok = stages[index]->apply(pStageModel, model0);
             } catch (std::exception &e) {
                 model0.image = Mat::zeros(model0.image.size(), model0.image.type());
             }
-
-//            if (!ok)
-//                break;
 
             history.push_back(model0.image.clone());
         } // json_array_foreach
@@ -1324,9 +1324,6 @@ bool Pipeline::processModelGUI(Model &model) {
             pv.update(stages, history, sel_stage, sel_param);
 
             key = cv::waitKey(5);
-
-            if (key == -1)
-                continue;
 
             if (key >= '0' && key <= '9') {
                 sel_stage = key - '0';
@@ -1374,6 +1371,9 @@ bool Pipeline::processModelGUI(Model &model) {
                     idx++;
                 }
             }
+                break;
+            case -1:
+                rerunPipeline = true;
                 break;
             case 27:
                 go = false;
