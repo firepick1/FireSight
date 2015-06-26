@@ -115,6 +115,13 @@ struct PipelineViewer {
                         putText(tmp, sinfo[i].c_str(), Point(10, 10 + i * 10),
                                 FONT_HERSHEY_PLAIN,
                                 0.8,
+                                cvScalar(0,0,0),
+                                2,
+                                CV_AA);
+
+                        putText(tmp, sinfo[i].c_str(), Point(10, 10 + i * 10),
+                                FONT_HERSHEY_PLAIN,
+                                0.8,
                                 cvScalar(255,255,255),
                                 (sel_stage == ind && (i == 0 || sel_param == i-1) ? 2 : 1),
                                 CV_AA);

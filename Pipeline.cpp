@@ -1314,8 +1314,8 @@ bool Pipeline::processModelGUI(Model &model) {
                 model0.image = Mat::zeros(model0.image.size(), model0.image.type());
             }
 
-            if (!ok)
-                break;
+//            if (!ok)
+//                break;
 
             history.push_back(model0.image.clone());
         } // json_array_foreach

@@ -25,6 +25,8 @@ public:
         mapType[THRESH_TRUNC]		= "THRESH_TRUNC";
         mapType[THRESH_TOZERO]		= "THRESH_TOZERO";
         mapType[THRESH_TOZERO_INV]	= "THRESH_TOZERO_INV";
+        mapType[THRESH_MASK]        = "THRESH_MASK";
+        mapType[THRESH_OTSU]        = "THRESH_OTSU";
         string stype = jo_string(pStage, "type", "THRESH_BINARY", model.argMap);
         auto findType = std::find_if(std::begin(mapType), std::end(mapType), [&](const std::pair<int, string> &pair)
         {
@@ -38,10 +40,6 @@ public:
 
         maxval = jo_float(pStage, "maxval", 255, model.argMap);
         _params["maxval"] = new FloatParameter(this, maxval);
-
-        //otsu = jo_string(pStage, "thresh", "OTSU", model.argMap);
-        isOtsu = jo_bool(pStage, "otsu", false, model.argMap);
-        _params["otsu"] = new BoolParameter(this, isOtsu);
 
         thresh = jo_float(pStage, "thresh", 128, model.argMap);
         _params["thresh"] = new FloatParameter(this, thresh);
@@ -57,15 +55,12 @@ private:
         Pipeline::validateImage(model.image);
         const char *errMsg = NULL;
 
-        if (!gray && isOtsu) {
+        if (!gray && type == THRESH_OTSU) {
             errMsg = "Otsu's method cannot be used with color images. Specify a thresh value for color images.";
         }
 
         if (!errMsg) {
-            if (isOtsu) {
-                type |= THRESH_OTSU;
-            }
-            if ((isOtsu || gray) && model.image.channels() > 1) {
+            if ((type == THRESH_OTSU || gray) && model.image.channels() > 1) {
                 LOGTRACE("apply_threshold() converting image to grayscale");
                 cvtColor(model.image, model.image, CV_BGR2GRAY, 0);
             }
@@ -79,7 +74,6 @@ private:
     map<int, string> mapType;
 
     float maxval;
-    bool isOtsu;
     float thresh;
     bool gray;
 };

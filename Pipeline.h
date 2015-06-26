@@ -335,8 +335,18 @@ namespace firesight {
             Parameter(stage), value(v), _map(m)
         {}
         string toString() const { return _map.at(value); }
-        void inc() { value = (value + 1) % _map.size(); }
-        void dec() { value = (value + _map.size() - 1) % _map.size(); }
+        void inc() {
+            do {
+                const int m = _map.rbegin()->first;
+                value = (value + 1) % (m + 1);
+            } while (_map.find(value) == _map.end());
+        }
+        void dec() {
+            do {
+                const int m = _map.rbegin()->first;
+                value = (value + m) % (m + 1);
+            } while (_map.find(value) == _map.end());
+        }
     private:
         int& value;
         map<int, string> _map;
