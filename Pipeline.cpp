@@ -429,84 +429,6 @@ bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model)
 }
 #endif // LGPL2_1
 
-bool Pipeline::apply_drawRects(json_t *pStage, json_t *pStageModel, Model &model) {
-    const char *errMsg = NULL;
-    Scalar color = jo_Scalar(pStage, "color", Scalar(-1,-1,-1,255), model.argMap);
-    int radius = jo_int(pStage, "radius", 0, model.argMap);
-    int thickness = jo_int(pStage, "thickness", 2, model.argMap);
-    string rectsModelName = jo_string(pStage, "model", "", model.argMap);
-    json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName.c_str());
-
-    if (rectsModelName.empty()) {
-        errMsg = "model: expected name of stage with rects";
-    } else if (!json_is_object(pRectsModel)) {
-        errMsg = "Named stage is not in model";
-    }
-
-    json_t *pRects = NULL;
-    if (!errMsg) {
-        pRects = json_object_get(pRectsModel, "rects");
-        if (!json_is_array(pRects)) {
-            errMsg = "Expected array of rects";
-        }
-    }
-
-    if (!errMsg) {
-        if (model.image.channels() == 1) {
-            LOGTRACE("Converting grayscale image to color image");
-            cvtColor(model.image, model.image, CV_GRAY2BGR, 0);
-        }
-        size_t index;
-        json_t *pRect;
-        Point2f vertices[4];
-        int blue = (int)color[0];
-        int green = (int)color[1];
-        int red = (int)color[2];
-        bool changeColor = red == -1 && green == -1 && blue == -1;
-
-        json_array_foreach(pRects, index, pRect) {
-            int x = jo_int(pRect, "x", SHRT_MAX, model.argMap);
-            int y = jo_int(pRect, "y", SHRT_MAX, model.argMap);
-            int width = jo_int(pRect, "width", -1, model.argMap);
-            int height = jo_int(pRect, "height", -1, model.argMap);
-            float angle = jo_float(pRect, "angle", FLT_MAX, model.argMap);
-            Scalar rectColor = color;
-            if (changeColor) {
-                red = (index & 1) ? 0 : 255;
-                green = (index & 2) ? 128 : 192;
-                blue = (index & 1) ? 255 : 0;
-                rectColor = Scalar(blue, green, red, 255);
-            }
-            rectColor = jo_Scalar(pRect, "color", rectColor, model.argMap);
-            if (x == SHRT_MAX || y == SHRT_MAX || width == SHRT_MAX || height == SHRT_MAX) {
-                LOGERROR("apply_drawRects() x, y, width, height are required values");
-                break;
-            }
-            if (rectColor[3] != 0) {	// alpha=0 implies non-display
-                if (angle == FLT_MAX || radius > 0) {
-                    int r;
-                    if (radius > 0) {
-                        r = radius;
-                    } else if (width > 0 && height > 0) {
-                        r = (int)(0.5+min(width,height)/2.0);
-                    } else {
-                        r = 5;
-                    }
-                    circle(model.image, Point(x,y), r, rectColor, thickness);
-                } else {
-                    RotatedRect rect(Point(x,y), Size(width, height), angle);
-                    rect.points(vertices);
-                    for (int i = 0; i < 4; i++) {
-                        line(model.image, vertices[i], vertices[(i+1)%4], rectColor, thickness);
-                    }
-                }
-            }
-        }
-    }
-
-    return stageOK("apply_drawRects(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
     const char *errMsg = NULL;
@@ -1536,7 +1458,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_dilate(pStage, pStageModel, model);
 //    if (strcmp(pOp, "drawKeypoints")==0) {
 //        ok = apply_drawKeypoints(pStage, pStageModel, model);
-//    if (strcmp(pOp, "drawRects")==0) {
+    if (strcmp(pOp, "drawRects")==0)
+        stage = unique_ptr<Stage>(new DrawRects(pStage, model));
 //        ok = apply_drawRects(pStage, pStageModel, model);
 //    if (strcmp(pOp, "equalizeHist")==0) {
 //        ok = apply_equalizeHist(pStage, pStageModel, model);
