@@ -1011,36 +1011,6 @@ bool Pipeline::apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model) {
     return stageOK("apply_PSNR(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_absdiff(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    string img2_path = jo_string(pStage, "path", "", model.argMap);
-    const char *errMsg = NULL;
-    Mat img2;
-
-    if (img2_path.empty()) {
-        errMsg = "Expected path to image for absdiff";
-    }
-
-    if (!errMsg) {
-        if (model.image.channels() == 1) {
-            img2 = imread(img2_path.c_str(), CV_LOAD_IMAGE_GRAYSCALE);
-        } else {
-            img2 = imread(img2_path.c_str(), CV_LOAD_IMAGE_COLOR);
-        }
-        if (img2.data) {
-            LOGTRACE2("apply_absdiff() path:%s %s", img2_path.c_str(), matInfo(img2).c_str());
-        } else {
-            errMsg = "Could not read image from given path";
-        }
-    }
-
-    if (!errMsg) {
-        absdiff(model.image, img2, model.image);
-    }
-
-    return stageOK("apply_absdiff(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
     string typeStr = jo_string(pStage, "type", "THRESH_BINARY", model.argMap);
@@ -1578,8 +1548,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
     static int id = 0;
     unique_ptr<Stage> stage = nullptr;
     try {
-//    if (strcmp(pOp, "absdiff")==0)
-//        ok = apply_absdiff(pStage, pStageModel, model);
+    if (strcmp(pOp, "absdiff")==0)
+        stage = unique_ptr<Stage>(new AbsDiff(pStage, model));
 //    if (strcmp(pOp, "backgroundSubtractor")==0)
 //        ok = apply_backgroundSubtractor(pStage, pStageModel, model);
 //    if (strcmp(pOp, "bgsub")==0)

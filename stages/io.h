@@ -22,6 +22,7 @@ class ImWrite : public Stage
 public:
     ImWrite(json_t *pStage, Model &model) : Stage(pStage) {
         path = jo_string(pStage, "path");
+        _params["path"] = new StringParameter(this, path);
     }
 
     string getName() const { return "ImWrite"; }
@@ -51,6 +52,7 @@ class ImRead : public Stage
 public:
     ImRead(json_t *pStage, Model &model) : Stage(pStage) {
         path = jo_string(pStage, "path", "", model.argMap);
+        _params["path"] = new StringParameter(this, path);
     }
 
     string getName() const { return "ImRead"; }
