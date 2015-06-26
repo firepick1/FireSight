@@ -11,5 +11,6 @@
 #include "stages/color.h"
 #include "stages/drawing.h"
 #include "stages/io.h"
+#include "stages/threshold.h"
 
 #endif // STAGES_H

@@ -1011,48 +1011,6 @@ bool Pipeline::apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model) {
     return stageOK("apply_PSNR(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_threshold(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    string typeStr = jo_string(pStage, "type", "THRESH_BINARY", model.argMap);
-    float maxval = jo_float(pStage, "maxval", 255, model.argMap);
-    String otsu = jo_string(pStage, "thresh", "OTSU", model.argMap);
-    bool isOtsu = otsu.compare("OTSU") == 0;
-    float thresh = jo_float(pStage, "thresh", 128, model.argMap);
-    bool gray = jo_bool(pStage, "gray", true, model.argMap);
-    int type;
-    const char *errMsg = NULL;
-
-    if (typeStr.compare("THRESH_BINARY") == 0) {
-        type = THRESH_BINARY;
-    } else if (typeStr.compare("THRESH_BINARY_INV") == 0) {
-        type = THRESH_BINARY_INV;
-    } else if (typeStr.compare("THRESH_TRUNC") == 0) {
-        type = THRESH_TRUNC;
-    } else if (typeStr.compare("THRESH_TOZERO") == 0) {
-        type = THRESH_TOZERO;
-    } else if (typeStr.compare("THRESH_TOZERO_INV") == 0) {
-        type = THRESH_TOZERO_INV;
-    } else {
-        errMsg = "Expected threshold type (e.g., THRESH_BINARY)";
-    }
-    if (!gray && isOtsu) {
-        errMsg = "Otsu's method cannot be used with color images. Specify a thresh value for color images.";
-    }
-    if (!errMsg) {
-        if (isOtsu) {
-            type |= THRESH_OTSU;
-        }
-        if ((isOtsu || gray) && model.image.channels() > 1) {
-            LOGTRACE("apply_threshold() converting image to grayscale");
-            cvtColor(model.image, model.image, CV_BGR2GRAY, 0);
-        }
-        threshold(model.image, model.image, thresh, maxval, type);
-    }
-
-    return stageOK("apply_threshold(%s) %s", errMsg, pStage, pStageModel);
-}
-
-
 bool Pipeline::apply_transparent(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
     Rect roi = jo_Rect(pStage, "roi", Rect(0, 0, model.image.cols, model.image.rows), model.argMap);
@@ -1641,8 +1599,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_stageImage(pStage, pStageModel, model);
 //    if (strcmp(pOp, "transparent")==0) {
 //        ok = apply_transparent(pStage, pStageModel, model);
-//    if (strcmp(pOp, "threshold")==0) {
-//        ok = apply_threshold(pStage, pStageModel, model);
+    if (strcmp(pOp, "threshold")==0)
+        stage = unique_ptr<Stage>(new Threshold(pStage, model));
 //    if (strcmp(pOp, "undistort")==0) {
 //        ok = apply_undistort(pName, pStage, pStageModel, model);
 //    if (strcmp(pOp, "warpAffine")==0) {

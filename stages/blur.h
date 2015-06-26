@@ -45,7 +45,7 @@ public:
         });
         if (findType != std::end(mapType)) {
             type = findType->first;
-            _params["Type"] = new EnumParameter(this, type, mapType);
+            _params["type"] = new EnumParameter(this, type, mapType);
         } else
             throw std::invalid_argument("unknown 'type'");
 

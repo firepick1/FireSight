@@ -2,7 +2,7 @@
 #define ABSDIFF_H
 /*
  * @Author  : Simon Fojtu
- * @Date    : 17.06.2015
+ * @Date    : 26.06.2015
  */
 
 #include "Pipeline.h"
