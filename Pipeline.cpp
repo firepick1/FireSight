@@ -13,7 +13,6 @@
 #include "MatUtil.hpp"
 #include "version.h"
 #include "stages/Sharpness.h"
-#include "stages/PartDetector.h"
 #include "gui.h"
 
 #include "stages.h"
@@ -54,26 +53,6 @@ bool Stage::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t 
 // TODO remove call to Pipeline::stageOK
 bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
     return Stage::stageOK(fmt, errMsg, pStage, pStageModel);
-}
-
-bool Pipeline::apply_model(json_t *pStage, json_t *pStageModel, Model &model) {
-    json_t *pModel = json_object_get(pStage, "model");
-    const char *errMsg = NULL;
-
-    if (!errMsg) {
-        if (!json_is_object(pModel)) {
-            errMsg = "Expected JSON object for stage model";
-        }
-    }
-    if (!errMsg && pModel) {
-        const char * pKey;
-        json_t *pValue;
-        json_object_foreach(pModel, pKey, pValue) {
-            json_object_set(pStageModel, pKey, pValue);
-        }
-    }
-
-    return stageOK("apply_model(%s) %s", errMsg, pStage, pStageModel);
 }
 
 bool Pipeline::apply_FireSight(json_t *pStage, json_t *pStageModel, Model &model) {
@@ -591,24 +570,6 @@ bool Pipeline::apply_sharpness(json_t *pStage, json_t *pStageModel, Model &model
 
     return stageOK("apply_sharpness(%s) %s", errMsg, pStage, pStageModel);
 
-}
-
-bool Pipeline::apply_detectParts(json_t *pStage, json_t *pStageModel, Model &model) {
-    const char *errMsg = NULL;
-
-    RotatedRect rect = PartDetector::detect(model.image);
-
-    json_t *pRects = json_array();
-    json_object_set(pStageModel, "rects", pRects);
-    json_t *pRect = json_object();
-    json_object_set(pRect, "x", json_real(rect.center.x));
-    json_object_set(pRect, "y", json_real(rect.center.y));
-    json_object_set(pRect, "width", json_real(rect.size.width));
-    json_object_set(pRect, "height", json_real(rect.size.height));
-    json_object_set(pRect, "angle", json_real(rect.angle));
-    json_array_append(pRects, pRect);
-
-    return stageOK("apply_detectParts(%s) %s", errMsg, pStage, pStageModel);
 }
 
 bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model) {
@@ -1164,18 +1125,9 @@ bool Pipeline::processModel(Model &model) {
     for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); index++) {
         unique_ptr<Stage> stage = parseStage(index, pStage, model);
 
-        string pName = jo_string(pStage, "name");
-        bool isSaveImage = true;
-        if (pName.empty()) {
-            char defaultName[100];
-            snprintf(defaultName, sizeof(defaultName), "s%d", (int)index+1);
-            pName = defaultName;
-            isSaveImage = false;
-        }
-
         json_t *pStageModel = json_object();
         json_t *jmodel = model.getJson(false);
-        json_object_set(jmodel, pName.c_str(), pStageModel);
+        json_object_set(jmodel, stage->getName().c_str(), pStageModel);
 
         ok = stage->apply(pStageModel, model);
 
@@ -1220,32 +1172,33 @@ bool Pipeline::processModelGUI(Input * input, Model &model) {
         model.image = input->get().clone();
         model.imageMap["input"] = model.image.clone();
         rerunPipeline = false;
-        Model model0(model.argMap);
+        Model workModel(model.argMap);
 
-        model0.image = model.image.clone();
-        model0.imageMap["input"] = model.image.clone();
+        workModel.image = model.image.clone();
+        workModel.imageMap["input"] = model.image.clone();
+
         vector<Mat> history;
-        history.push_back(model0.image.clone());
+        history.push_back(workModel.image.clone());
 
         for(index = 0; index < json_array_size(pPipeline) && (pStage = json_array_get(pPipeline, index)); index++) {
             json_t *pStageModel = json_object();
-            json_t *jmodel = model0.getJson(false);
+            json_t *jmodel = workModel.getJson(false);
             json_object_set(jmodel, stages[index]->getName().c_str(), pStageModel);
 
 //            stages[index]->print();
             try {
-                ok = stages[index]->apply(pStageModel, model0);
+                ok = stages[index]->apply(pStageModel, workModel);
             } catch (std::exception &e) {
-                model0.image = Mat::zeros(model0.image.size(), model0.image.type());
+                workModel.image = Mat::zeros(workModel.image.size(), workModel.image.type());
             }
 
-            history.push_back(model0.image.clone());
+            history.push_back(workModel.image.clone());
         } // json_array_foreach
 
         do {
             pv.update(stages, history, sel_stage, sel_param);
 
-            key = cv::waitKey(5);
+            key = cv::waitKey(1);
 
             if (key >= '0' && key <= '9') {
                 sel_stage = key - '0';
@@ -1487,8 +1440,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_meanStdDev(pStage, pStageModel, model);
 //    if (strcmp(pOp, "minAreaRect")==0) {
 //        ok = apply_minAreaRect(pStage, pStageModel, model);
-//    if (strcmp(pOp, "model")==0) {
-//        ok = apply_model(pStage, pStageModel, model);
+    if (strcmp(pOp, "model")==0)
+        stage = unique_ptr<Stage>(new ModelStage(pStage, model));
 //    if (strcmp(pOp, "morph")==0) {
 //        ok = apply_morph(pStage, pStageModel, model);
 //    if (strcmp(pOp, "MSER")==0) {
@@ -1512,7 +1465,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_resize(pStage, pStageModel, model);
 //    if (strcmp(pOp, "sharpness")==0) {
 //        ok = apply_sharpness(pStage, pStageModel, model);
-//    if (strcmp(pOp, "detectParts")==0) {
+    if (strcmp(pOp, "detectParts")==0)
+        stage = unique_ptr<Stage>(new PartDetector(pStage, model));
 //        ok = apply_detectParts(pStage, pStageModel, model);
 //    if (strcmp(pOp, "SimpleBlobDetector")==0) {
 //        ok = apply_SimpleBlobDetector(pStage, pStageModel, model);

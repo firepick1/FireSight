@@ -25,8 +25,7 @@ public:
         mapType[THRESH_TRUNC]		= "THRESH_TRUNC";
         mapType[THRESH_TOZERO]		= "THRESH_TOZERO";
         mapType[THRESH_TOZERO_INV]	= "THRESH_TOZERO_INV";
-        mapType[THRESH_MASK]        = "THRESH_MASK";
-        mapType[THRESH_OTSU]        = "THRESH_OTSU";
+//        mapType[THRESH_MASK]        = "THRESH_MASK";
         string stype = jo_string(pStage, "type", "THRESH_BINARY", model.argMap);
         auto findType = std::find_if(std::begin(mapType), std::end(mapType), [&](const std::pair<int, string> &pair)
         {
@@ -37,6 +36,9 @@ public:
             _params["type"] = new EnumParameter(this, type, mapType);
         } else
             throw std::invalid_argument("unknown 'type'");
+
+        isOtsu = jo_bool(pStage, "otsu", false, model.argMap);
+        _params["otsu"] = new BoolParameter(this, isOtsu);
 
         maxval = jo_float(pStage, "maxval", 255, model.argMap);
         _params["maxval"] = new FloatParameter(this, maxval);
@@ -55,16 +57,20 @@ private:
         Pipeline::validateImage(model.image);
         const char *errMsg = NULL;
 
-        if (!gray && type == THRESH_OTSU) {
+        if (!gray && isOtsu) {
             errMsg = "Otsu's method cannot be used with color images. Specify a thresh value for color images.";
         }
 
+        int type_ = type;
+        if (isOtsu)
+            type_ |= THRESH_OTSU;
+
         if (!errMsg) {
-            if ((type == THRESH_OTSU || gray) && model.image.channels() > 1) {
+            if ((isOtsu || gray) && model.image.channels() > 1) {
                 LOGTRACE("apply_threshold() converting image to grayscale");
                 cvtColor(model.image, model.image, CV_BGR2GRAY, 0);
             }
-            threshold(model.image, model.image, thresh, maxval, type);
+            threshold(model.image, model.image, thresh, maxval, type_);
         }
 
         return stageOK("apply_threshold(%s) %s", errMsg, pStage, pStageModel);
@@ -73,6 +79,7 @@ private:
     int type;
     map<int, string> mapType;
 
+    bool isOtsu;
     float maxval;
     float thresh;
     bool gray;

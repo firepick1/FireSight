@@ -9,8 +9,10 @@
 #include "stages/blur.h"
 #include "stages/canny.h"
 #include "stages/color.h"
+#include "stages/detector.h"
 #include "stages/drawing.h"
 #include "stages/io.h"
+#include "stages/model.h"
 #include "stages/threshold.h"
 
 #endif // STAGES_H

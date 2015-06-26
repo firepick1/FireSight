@@ -356,7 +356,7 @@ namespace firesight {
 
     class Stage {
     public:
-        Stage(json_t *pStage) : pStage(pStage) {}
+        Stage(json_t *pStage) : pStage(pStage), errMsg("") {}
 
         bool apply(json_t *pStageModel, Model &model) {
             bool result;
@@ -367,10 +367,19 @@ namespace firesight {
 
             //time = timer.nsecsElapsed();
 
+            // remember error message
+            const char * msg = json_string_value(json_object_get(pStageModel, "error"));
+            if (msg)
+                errMsg = String(msg);
+            else
+                errMsg = "";
+
             return result;
         }
 
         virtual string getName() const = 0;
+
+        virtual string getErrorMessage() const { return errMsg; }
 
         virtual void print() const {
             printf("-- %s --\n", getName().c_str());
@@ -396,6 +405,7 @@ namespace firesight {
     protected:
         map<string, Parameter*> _params;
         json_t *pStage;
+        string errMsg;
     };
 
     class StageFactory {

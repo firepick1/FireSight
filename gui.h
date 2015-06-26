@@ -7,6 +7,8 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
+#include "console.h"
+
 namespace firesight {
 
 using namespace std;
@@ -111,21 +113,13 @@ struct PipelineViewer {
                 } else {
                     vector<string> sinfo = stages[ind-1]->info();
                     sinfo[0] = to_string(ind) + ": " + sinfo[0];
+                    Console con(tmp);
                     for (size_t i = 0; i < sinfo.size(); i++) {
-                        putText(tmp, sinfo[i].c_str(), Point(10, 10 + i * 10),
-                                FONT_HERSHEY_PLAIN,
-                                0.8,
-                                cvScalar(0,0,0),
-                                2,
-                                CV_AA);
-
-                        putText(tmp, sinfo[i].c_str(), Point(10, 10 + i * 10),
-                                FONT_HERSHEY_PLAIN,
-                                0.8,
-                                cvScalar(255,255,255),
-                                (sel_stage == ind && (i == 0 || sel_param == i-1) ? 2 : 1),
-                                CV_AA);
+                        con.print(sinfo[i], (sel_stage == ind && (i == 0 || sel_param == i-1) ? 2 : 1));
                     }
+                    con.print("");
+                    // display possible error message
+                    con.print(stages[ind-1]->getErrorMessage(), 1, Scalar(0, 0, 255));
                 }
 
                 tmp.copyTo(resultImg(Range(cell_row,cell_row+tmp.rows),Range(cell_col,cell_col+tmp.cols)));

@@ -108,7 +108,7 @@ public:
         _params["model"] = new StringParameter(this, rectsModelName);
     }
 
-    string getName() const { return "Text"; }
+    string getName() const { return "DrawRects"; }
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model)
