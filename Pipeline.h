@@ -457,7 +457,6 @@ namespace firesight {
       bool apply_normalize(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_proto(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_resize(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_warpRing(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model);

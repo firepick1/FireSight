@@ -246,6 +246,93 @@ private:
     int shift;
 };
 
+class DrawRectangle: public Stage
+{
+public:
+    DrawRectangle(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
+        x = jo_int(pStage, "x", 0, model.argMap);
+        _params["x"] = new IntParameter(this, x);
+        y = jo_int(pStage, "y", 0, model.argMap);
+        _params["y"] = new IntParameter(this, y);
+
+        int defaultWidth = model.image.cols ? model.image.cols : 64;
+        int defaultHeight = model.image.rows ? model.image.rows : 64;
+
+        width = jo_int(pStage, "width", defaultWidth, model.argMap);
+        _params["width"] = new IntParameter(this, width);
+        height = jo_int(pStage, "height", defaultHeight, model.argMap);
+        _params["height"] = new IntParameter(this, height);
+        thickness = jo_int(pStage, "thickness", 1, model.argMap);
+        _params["thickness"] = new IntParameter(this, thickness);
+        lineType = jo_int(pStage, "lineType", 8, model.argMap);
+        _params["lineType"] = new IntParameter(this, lineType);
+        color = jo_Scalar(pStage, "color", Scalar::all(0), model.argMap);
+        _params["color"] = new ScalarParameter(this, color);
+        flood = jo_Scalar(pStage, "flood", Scalar::all(-1), model.argMap);
+        _params["flood"] = new ScalarParameter(this, flood);
+        fill = jo_Scalar(pStage, "fill", Scalar::all(-1), model.argMap);
+        _params["fill"] = new ScalarParameter(this, fill);
+        shift = jo_int(pStage, "shift", 0, model.argMap);
+        _params["shift"] = new IntParameter(this, shift);
+    }
+
+private:
+    bool apply_internal(json_t *pStageModel, Model &model) {
+        const char *errMsg = NULL;
+
+        if ( x == -1 ) {
+            x = (model.image.cols-width)/2;
+        }
+        if ( y == -1 ) {
+            y = (model.image.rows-height)/2;
+        }
+        if ( x < 0 || y < 0) {
+            errMsg = "Expected 0<=x and 0<=y";
+        } else if (shift < 0) {
+            errMsg = "Expected shift>=0";
+        }
+
+        if (!errMsg) {
+            if (model.image.cols == 0 || model.image.rows == 0) {
+                model.image = Mat(height, width, CV_8UC3, Scalar(0,0,0));
+            }
+            if (thickness) {
+                rectangle(model.image, Rect(x,y,width,height), color, thickness, lineType, shift);
+            }
+            if (thickness >= 0) {
+                int outThickness = thickness/2;
+                int inThickness = (int)(thickness - outThickness);
+                if (fill[0] >= 0) {
+                    rectangle(model.image, Rect(x+inThickness,y+inThickness,width-inThickness*2,height-inThickness*2), fill, -1, lineType, shift);
+                }
+                if (flood[0] >= 0) {
+                    int left = x - outThickness;
+                    int top = y - outThickness;
+                    int right = x+width+outThickness;
+                    int bot = y+height+outThickness;
+                    rectangle(model.image, Rect(0,0,model.image.cols,top), flood, -1, lineType, shift);
+                    rectangle(model.image, Rect(0,bot,model.image.cols,model.image.rows-bot), flood, -1, lineType, shift);
+                    rectangle(model.image, Rect(0,top,left,height+outThickness*2), flood, -1, lineType, shift);
+                    rectangle(model.image, Rect(right,top,model.image.cols-right,height+outThickness*2), flood, -1, lineType, shift);
+                }
+            }
+        }
+
+        return stageOK("apply_rectangle(%s) %s", errMsg, pStage, pStageModel);
+    }
+
+    int x;
+    int y;
+    int width;
+    int height;
+    int thickness;
+    int lineType;
+    Scalar color;
+    Scalar flood;
+    Scalar fill;
+    int shift;
+};
+
 
 }
 

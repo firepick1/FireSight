@@ -526,62 +526,6 @@ bool Pipeline::apply_sharpness(json_t *pStage, json_t *pStageModel, Model &model
 
 }
 
-bool Pipeline::apply_rectangle(json_t *pStage, json_t *pStageModel, Model &model) {
-    int x = jo_int(pStage, "x", 0, model.argMap);
-    int y = jo_int(pStage, "y", 0, model.argMap);
-    int defaultWidth = model.image.cols ? model.image.cols : 64;
-    int defaultHeight = model.image.rows ? model.image.rows : 64;
-    int width = jo_int(pStage, "width", defaultWidth, model.argMap);
-    int height = jo_int(pStage, "height", defaultHeight, model.argMap);
-    int thickness = jo_int(pStage, "thickness", 1, model.argMap);
-    int lineType = jo_int(pStage, "lineType", 8, model.argMap);
-    Scalar color = jo_Scalar(pStage, "color", Scalar::all(0), model.argMap);
-    Scalar flood = jo_Scalar(pStage, "flood", Scalar::all(-1), model.argMap);
-    Scalar fill = jo_Scalar(pStage, "fill", Scalar::all(-1), model.argMap);
-    int shift = jo_int(pStage, "shift", 0, model.argMap);
-    const char *errMsg = NULL;
-
-    if ( x == -1 ) {
-        x = (model.image.cols-width)/2;
-    }
-    if ( y == -1 ) {
-        y = (model.image.rows-height)/2;
-    }
-    if ( x < 0 || y < 0) {
-        errMsg = "Expected 0<=x and 0<=y";
-    } else if (shift < 0) {
-        errMsg = "Expected shift>=0";
-    }
-
-    if (!errMsg) {
-        if (model.image.cols == 0 || model.image.rows == 0) {
-            model.image = Mat(height, width, CV_8UC3, Scalar(0,0,0));
-        }
-        if (thickness) {
-            rectangle(model.image, Rect(x,y,width,height), color, thickness, lineType, shift);
-        }
-        if (thickness >= 0) {
-            int outThickness = thickness/2;
-            int inThickness = (int)(thickness - outThickness);
-            if (fill[0] >= 0) {
-                rectangle(model.image, Rect(x+inThickness,y+inThickness,width-inThickness*2,height-inThickness*2), fill, -1, lineType, shift);
-            }
-            if (flood[0] >= 0) {
-                int left = x - outThickness;
-                int top = y - outThickness;
-                int right = x+width+outThickness;
-                int bot = y+height+outThickness;
-                rectangle(model.image, Rect(0,0,model.image.cols,top), flood, -1, lineType, shift);
-                rectangle(model.image, Rect(0,bot,model.image.cols,model.image.rows-bot), flood, -1, lineType, shift);
-                rectangle(model.image, Rect(0,top,left,height+outThickness*2), flood, -1, lineType, shift);
-                rectangle(model.image, Rect(right,top,model.image.cols-right,height+outThickness*2), flood, -1, lineType, shift);
-            }
-        }
-    }
-
-    return stageOK("apply_rectangle(%s) %s", errMsg, pStage, pStageModel);
-}
-
 int Pipeline::parseCvType(const char *typeStr, const char *&errMsg) {
     int type = CV_8U;
 
@@ -1419,8 +1363,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //    if (strcmp(pOp, "qrDecode")==0) {
 //        ok = apply_qrdecode(pStage, pStageModel, model);
 //#endif // LGPL2_1
-//    if (strcmp(pOp, "rectangle")==0) {
-//        ok = apply_rectangle(pStage, pStageModel, model);
+    if (strcmp(pOp, "rectangle")==0)
+        stage = unique_ptr<Stage>(new DrawRectangle(pStage, model, pName));
 //    if (strcmp(pOp, "resize")==0) {
 //        ok = apply_resize(pStage, pStageModel, model);
 //    if (strcmp(pOp, "sharpness")==0) {
