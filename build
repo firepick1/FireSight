@@ -102,24 +102,28 @@ if [ "$(type -p aclocal)" == "" ]; then
   echo "COMMAND	: pkgin -y install automake"
   sudo pkgin -y install automake
 else
-  echo "STATUS	: automake insalled"
+  echo "STATUS	: automake installed"
 fi
 
-if [ ! -e /usr/local/include/jansson.h ] ; then
-  echo "STATUS	: installing JANNSON C Library"
-  if [ `uname -o` == "Solaris" ]; then
-    sudo pkgin -y install autoconf
-  else 
-    sudo apt-get -y install dh-autoreconf
-  fi
-  git clone git://github.com/akheron/jansson jannson
-  pushd jannson
-  autoreconf -i
-  ./configure
-  cmake .
-  make 
-  sudo -E make install
-  popd
+
+grep 2.7 /usr/local/include/jansson.h
+RC=$?
+if [ $RC -eq 0 ]; then
+	echo	"STATUS	: Jansson 2.7 installed"
+else
+	echo	"STATUS	: installing Jansson 2.7"
+	if [ ! -e jannson ]; then
+		rm -rf jannson
+	fi
+	git clone https://github.com/akheron/jansson 
+	pushd jansson
+	git checkout v2.7
+	autoreconf -i
+	./configure
+	cmake .
+	make 
+	sudo -E make install
+	popd
 fi
 
 if [ -e /usr/lib/libopencv_core.so.2.3 ]; then

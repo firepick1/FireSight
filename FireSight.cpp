@@ -20,7 +20,7 @@ typedef enum{UI_STILL, UI_VIDEO} UIMode;
 
 static void help() {
   cout << "FireSight image processing pipeline v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << endl;
-  cout << "Copyright 2014, Karl Lew, Simon Fojtu" << endl;
+  cout << "Copyright 2014,2015 Karl Lew, Simon Fojtu" << endl;
   cout << "https://github.com/firepick1/FireSight/wiki" << endl;
   cout << "OpenCV " CV_VERSION << " (" << FIRESIGHT_PLATFORM_BITS << "-bit)" << endl;
   cout << endl;
@@ -42,6 +42,8 @@ static void help() {
   cout << "    Define pipeline parameter value" << endl;
   cout << " -ji JSON-model-indent" << endl;
   cout << "    Specify 0 for compact JSON output of model" << endl;
+  cout << " -jp JSON-model-real-precision" << endl;
+  cout << "    Default is 6-digit precision for real numbers in JSON model output" << endl;
   cout << " -o output-image-file" << endl;
   cout << "    File for saving pipeline image " << endl;
   cout << " -p JSON-pipeline-file" << endl;
@@ -65,7 +67,7 @@ static void help() {
 }
 
 bool parseArgs(int argc, char *argv[], 
-  string &pipelinePath, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap, bool &isTime, int &jsonIndent) 
+  string &pipelinePath, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap, bool &isTime, int &jsonIndent, int &jsonPrecision) 
 {
   uimode = UI_STILL;
   isTime = false;
@@ -88,6 +90,16 @@ bool parseArgs(int argc, char *argv[],
       }
       pipelinePath = argv[++i];
       LOGTRACE1("parseArgs(-p) \"%s\" is JSON pipeline path", pipelinePath.c_str());
+    } else if (strcmp("-jp",argv[i]) == 0) {
+      if (i+1>=argc) {
+        LOGERROR("expected JSON precision after -jp");
+        exit(-1);
+      }
+      jsonPrecision = atoi(argv[++i]);
+	  if (jsonPrecision < 0) {
+	  	LOGERROR1("invalid JSON precision: %d", jsonPrecision);
+	  }
+      LOGTRACE1("parseArgs(-jp) JSON precision:%d", jsonPrecision);
     } else if (strcmp("-ji",argv[i]) == 0) {
       if (i+1>=argc) {
         LOGERROR("expected JSON indent after -ji");
@@ -150,7 +162,7 @@ bool parseArgs(int argc, char *argv[],
 /**
  * Single image example of FireSight lib_firesight library use
  */
-static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool isTime, int jsonIndent) {
+static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool isTime, int jsonIndent, int jsonPrecision) {
   Pipeline pipeline(pipelinePath, Pipeline::PATH);
   
   json_t *pModel = pipeline.process(image, argMap);
@@ -174,7 +186,7 @@ static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool i
   }
 
   // Print out returned model 
-  char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(jsonIndent));
+  char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(jsonIndent)|JSON_REAL_PRECISION(jsonPrecision));
   cout << pModelStr << endl;
   free(pModelStr);
 
@@ -224,7 +236,8 @@ int main(int argc, char *argv[])
   ArgMap argMap;
   bool isTime;
   int jsonIndent = 2;
-  bool argsOk = parseArgs(argc, argv, pipelinePath, imagePath, outputPath, uimode, argMap, isTime, jsonIndent);
+  int jsonPrecision = 6;
+  bool argsOk = parseArgs(argc, argv, pipelinePath, imagePath, outputPath, uimode, argMap, isTime, jsonIndent, jsonPrecision);
   if (!argsOk) {
     help();
     exit(-1);
@@ -244,7 +257,7 @@ int main(int argc, char *argv[])
 
   switch (uimode) {
     case UI_STILL: 
-      uiStill(pipelinePath.c_str(), image, argMap, isTime, jsonIndent);
+      uiStill(pipelinePath.c_str(), image, argMap, isTime, jsonIndent, jsonPrecision);
       break;
     case UI_VIDEO: 
       uiVideo(pipelinePath.c_str(), argMap); 
