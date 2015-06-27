@@ -25,12 +25,12 @@ vector<RotatedRect> PartDetector::detect(Mat& image) {
         result.push_back(boundingBox);
 
         // draw
-        Point2f corners[4];
-        boundingBox.points(corners);
-        line(image, corners[0], corners[1], Scalar(255,255,255));
-        line(image, corners[1], corners[2], Scalar(255,255,255));
-        line(image, corners[2], corners[3], Scalar(255,255,255));
-        line(image, corners[3], corners[0], Scalar(255,255,255));
+//        Point2f corners[4];
+//        boundingBox.points(corners);
+//        line(image, corners[0], corners[1], Scalar(255,255,255));
+//        line(image, corners[1], corners[2], Scalar(255,255,255));
+//        line(image, corners[2], corners[3], Scalar(255,255,255));
+//        line(image, corners[3], corners[0], Scalar(255,255,255));
     }
 
     return result;
