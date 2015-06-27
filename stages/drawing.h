@@ -191,6 +191,61 @@ protected:
     string rectsModelName;
 };
 
+class DrawCircle : public Stage
+{
+public:
+    DrawCircle(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
+        center = jo_Point(pStage, "center", Point(0,0), model.argMap);
+        _params["center"] = new PointParameter(this, center);
+        radius = jo_int(pStage, "radius", 0, model.argMap);
+        _params["radius"] = new IntParameter(this, radius);
+        color = jo_Scalar(pStage, "color", Scalar::all(0), model.argMap);
+        _params["color"] = new ScalarParameter(this, color);
+        thickness = jo_int(pStage, "thickness", 1, model.argMap);
+        _params["thickness"] = new IntParameter(this, thickness);
+        lineType = jo_int(pStage, "lineType", 8, model.argMap);
+        _params["lineType"] = new IntParameter(this, lineType);
+        fill = jo_Scalar(pStage, "fill", Scalar::all(-1), model.argMap);
+        _params["fill"] = new ScalarParameter(this, fill);
+        shift = jo_int(pStage, "shift", 0, model.argMap);
+        _params["shift"] = new IntParameter(this, shift);
+    }
+
+private:
+    bool apply_internal(json_t *pStageModel, Model &model) {
+        Pipeline::validateImage(model.image);
+        string errMsg;
+
+        if (shift < 0) {
+            errMsg = "Expected shift>=0";
+        }
+
+        if (errMsg.empty()) {
+            if (thickness) {
+                circle(model.image, center, radius, color, thickness, lineType, shift);
+
+            }
+            if (thickness >= 0) {
+                int outThickness = thickness/2;
+                int inThickness = (int)(thickness - outThickness);
+                if (fill[0] >= 0) {
+                    circle(model.image, center, radius-inThickness, fill, -1, lineType, shift);
+                }
+            }
+        }
+
+        return stageOK("apply_circle(%s) %s", errMsg.c_str(), pStage, pStageModel);
+    }
+
+    Point center;
+    int radius;
+    Scalar color;
+    int thickness;
+    int lineType;
+    Scalar fill;
+    int shift;
+};
+
 
 }
 

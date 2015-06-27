@@ -55,20 +55,6 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
     return Stage::stageOK(fmt, errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_FireSight(json_t *pStage, json_t *pStageModel, Model &model) {
-    json_t *pFireSight = json_object();
-    const char *errMsg = NULL;
-    char version[100];
-    snprintf(version, sizeof(version), "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-    json_object_set(pFireSight, "version", json_string(version));
-    json_object_set(pFireSight, "url", json_string("https://github.com/firepick1/FireSight"));
-    snprintf(version, sizeof(version), "%d.%d.%d", CV_MAJOR_VERSION, CV_MINOR_VERSION, CV_SUBMINOR_VERSION);
-    json_object_set(pFireSight, "opencv", json_string(version));
-    json_object_set(pStageModel, "FireSight", pFireSight);
-
-    return stageOK("apply_FireSight(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_meanStdDev(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
     const char *errMsg = NULL;
@@ -518,38 +504,6 @@ bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Mod
     }
 
     return stageOK("apply_SimpleBlobDetector(%s) %s", errMsg, pStage, pStageModel);
-}
-
-bool Pipeline::apply_circle(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    Point center = jo_Point(pStage, "center", Point(0,0), model.argMap);
-    int radius = jo_int(pStage, "radius", 0, model.argMap);
-    Scalar color = jo_Scalar(pStage, "color", Scalar::all(0), model.argMap);
-    int thickness = jo_int(pStage, "thickness", 1, model.argMap);
-    int lineType = jo_int(pStage, "lineType", 8, model.argMap);
-    Scalar fill = jo_Scalar(pStage, "fill", Scalar::all(-1), model.argMap);
-    int shift = jo_int(pStage, "shift", 0, model.argMap);
-    string errMsg;
-
-    if (shift < 0) {
-        errMsg = "Expected shift>=0";
-    }
-
-    if (errMsg.empty()) {
-        if (thickness) {
-            circle(model.image, center, radius, color, thickness, lineType, shift);
-
-        }
-        if (thickness >= 0) {
-            int outThickness = thickness/2;
-            int inThickness = (int)(thickness - outThickness);
-            if (fill[0] >= 0) {
-                circle(model.image, center, radius-inThickness, fill, -1, lineType, shift);
-            }
-        }
-    }
-
-    return stageOK("apply_circle(%s) %s", errMsg.c_str(), pStage, pStageModel);
 }
 
 bool Pipeline::apply_sharpness(json_t *pStage, json_t *pStageModel, Model &model) {
@@ -1399,8 +1353,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_calcHist(pStage, pStageModel, model);
 //    if (strcmp(pOp, "calcOffset")==0)
 //        ok = apply_calcOffset(pStage, pStageModel, model);
-//    if (strcmp(pOp, "circle")==0)
-//        ok = apply_circle(pStage, pStageModel, model);
+    if (strcmp(pOp, "circle")==0)
+        stage = unique_ptr<Stage>(new DrawCircle(pStage, model, pName));
 //    if (strcmp(pOp, "convertTo")==0)
 //        ok = apply_convertTo(pStage, pStageModel, model);
 //    if (strcmp(pOp, "cout")==0)
@@ -1424,8 +1378,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_equalizeHist(pStage, pStageModel, model);
 //    if (strcmp(pOp, "erode")==0) {
 //        ok = apply_erode(pStage, pStageModel, model);
-//    if (strcmp(pOp, "FireSight")==0) {
-//        ok = apply_FireSight(pStage, pStageModel, model);
+    if (strcmp(pOp, "FireSight")==0)
+        stage = unique_ptr<Stage>(new FireSightStage(pStage, model, pName));
 //    if (strcmp(pOp, "HoleRecognizer")==0) {
 //        ok = apply_HoleRecognizer(pStage, pStageModel, model);
 //    if (strcmp(pOp, "HoughCircles")==0) {

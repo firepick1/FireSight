@@ -11,6 +11,7 @@
 #include "stages/color.h"
 #include "stages/detector.h"
 #include "stages/drawing.h"
+#include "stages/FireSightStage.h"
 #include "stages/io.h"
 #include "stages/model.h"
 #include "stages/threshold.h"
