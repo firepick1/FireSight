@@ -197,10 +197,24 @@ typedef struct GridMatcher {
 		LOGTRACE2("create_gridImgPts() dxTot:%g dxCount:%g", dxTot, dxCount);
 		LOGTRACE2("create_gridImgPts() dyTot:%g dyCount:%g", dyTot, dyCount);
 
-		if (index00 < 0 || gridSep.x == 0 || gridSep.y == 0) {
+		if (index00 < 0) {
+			const char * msg = "GridMatcher::create_gridImgPts() could not calculate grid center. ";
+			LOGWARN1("%s", msg);
+			if (errMsg.find(msg) == string::npos) {
+				errMsg += msg;
+			}
+		} else if (gridSep.x == 0) {
 			const char * msg = "GridMatcher::create_gridImgPts() could not calculate grid separation. ";
-			LOGERROR1("%s", msg);
-			errMsg += msg;
+			LOGWARN1("%s", msg);
+			if (errMsg.find(msg) == string::npos) {
+				errMsg += msg;
+			}
+		} else if (gridSep.y == 0) {
+			const char * msg = "GridMatcher::create_gridImgPts() could not calculate grid.y separation. ";
+			LOGWARN1("%s", msg);
+			if (errMsg.find(msg) == string::npos) {
+				errMsg += msg;
+			}
 		} else {  
 			int n = 0;
 			double totalSquaredError = 0;

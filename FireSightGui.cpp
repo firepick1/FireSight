@@ -22,7 +22,7 @@ typedef enum{UI_STILL, UI_VIDEO, UI_AMPHIBIOUS} UIMode;
 
 static void help() {
   cout << "FireSight image processing pipeline v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << endl;
-  cout << "Copyright 2014, Karl Lew, Simon Fojtu" << endl;
+  cout << "Copyright 2014,2015 Karl Lew, Simon Fojtu" << endl;
   cout << "https://github.com/firepick1/FireSight/wiki" << endl;
   cout << "OpenCV " CV_VERSION << " (" << FIRESIGHT_PLATFORM_BITS << "-bit)" << endl;
   cout << endl;
@@ -44,6 +44,8 @@ static void help() {
   cout << "    Define pipeline parameter value" << endl;
   cout << " -ji JSON-model-indent" << endl;
   cout << "    Specify 0 for compact JSON output of model" << endl;
+  cout << " -jp JSON-model-real-precision" << endl;
+  cout << "    Default is 6-digit precision for real numbers in JSON model output" << endl;
   cout << " -o output-image-file" << endl;
   cout << "    File for saving pipeline image " << endl;
   cout << " -p JSON-pipeline-file" << endl;
@@ -62,10 +64,12 @@ static void help() {
   cout << "    Start logging at TRACE log level" << endl;
   cout << " -warn " << endl;
   cout << "    Start logging at WARN log level" << endl;
+  cout << " -version " << endl;
+  cout << "    Print out FireSight version" << endl;
 }
 
 bool parseArgs(int argc, char *argv[], 
-  string &pipelinePath, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap, bool &isTime, int &jsonIndent) 
+  string &pipelinePath, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap, bool &isTime, int &jsonIndent, int &jsonPrecision) 
 {
   uimode = UI_STILL;
   isTime = false;
@@ -88,6 +92,16 @@ bool parseArgs(int argc, char *argv[],
       }
       pipelinePath = argv[++i];
       LOGTRACE1("parseArgs(-p) \"%s\" is JSON pipeline path", pipelinePath.c_str());
+    } else if (strcmp("-jp",argv[i]) == 0) {
+      if (i+1>=argc) {
+        LOGERROR("expected JSON precision after -jp");
+        exit(-1);
+      }
+      jsonPrecision = atoi(argv[++i]);
+	  if (jsonPrecision < 0) {
+	  	LOGERROR1("invalid JSON precision: %d", jsonPrecision);
+	  }
+      LOGTRACE1("parseArgs(-jp) JSON precision:%d", jsonPrecision);
     } else if (strcmp("-ji",argv[i]) == 0) {
       if (i+1>=argc) {
         LOGERROR("expected JSON indent after -ji");
@@ -102,6 +116,9 @@ bool parseArgs(int argc, char *argv[],
       }
       outputPath = argv[++i];
       LOGTRACE1("parseArgs(-o) \"%s\" is output image path", outputPath);
+    } else if (strcmp("-version",argv[i]) == 0) {
+	  cout << "{\"version\":\"" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << "\"}" << endl;
+	  exit(0);
     } else if (strcmp("-time",argv[i]) == 0) {
       isTime = true;
     } else if (strncmp("-D",argv[i],2) == 0) {
@@ -150,7 +167,7 @@ bool parseArgs(int argc, char *argv[],
 /**
  * Amphibious image/video processing
  */
-static int ui(const char * pipelinePath, Input * input, ArgMap &argMap, Mat& output) {
+static int ui(const char * pipelinePath, Input * input, ArgMap &argMap, Mat& output, int jsonIndent, int jsonPrecision) {
     Pipeline pipeline(pipelinePath, Pipeline::PATH);
     Mat image;
 
@@ -173,8 +190,9 @@ static int ui(const char * pipelinePath, Input * input, ArgMap &argMap, Mat& out
 /**
  * Single image example of FireSight lib_firesight library use
  */
-static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool isTime, int jsonIndent) {
+static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool isTime, int jsonIndent, int jsonPrecision) {
   Pipeline pipeline(pipelinePath, Pipeline::PATH);
+
   Input * input = (Input *) new ImageInput(image);
   
   json_t *pModel = pipeline.process(input, argMap, image, true);
@@ -198,7 +216,7 @@ static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool i
   }
 
   // Print out returned model 
-  char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(jsonIndent));
+  char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(jsonIndent)|JSON_REAL_PRECISION(jsonPrecision));
   cout << pModelStr << endl;
   free(pModelStr);
 
@@ -243,7 +261,8 @@ int main(int argc, char *argv[])
   ArgMap argMap;
   bool isTime;
   int jsonIndent = 2;
-  bool argsOk = parseArgs(argc, argv, pipelinePath, imagePath, outputPath, uimode, argMap, isTime, jsonIndent);
+  int jsonPrecision = 6;
+  bool argsOk = parseArgs(argc, argv, pipelinePath, imagePath, outputPath, uimode, argMap, isTime, jsonIndent, jsonPrecision);
   if (!argsOk) {
     help();
     exit(-1);
@@ -269,7 +288,7 @@ int main(int argc, char *argv[])
   }
 
   Mat image;
-  ui(pipelinePath.c_str(), input, argMap, image);
+  ui(pipelinePath.c_str(), input, argMap, image, jsonIndent, jsonPrecision);
 
   if (outputPath) {
     if (!imwrite(outputPath, image)) {
