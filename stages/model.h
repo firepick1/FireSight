@@ -19,10 +19,8 @@ using namespace cv;
 
 class ModelStage : public Stage {
 public:
-    ModelStage(json_t *pStage, Model &model) : Stage(pStage) {
+    ModelStage(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
     }
-
-    string getName() const { return "Model"; }
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model) {

@@ -19,7 +19,7 @@ using namespace cv;
 
 class CvtColor : public Stage {
 public:
-    CvtColor(json_t *pStage, Model &model) : Stage(pStage) {
+    CvtColor(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
         code = CV_BGR2GRAY;
         cvtCode[CV_BGR2GRAY]	= "CV_BGR2GRAY";
         codeStr = jo_string(pStage, "code", "CV_BGR2GRAY", model.argMap);
@@ -38,8 +38,6 @@ public:
         }
         _params["dstCn"] = new IntParameter(this, dstCn);
     }
-
-    string getName() const { return "CvtColor"; }
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model) {

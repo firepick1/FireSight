@@ -1192,6 +1192,12 @@ bool Pipeline::processModelGUI(Input * input, Model &model) {
                 workModel.image = Mat::zeros(workModel.image.size(), workModel.image.type());
             }
 
+            // Print out returned model
+            json_t *pModel = workModel.getJson(true);
+            char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
+            cout << pModelStr << endl;
+            free(pModelStr);
+
             history.push_back(workModel.image.clone());
         } // json_array_foreach
 
@@ -1294,7 +1300,7 @@ unique_ptr<Stage> Pipeline::parseStage(int index, json_t * pStage, Model &model)
     } else {
         LOGDEBUG1("%s", debugBuf);
         try {
-            stage = StageFactory::getStage(pOp.c_str(), pStage, model);
+            stage = StageFactory::getStage(pOp.c_str(), pStage, model, pName);
             if (!stage) {
 
                 const char *errMsg = "Failed to parse stage";
@@ -1376,19 +1382,19 @@ unique_ptr<Stage> Pipeline::parseStage(int index, json_t * pStage, Model &model)
 //    return ok;
 //}
 
-std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, Model &model)
+std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, Model &model, string pName)
 {
     static int id = 0;
     unique_ptr<Stage> stage = nullptr;
     try {
     if (strcmp(pOp, "absdiff")==0)
-        stage = unique_ptr<Stage>(new AbsDiff(pStage, model));
+        stage = unique_ptr<Stage>(new AbsDiff(pStage, model, pName));
 //    if (strcmp(pOp, "backgroundSubtractor")==0)
 //        ok = apply_backgroundSubtractor(pStage, pStageModel, model);
 //    if (strcmp(pOp, "bgsub")==0)
 //        ok = apply_backgroundSubtractor(pStage, pStageModel, model);
     if (strcmp(pOp, "blur")==0)
-        stage = unique_ptr<Stage>(new Blur(pStage, model));
+        stage = unique_ptr<Stage>(new Blur(pStage, model, pName));
 //    if (strcmp(pOp, "calcHist")==0)
 //        ok = apply_calcHist(pStage, pStageModel, model);
 //    if (strcmp(pOp, "calcOffset")==0)
@@ -1400,9 +1406,9 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //    if (strcmp(pOp, "cout")==0)
 //        ok = apply_cout(pStage, pStageModel, model);
     if (strcmp(pOp, "Canny")==0)
-        stage = unique_ptr<Stage>(new Canny(pStage, model));
+        stage = unique_ptr<Stage>(new Canny(pStage, model, pName));
     if (strcmp(pOp, "cvtColor")==0)
-        stage = unique_ptr<Stage>(new CvtColor(pStage, model));
+        stage = unique_ptr<Stage>(new CvtColor(pStage, model, pName));
 //    if (strcmp(pOp, "dft")==0) {
 //        ok = apply_dft(pStage, pStageModel, model);
 //    if (strcmp(pOp, "dftSpectrum")==0) {
@@ -1412,7 +1418,7 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //    if (strcmp(pOp, "drawKeypoints")==0) {
 //        ok = apply_drawKeypoints(pStage, pStageModel, model);
     if (strcmp(pOp, "drawRects")==0)
-        stage = unique_ptr<Stage>(new DrawRects(pStage, model));
+        stage = unique_ptr<Stage>(new DrawRects(pStage, model, pName));
 //        ok = apply_drawRects(pStage, pStageModel, model);
 //    if (strcmp(pOp, "equalizeHist")==0) {
 //        ok = apply_equalizeHist(pStage, pStageModel, model);
@@ -1427,9 +1433,9 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //    if (strcmp(pOp, "points2resolution_RANSAC")==0) {
 //        ok = apply_points2resolution_RANSAC(pStage, pStageModel, model);
     if (strcmp(pOp, "imread")==0)
-        stage = unique_ptr<Stage>(new ImRead(pStage, model));
+        stage = unique_ptr<Stage>(new ImRead(pStage, model, pName));
     if (strcmp(pOp, "imwrite")==0)
-        stage = unique_ptr<Stage>(new ImWrite(pStage, model));
+        stage = unique_ptr<Stage>(new ImWrite(pStage, model, pName));
 //    if (strcmp(pOp, "Mat")==0) {
 //        ok = apply_Mat(pStage, pStageModel, model);
 //    if (strcmp(pOp, "matchGrid")==0) {
@@ -1441,7 +1447,7 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //    if (strcmp(pOp, "minAreaRect")==0) {
 //        ok = apply_minAreaRect(pStage, pStageModel, model);
     if (strcmp(pOp, "model")==0)
-        stage = unique_ptr<Stage>(new ModelStage(pStage, model));
+        stage = unique_ptr<Stage>(new ModelStage(pStage, model, pName));
 //    if (strcmp(pOp, "morph")==0) {
 //        ok = apply_morph(pStage, pStageModel, model);
 //    if (strcmp(pOp, "MSER")==0) {
@@ -1453,7 +1459,7 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //    if (strcmp(pOp, "proto")==0) {
 //        ok = apply_proto(pStage, pStageModel, model);
     if (strcmp(pOp, "putText")==0)
-        stage = unique_ptr<Stage>(new Text(pStage, model));
+        stage = unique_ptr<Stage>(new Text(pStage, model, pName));
 //        ok = apply_putText(pStage, pStageModel, model);
 //#ifdef LGPL2_1
 //    if (strcmp(pOp, "qrDecode")==0) {
@@ -1466,7 +1472,7 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //    if (strcmp(pOp, "sharpness")==0) {
 //        ok = apply_sharpness(pStage, pStageModel, model);
     if (strcmp(pOp, "detectParts")==0)
-        stage = unique_ptr<Stage>(new PartDetector(pStage, model));
+        stage = unique_ptr<Stage>(new PartDetector(pStage, model, pName));
 //        ok = apply_detectParts(pStage, pStageModel, model);
 //    if (strcmp(pOp, "SimpleBlobDetector")==0) {
 //        ok = apply_SimpleBlobDetector(pStage, pStageModel, model);
@@ -1477,7 +1483,7 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //    if (strcmp(pOp, "transparent")==0) {
 //        ok = apply_transparent(pStage, pStageModel, model);
     if (strcmp(pOp, "threshold")==0)
-        stage = unique_ptr<Stage>(new Threshold(pStage, model));
+        stage = unique_ptr<Stage>(new Threshold(pStage, model, pName));
 //    if (strcmp(pOp, "undistort")==0) {
 //        ok = apply_undistort(pName, pStage, pStageModel, model);
 //    if (strcmp(pOp, "warpAffine")==0) {

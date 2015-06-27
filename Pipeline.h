@@ -356,7 +356,7 @@ namespace firesight {
 
     class Stage {
     public:
-        Stage(json_t *pStage) : pStage(pStage), errMsg("") {}
+        Stage(json_t *pStage, string pName) : pStage(pStage), errMsg(""), name(pName) { }
 
         bool apply(json_t *pStageModel, Model &model) {
             bool result;
@@ -377,7 +377,7 @@ namespace firesight {
             return result;
         }
 
-        virtual string getName() const = 0;
+        string getName() const { return name; }
 
         virtual string getErrorMessage() const { return errMsg; }
 
@@ -406,11 +406,12 @@ namespace firesight {
         map<string, Parameter*> _params;
         json_t *pStage;
         string errMsg;
+        string name;
     };
 
     class StageFactory {
     public:
-        static unique_ptr<Stage> getStage(const char *pOp, json_t *pStage, Model &model);
+        static unique_ptr<Stage> getStage(const char *pOp, json_t *pStage, Model &model, string pName);
     };
 
   typedef class CLASS_DECLSPEC Pipeline {

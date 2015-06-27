@@ -20,7 +20,7 @@ using namespace cv;
 class Text : public Stage
 {
 public:
-    Text(json_t *pStage, Model &model) : Stage(pStage) {
+    Text(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
         text = jo_string(pStage, "text", "FireSight", model.argMap);
         _params["text"] = new StringParameter(this, text);
         color = jo_Scalar(pStage, "color", Scalar(0,255,0), model.argMap);
@@ -37,8 +37,6 @@ public:
         org = jo_Point(pStage, "org", Point(5,-6), model.argMap);
         _params["org"] = new PointParameter(this, org);
     }
-
-    string getName() const { return "Text"; }
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model)
@@ -97,7 +95,7 @@ protected:
 class DrawRects : public Stage
 {
 public:
-    DrawRects(json_t *pStage, Model &model) : Stage(pStage) {
+    DrawRects(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
         color = jo_Scalar(pStage, "color", Scalar(-1,-1,-1,255), model.argMap);
         _params["color"] = new ScalarParameter(this, color);
         radius = jo_int(pStage, "radius", 0, model.argMap);
@@ -107,8 +105,6 @@ public:
         rectsModelName = jo_string(pStage, "model", "", model.argMap);
         _params["model"] = new StringParameter(this, rectsModelName);
     }
-
-    string getName() const { return "DrawRects"; }
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model)
@@ -120,6 +116,7 @@ private:
         if (rectsModelName.empty()) {
             errMsg = "model: expected name of stage with rects";
         } else if (!json_is_object(pRectsModel)) {
+            cout << "stage name:" << rectsModelName << endl;
             errMsg = "Named stage is not in model";
         }
 

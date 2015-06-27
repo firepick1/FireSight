@@ -19,7 +19,7 @@ using namespace cv;
 
 class Threshold : public Stage {
 public:
-    Threshold(json_t *pStage, Model &model) : Stage(pStage) {
+    Threshold(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
         mapType[THRESH_BINARY]		= "THRESH_BINARY";
         mapType[THRESH_BINARY_INV]  = "THRESH_BINARY_INV";
         mapType[THRESH_TRUNC]		= "THRESH_TRUNC";
@@ -49,8 +49,6 @@ public:
         gray = jo_bool(pStage, "gray", true, model.argMap);
         _params["gray"] = new BoolParameter(this, gray);
     }
-
-    virtual string getName() const { return "Threshold"; }
 
 private:
     virtual bool apply_internal(json_t *pStageModel, Model &model) {

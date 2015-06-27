@@ -19,10 +19,8 @@ using namespace cv;
 
 class PartDetector : public Stage {
 public:
-    PartDetector(json_t *pStage, Model &model) : Stage(pStage) {
+    PartDetector(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
     }
-
-    string getName() const { return "PartDetector"; }
 
 private:
     vector<RotatedRect> detect(cv::Mat& image);

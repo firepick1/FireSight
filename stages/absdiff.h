@@ -18,7 +18,7 @@ using namespace cv;
 
 class AbsDiff : public Stage {
 public:
-    AbsDiff(json_t *pStage, Model &model) : Stage(pStage) {
+    AbsDiff(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
         img2_path = jo_string(pStage, "path", "", model.argMap);
 
         if (img2_path.empty()) {
@@ -27,8 +27,6 @@ public:
 
         _params["path"] = new StringParameter(this, img2_path);
     }
-
-    virtual string getName() const { return "AbsDiff"; }
 
 private:
     virtual bool apply_internal(json_t *pStageModel, Model &model) {

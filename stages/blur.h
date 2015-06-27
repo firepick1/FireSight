@@ -29,7 +29,7 @@ public:
         MEDIAN
     };
 
-    Blur(json_t *pStage, Model &model) : Stage(pStage) {
+    Blur(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
         /* Blur type */
         type = GAUSSIAN;
         mapType[BILATERAL]			= "Bilateral";
@@ -106,8 +106,6 @@ public:
         _params["medianKSize"] = new IntParameter(this, medianKSize);
 
     }
-
-    string getName() const { return "Blur"; }
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model)

@@ -20,12 +20,10 @@ using namespace cv;
 class ImWrite : public Stage
 {
 public:
-    ImWrite(json_t *pStage, Model &model) : Stage(pStage) {
+    ImWrite(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
         path = jo_string(pStage, "path");
         _params["path"] = new StringParameter(this, path);
     }
-
-    string getName() const { return "ImWrite"; }
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model) {
@@ -50,12 +48,10 @@ protected:
 class ImRead : public Stage
 {
 public:
-    ImRead(json_t *pStage, Model &model) : Stage(pStage) {
+    ImRead(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
         path = jo_string(pStage, "path", "", model.argMap);
         _params["path"] = new StringParameter(this, path);
     }
-
-    string getName() const { return "ImRead"; }
 
     bool apply_internal(json_t *pStageModel, Model &model) {
         const char *errMsg = NULL;

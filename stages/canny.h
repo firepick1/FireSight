@@ -19,7 +19,7 @@ class Canny : public Stage
 {
 public:
 
-    Canny(json_t *pStage, Model &model) : Stage(pStage) {
+    Canny(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
         threshold1 = jo_float(pStage, "threshold1", 0, model.argMap);
         _params["threshold1"] = new FloatParameter(this, threshold1);
 
@@ -32,8 +32,6 @@ public:
         L2gradient = jo_bool(pStage, "L2gradient", false);
         _params["L2gradient"] = new BoolParameter(this, L2gradient);
     }
-
-    string getName() const { return "Canny"; }
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model)
