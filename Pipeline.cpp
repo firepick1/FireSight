@@ -50,6 +50,16 @@ bool Stage::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t 
     return true;
 }
 
+void Stage::validateImage(Mat &image)
+{
+    if (image.cols == 0 || image.rows == 0) {
+        image = Mat(100,100, CV_8UC3);
+        putText(image, "FireSight:", Point(10,20), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
+        putText(image, "No input", Point(10,40), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
+        putText(image, "image?", Point(10,60), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
+    }
+}
+
 // TODO remove call to Pipeline::stageOK
 bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
     return Stage::stageOK(fmt, errMsg, pStage, pStageModel);
@@ -129,128 +139,6 @@ bool Pipeline::apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &mod
     }
 
     return stageOK("apply_minAreaRect(%s) %s", errMsg, pStage, pStageModel);
-}
-
-bool Pipeline::apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    const char *errMsg = NULL;
-    float scale = jo_float(pStage, "scale", 1, model.argMap);
-    float angle = jo_float(pStage, "angle", 0, model.argMap);
-    int dx = jo_int(pStage, "dx", (int)((scale-1)*model.image.cols/2.0+.5), model.argMap);
-    int dy = jo_int(pStage, "dy", (int)((scale-1)*model.image.rows/2.0+.5), model.argMap);
-    Point2f reflect = jo_Point2f(pStage, "reflect", Point(0,0), model.argMap);
-    string  borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
-    int borderMode;
-
-	if (reflect.x && reflect.y && reflect.x != reflect.y) {
-		errMsg = "warpAffine only handles reflections around x- or y-axes";
-	}
-
-    if (!errMsg) {
-        if (borderModeStr.compare("BORDER_CONSTANT") == 0) {
-            borderMode = BORDER_CONSTANT;
-        } else if (borderModeStr.compare("BORDER_REPLICATE") == 0) {
-            borderMode = BORDER_REPLICATE;
-        } else if (borderModeStr.compare("BORDER_REFLECT") == 0) {
-            borderMode = BORDER_REFLECT;
-        } else if (borderModeStr.compare("BORDER_REFLECT_101") == 0) {
-            borderMode = BORDER_REFLECT_101;
-        } else if (borderModeStr.compare("BORDER_REFLECT101") == 0) {
-            borderMode = BORDER_REFLECT101;
-        } else if (borderModeStr.compare("BORDER_WRAP") == 0) {
-            borderMode = BORDER_WRAP;
-        } else {
-            errMsg = "Expected borderMode: BORDER_CONSTANT, BORDER_REPLICATE, BORDER_REFLECT, BORDER_REFLECT_101, BORDER_WRAP";
-        }
-    }
-
-    if (scale <= 0) {
-        errMsg = "Expected 0<scale";
-    }
-    int width = jo_int(pStage, "width", model.image.cols, model.argMap);
-    int height = jo_int(pStage, "height", model.image.rows, model.argMap);
-    int cx = jo_int(pStage, "cx", (int)(0.5+model.image.cols/2.0), model.argMap);
-    int cy = jo_int(pStage, "cy", (int)(0.5+model.image.rows/2.0), model.argMap);
-    Scalar borderValue = jo_Scalar(pStage, "borderValue", Scalar::all(0), model.argMap);
-
-    if (!errMsg) {
-        Mat result;
-		int flags=cv::INTER_LINEAR || WARP_INVERSE_MAP;
-        matWarpAffine(model.image, result, Point(cx,cy), angle, scale, Point(dx,dy), Size(width,height), 
-			borderMode, borderValue, reflect, flags);
-        model.image = result;
-    }
-
-    return stageOK("apply_warpAffine(%s) %s", errMsg, pStage, pStageModel);
-}
-
-bool Pipeline::apply_warpPerspective(const char *pName, json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-	string errMsg;
-
-    string  borderModeStr = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
-    int borderMode;
-
-    string modelName = jo_string(pStage, "model", pName, model.argMap);
-    vector<double> pm;
-    json_t *pCalibrate;
-    json_t *pCalibrateModel = json_object_get(model.getJson(false), modelName.c_str());
-    if (json_is_object(pCalibrateModel)) {
-        pCalibrate = json_object_get(pCalibrateModel, "calibrate");
-        if (!json_is_object(pCalibrate)) {
-            errMsg = "Expected \"calibrate\" JSON object in stage \"";
-            errMsg += modelName;
-            errMsg += "\"";
-        }
-    } else {
-        pCalibrate = pStage;
-    }
-	pm = jo_vectord(pCalibrate, "perspective", vector<double>(), model.argMap);
-	if (pm.size() == 0) {
-		double default_vec_d[] = {1,0,0,0,1,0,0,0,1};
-		vector<double> default_vecd(default_vec_d, default_vec_d + sizeof(default_vec_d) / sizeof(double) );
-		pm = jo_vectord(pCalibrate, "matrix", default_vecd, model.argMap);
-	}
-	Mat matrix = Mat::zeros(3, 3, CV_64F);
-	if (pm.size() == 9) {
-		for (int i=0; i<pm.size(); i++) {
-			matrix.at<double>(i/3, i%3) = pm[i];
-		}
-	} else {
-		char buf[255];
-		snprintf(buf, sizeof(buf), "apply_warpPerspective() invalid perspective matrix. Elements expected:9 actual:%d",
-			(int) pm.size());
-		LOGERROR1("%s", buf);
-		errMsg = buf;
-	}
-
-    if (errMsg.empty()) {
-        if (borderModeStr.compare("BORDER_CONSTANT") == 0) {
-            borderMode = BORDER_CONSTANT;
-        } else if (borderModeStr.compare("BORDER_REPLICATE") == 0) {
-            borderMode = BORDER_REPLICATE;
-        } else if (borderModeStr.compare("BORDER_REFLECT") == 0) {
-            borderMode = BORDER_REFLECT;
-        } else if (borderModeStr.compare("BORDER_REFLECT_101") == 0) {
-            borderMode = BORDER_REFLECT_101;
-        } else if (borderModeStr.compare("BORDER_REFLECT101") == 0) {
-            borderMode = BORDER_REFLECT101;
-        } else if (borderModeStr.compare("BORDER_WRAP") == 0) {
-            borderMode = BORDER_WRAP;
-        } else {
-            errMsg = "Expected borderMode: BORDER_CONSTANT, BORDER_REPLICATE, BORDER_REFLECT, BORDER_REFLECT_101, BORDER_WRAP";
-        }
-    }
-
-    Scalar borderValue = jo_Scalar(pStage, "borderValue", Scalar::all(0), model.argMap);
-
-    if (errMsg.empty()) {
-        Mat result = Mat::zeros(model.image.rows, model.image.cols, model.image.type());
-        warpPerspective(model.image, result, matrix, result.size(), cv::INTER_LINEAR, borderMode, borderValue );
-        model.image = result;
-    }
-
-    return stageOK("apply_warpPerspective(%s) %s", errMsg.c_str(), pStage, pStageModel);
 }
 
 bool Pipeline::apply_resize(json_t *pStage, json_t *pStageModel, Model &model) {
@@ -936,14 +824,9 @@ static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStag
     return true;
 }
 
-// TODO move to Stage
+// TODO remove
 void Pipeline::validateImage(Mat &image) {
-    if (image.cols == 0 || image.rows == 0) {
-        image = Mat(100,100, CV_8UC3);
-        putText(image, "FireSight:", Point(10,20), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
-        putText(image, "No input", Point(10,40), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
-        putText(image, "image?", Point(10,60), FONT_HERSHEY_PLAIN, 1, Scalar(128,255,255));
-    }
+    Stage::validateImage(image);
 }
 
 json_t *Pipeline::process(Input * input, ArgMap &argMap, Mat &output, bool gui) {
@@ -1338,12 +1221,12 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new Threshold(pStage, model, pName));
 //    if (strcmp(pOp, "undistort")==0) {
 //        ok = apply_undistort(pName, pStage, pStageModel, model);
-//    if (strcmp(pOp, "warpAffine")==0) {
-//        ok = apply_warpAffine(pStage, pStageModel, model);
-//    if (strcmp(pOp, "warpRing")==0) {
-//        ok = apply_warpRing(pStage, pStageModel, model);
-//    if (strcmp(pOp, "warpPerspective")==0) {
-//        ok = apply_warpPerspective(pName, pStage, pStageModel, model);
+    if (strcmp(pOp, "warpAffine")==0)
+        stage = unique_ptr<Stage>(new WarpAffine(pStage, model, pName));
+    if (strcmp(pOp, "warpRing")==0)
+        stage = unique_ptr<Stage>(new WarpRing(pStage, model, pName));
+    if (strcmp(pOp, "warpPerspective")==0)
+        stage = unique_ptr<Stage>(new WarpPerspective(pStage, model, pName));
 
 //    if (strncmp(pOp, "nop", 3)==0) {
 //        LOGDEBUG("Skipping nop...");

@@ -85,6 +85,7 @@ link_directories( ${BUILD_TARGET_DIR} ${BUILD_TARGET_DIR}/lib /usr/lib /usr/loca
 
 
 # files
+# TODO list the .cpp files here
 file(GLOB STAGE_FILES "stages/*.cpp")
 
 set(FIRESIGHT_LIB_FILES

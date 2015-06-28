@@ -353,6 +353,11 @@ namespace firesight {
         map<int, string> _map;
     };
 
+//    class VectorParameter : public Parameter {
+//    public:
+//        VectorParameter(Stage * stage, vector<double>& vec);
+//    };
+
 
     class Stage {
     public:
@@ -398,6 +403,8 @@ namespace firesight {
         virtual bool apply_internal(json_t *pStageModel, Model &model) = 0;
 
         static bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
+
+        static void validateImage(Mat &image);
 
         map<string, Parameter*>& getParams() { return _params; }
         void setParameter(string name, Parameter * value);
@@ -457,14 +464,11 @@ namespace firesight {
       bool apply_proto(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_resize(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_warpRing(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_split(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_transparent(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_warpAffine(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_warpPerspective(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
 
       void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
       void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);

@@ -336,7 +336,7 @@ private:
 class DrawKeypoints: public Stage
 {
 public:
-    drawKeypoints(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
+    DrawKeypoints(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
         color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
         _params["color"] = new ScalarParameter(this, color);
         flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG|DrawMatchesFlags::DRAW_RICH_KEYPOINTS, model.argMap);

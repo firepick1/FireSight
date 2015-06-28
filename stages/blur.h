@@ -70,8 +70,8 @@ public:
         /* Border type */
         border = BORDER_DEFAULT;
         mapBorder[BORDER_DEFAULT]	= "Default";
-        //mapBorder[BORDER_CONSTANT]	= "Constant";
-        //mapBorder[BORDER_REPLICATE] = "Replicate";
+        mapBorder[BORDER_CONSTANT]	= "Constant";
+        mapBorder[BORDER_REPLICATE] = "Replicate";
         mapBorder[BORDER_ISOLATED]	= "Isolated";
         mapBorder[BORDER_REFLECT]	= "Reflect";
         mapBorder[BORDER_REFLECT_101] = "Reflect 101";
