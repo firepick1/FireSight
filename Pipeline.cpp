@@ -394,53 +394,6 @@ bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model)
 }
 #endif // LGPL2_1
 
-bool Pipeline::apply_drawKeypoints(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    const char *errMsg = NULL;
-    Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
-    int flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG|DrawMatchesFlags::DRAW_RICH_KEYPOINTS, model.argMap);
-    string modelName = jo_string(pStage, "model", "", model.argMap);
-    json_t *pKeypointStage = jo_object(model.getJson(false), modelName.c_str(), model.argMap);
-
-    if (!pKeypointStage) {
-        string keypointStageName = jo_string(pStage, "keypointStage", "", model.argMap);
-        pKeypointStage = jo_object(model.getJson(false), keypointStageName.c_str(), model.argMap);
-    }
-
-    if (!errMsg && flags < 0 || 7 < flags) {
-        errMsg = "expected 0 < flags < 7";
-    }
-
-    if (!errMsg && !pKeypointStage) {
-        errMsg = "expected name of stage model";
-    }
-
-    vector<KeyPoint> keypoints;
-    if (!errMsg) {
-        json_t *pKeypoints = jo_object(pKeypointStage, "keypoints", model.argMap);
-        if (!json_is_array(pKeypoints)) {
-            errMsg = "keypointStage has no keypoints JSON array";
-        } else {
-            size_t index;
-            json_t *pKeypoint;
-            json_array_foreach(pKeypoints, index, pKeypoint) {
-                float x = jo_float(pKeypoint, "pt.x", -1, model.argMap);
-                float y = jo_float(pKeypoint, "pt.y", -1, model.argMap);
-                float size = jo_float(pKeypoint, "size", 10, model.argMap);
-                float angle = jo_float(pKeypoint, "angle", -1, model.argMap);
-                KeyPoint keypoint(x, y, size, angle);
-                keypoints.push_back(keypoint);
-            }
-        }
-    }
-
-    if (!errMsg) {
-        drawKeypoints(model.image, keypoints, model.image, color, flags);
-    }
-
-    return stageOK("apply_drawKeypoints(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model) {
     const char *errMsg = NULL;
 
@@ -983,6 +936,7 @@ static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStag
     return true;
 }
 
+// TODO move to Stage
 void Pipeline::validateImage(Mat &image) {
     if (image.cols == 0 || image.rows == 0) {
         image = Mat(100,100, CV_8UC3);
@@ -1313,8 +1267,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_dftSpectrum(pStage, pStageModel, model);
 //    if (strcmp(pOp, "dilate")==0) {
 //        ok = apply_dilate(pStage, pStageModel, model);
-//    if (strcmp(pOp, "drawKeypoints")==0) {
-//        ok = apply_drawKeypoints(pStage, pStageModel, model);
+    if (strcmp(pOp, "drawKeypoints")==0)
+        stage = unique_ptr<Stage>(new DrawKeypoints(pStage, model, pName));
     if (strcmp(pOp, "drawRects")==0)
         stage = unique_ptr<Stage>(new DrawRects(pStage, model, pName));
 //        ok = apply_drawRects(pStage, pStageModel, model);

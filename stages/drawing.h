@@ -333,6 +333,72 @@ private:
     int shift;
 };
 
+class DrawKeypoints: public Stage
+{
+public:
+    drawKeypoints(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
+        color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
+        _params["color"] = new ScalarParameter(this, color);
+        flags = jo_int(pStage, "flags", DrawMatchesFlags::DRAW_OVER_OUTIMG|DrawMatchesFlags::DRAW_RICH_KEYPOINTS, model.argMap);
+        _params["flags"] = new IntParameter(this, flags);
+        modelName = jo_string(pStage, "model", "", model.argMap);
+        _params["model"] = new StringParameter(this, modelName);
+    }
+
+private:
+    bool apply_internal(json_t *pStageModel, Model &model) {
+        Pipeline::validateImage(model.image);
+
+        const char *errMsg = NULL;
+
+        json_t *pKeypointStage = jo_object(model.getJson(false), modelName.c_str(), model.argMap);
+
+        if (!pKeypointStage) {
+            string keypointStageName = jo_string(pStage, "keypointStage", "", model.argMap);
+            pKeypointStage = jo_object(model.getJson(false), keypointStageName.c_str(), model.argMap);
+        }
+
+        if (!errMsg && flags < 0 || 7 < flags) {
+            errMsg = "expected 0 < flags < 7";
+        }
+
+        if (!errMsg && !pKeypointStage) {
+            errMsg = "expected name of stage model";
+        }
+
+        vector<KeyPoint> keypoints;
+        if (!errMsg) {
+            json_t *pKeypoints = jo_object(pKeypointStage, "keypoints", model.argMap);
+            if (!json_is_array(pKeypoints)) {
+                errMsg = "keypointStage has no keypoints JSON array";
+            } else {
+                size_t index;
+                json_t *pKeypoint;
+                json_array_foreach(pKeypoints, index, pKeypoint) {
+                    float x = jo_float(pKeypoint, "pt.x", -1, model.argMap);
+                    float y = jo_float(pKeypoint, "pt.y", -1, model.argMap);
+                    float size = jo_float(pKeypoint, "size", 10, model.argMap);
+                    float angle = jo_float(pKeypoint, "angle", -1, model.argMap);
+                    KeyPoint keypoint(x, y, size, angle);
+                    keypoints.push_back(keypoint);
+                }
+            }
+        }
+
+        if (!errMsg) {
+            drawKeypoints(model.image, keypoints, model.image, color, flags);
+        }
+
+        return stageOK("apply_drawKeypoints(%s) %s", errMsg, pStage, pStageModel);
+    }
+
+    Scalar color;
+    int flags;
+    string modelName;
+
+
+};
+
 
 }
 
