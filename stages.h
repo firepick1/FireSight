@@ -14,6 +14,7 @@
 #include "stages/FireSightStage.h"
 #include "stages/io.h"
 #include "stages/model.h"
+#include "stages/morph.h"
 #include "stages/transform.h"
 #include "stages/threshold.h"
 

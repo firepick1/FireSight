@@ -33,6 +33,8 @@ using namespace std;
 
 namespace firesight {
 
+    const float PI = 3.141592653589793f;
+
 	CLASS_DECLSPEC typedef map<string,const char *> ArgMap;
 	CLASS_DECLSPEC extern ArgMap emptyMap;
 
@@ -50,45 +52,6 @@ namespace firesight {
     json_t *as_json_t();
   } MatchedRegion;
 
-
-  typedef class HoleRecognizer {
-#define HOLE_SHOW_NONE 0 /* do not show matches */
-#define HOLE_SHOW_MSER 1 /* show all MSER matches */
-#define HOLE_SHOW_MATCHES 2 /* only show MSER matches that meet hole criteria */
-    public:
-      HoleRecognizer(float minDiameter, float maxDiameter);
-
-//      bool apply(json_t *pStage, json_t *pStageModel, Model &model) {
-//    	  return apply_absdiff(pStage, pStageModel, model);
-//      }
-
-      /**
-       * Update the working image to show MSER matches.
-       * Image must have at least three channels representing RGB values.
-       * @param show matched regions. Default is HOLE_SHOW_NONE
-       */
-      void showMatches(int show);
-
-      void scan(Mat &matRGB, vector<MatchedRegion> &matches, float maxEllipse = 1.05, float maxCovar = 2.0);
-
-    private:
-      int _showMatches;
-      MSER mser;
-      float minDiam;
-      float maxDiam;
-      int delta;
-      int minArea;
-      int maxArea;
-      float maxVariation;
-      float minDiversity;
-      int max_evolution;
-      float area_threshold;
-      float min_margin;
-      int edge_blur_size;
-      void scanRegion(vector<Point> &pts, int i,
-        Mat &matRGB, vector<MatchedRegion> &matches, float maxEllipse, float maxCovar);
-
-  } MSER_holes;
 
     typedef struct Circle {
         float x;
@@ -433,7 +396,6 @@ namespace firesight {
       KeyPoint _regionKeypoint(const vector<Point> &region);
       void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
       void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
-      bool morph(json_t *pStage, json_t *pStageModel, Model &model, String mop, const char * fmt) ;
 
       bool apply_backgroundSubtractor(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model);
@@ -443,10 +405,7 @@ namespace firesight {
       bool apply_cout(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_dft(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_dilate(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_erode(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_HoughCircles(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_sharpness(json_t *pStage, json_t *pStageModel, Model &model);
@@ -458,7 +417,6 @@ namespace firesight {
       bool apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_meanStdDev(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_morph(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_MSER(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_normalize(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_proto(json_t *pStage, json_t *pStageModel, Model &model);

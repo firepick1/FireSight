@@ -697,37 +697,6 @@ bool Pipeline::apply_transparent(json_t *pStage, json_t *pStageModel, Model &mod
     return stageOK("apply_alpha(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_HoleRecognizer(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    float diamMin = jo_float(pStage, "diamMin", 0, model.argMap);
-    float diamMax = jo_float(pStage, "diamMax", 0, model.argMap);
-    int showMatches = jo_int(pStage, "show", 0, model.argMap);
-    const char *errMsg = NULL;
-
-    if (diamMin <= 0 || diamMax <= 0 || diamMin > diamMax) {
-        errMsg = "expected: 0 < diamMin < diamMax ";
-    } else if (showMatches < 0) {
-        errMsg = "expected: 0 < showMatches ";
-    } else if (logLevel >= FIRELOG_TRACE) {
-        char *pStageJson = json_dumps(pStage, 0);
-        LOGTRACE1("apply_HoleRecognizer(%s)", pStageJson);
-        free(pStageJson);
-    }
-    if (!errMsg) {
-        vector<MatchedRegion> matches;
-        HoleRecognizer recognizer(diamMin, diamMax);
-        recognizer.showMatches(showMatches);
-        recognizer.scan(model.image, matches);
-        json_t *holes = json_array();
-        json_object_set(pStageModel, "holes", holes);
-        for (size_t i = 0; i < matches.size(); i++) {
-            json_array_append(holes, matches[i].as_json_t());
-        }
-    }
-
-    return stageOK("apply_HoleRecognizer(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_HoughCircles(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
     int diamMin = jo_int(pStage, "diamMin", 0, model.argMap);
@@ -928,10 +897,10 @@ bool Pipeline::processModelGUI(Input * input, Model &model) {
             }
 
             // Print out returned model
-            json_t *pModel = workModel.getJson(true);
-            char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
-            cout << pModelStr << endl;
-            free(pModelStr);
+//            json_t *pModel = workModel.getJson(true);
+//            char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
+//            cout << pModelStr << endl;
+//            free(pModelStr);
 
             history.push_back(workModel.image.clone());
         } // json_array_foreach
@@ -1148,8 +1117,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_dft(pStage, pStageModel, model);
 //    if (strcmp(pOp, "dftSpectrum")==0) {
 //        ok = apply_dftSpectrum(pStage, pStageModel, model);
-//    if (strcmp(pOp, "dilate")==0) {
-//        ok = apply_dilate(pStage, pStageModel, model);
+    if (strcmp(pOp, "dilate")==0)
+        stage = unique_ptr<Stage>(new Dilate(pStage, model, pName));
     if (strcmp(pOp, "drawKeypoints")==0)
         stage = unique_ptr<Stage>(new DrawKeypoints(pStage, model, pName));
     if (strcmp(pOp, "drawRects")==0)
@@ -1157,12 +1126,12 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_drawRects(pStage, pStageModel, model);
 //    if (strcmp(pOp, "equalizeHist")==0) {
 //        ok = apply_equalizeHist(pStage, pStageModel, model);
-//    if (strcmp(pOp, "erode")==0) {
-//        ok = apply_erode(pStage, pStageModel, model);
+    if (strcmp(pOp, "erode")==0)
+        stage = unique_ptr<Stage>(new Erode(pStage, model, pName));
     if (strcmp(pOp, "FireSight")==0)
         stage = unique_ptr<Stage>(new FireSightStage(pStage, model, pName));
-//    if (strcmp(pOp, "HoleRecognizer")==0) {
-//        ok = apply_HoleRecognizer(pStage, pStageModel, model);
+    if (strcmp(pOp, "HoleRecognizer")==0)
+        stage = unique_ptr<Stage>(new HoleRecognizer(pStage, model, pName));
 //    if (strcmp(pOp, "HoughCircles")==0) {
 //        ok = apply_HoughCircles(pStage, pStageModel, model);
 //    if (strcmp(pOp, "points2resolution_RANSAC")==0) {
@@ -1183,8 +1152,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_minAreaRect(pStage, pStageModel, model);
     if (strcmp(pOp, "model")==0)
         stage = unique_ptr<Stage>(new ModelStage(pStage, model, pName));
-//    if (strcmp(pOp, "morph")==0) {
-//        ok = apply_morph(pStage, pStageModel, model);
+    if (strcmp(pOp, "morph")==0)
+        stage = unique_ptr<Stage>(new Morph(pStage, model, pName));
 //    if (strcmp(pOp, "MSER")==0) {
 //        ok = apply_MSER(pStage, pStageModel, model);
 //    if (strcmp(pOp, "normalize")==0) {
