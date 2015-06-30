@@ -52,56 +52,6 @@ namespace firesight {
     json_t *as_json_t();
   } MatchedRegion;
 
-
-    typedef struct Circle {
-        float x;
-        float y;
-        float radius;
-
-        Circle(float x, float y, float radius);
-        string asJson();
-        json_t *as_json_t();
-    } Circle;
-
-  typedef class HoughCircle {
-#define CIRCLE_SHOW_NONE 0 /* do not show circles */
-#define CIRCLE_SHOW_ALL 1  /* show all circles */
-    public:
-      HoughCircle(int minDiameter, int maxDiameter);
-
-      /**
-       * Update the working image to show detected circles.
-       * Image must have at least three channels representing RGB values.
-       * @param show matched regions. Default is CIRCLE_SHOW_NONE
-       */
-      void setShowCircles(int show);
-
-      void scan(Mat &matRGB, vector<Circle> &circles);
-
-      void setFilterParams( int d, double sigmaColor, double sigmaSpace);
-      void setHoughParams(double dp, double minDist, double param1, double param2);
-
-    private:
-      int _showCircles;
-      int minDiam;
-      int maxDiam;
-      vector<Circle> circles;
-
-      void show(Mat & image, vector<Circle> circles);
-
-      // bilateral filter parameters
-      int bf_d;
-      double bf_sigmaColor;
-      double bf_sigmaSpace;
-
-      // HoughCircle parameters
-      double hc_dp;
-      double hc_minDist;
-      double hc_param1;
-      double hc_param2;
-
-  } HoughCircle;
-
   typedef struct XY {
       double x, y;
       XY(): x(0), y(0) {}
@@ -406,7 +356,6 @@ namespace firesight {
       bool apply_dft(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_HoughCircles(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_sharpness(json_t *pStage, json_t *pStageModel, Model &model);
 #ifdef LGPL2_1

@@ -697,48 +697,6 @@ bool Pipeline::apply_transparent(json_t *pStage, json_t *pStageModel, Model &mod
     return stageOK("apply_alpha(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_HoughCircles(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    int diamMin = jo_int(pStage, "diamMin", 0, model.argMap);
-    int diamMax = jo_int(pStage, "diamMax", 0, model.argMap);
-    int showCircles = jo_int(pStage, "show", 0, model.argMap);
-    // alg. parameters
-    int bf_d = jo_int(pStage, "bilateralfilter_d", 15, model.argMap);
-    double bf_sigmaColor = jo_double(pStage, "bilateralfilter_sigmaColor", 1000, model.argMap);
-    double bf_sigmaSpace = jo_double(pStage, "bilateralfilter_sigmaSpace", 1000, model.argMap);
-    double hc_dp = jo_double(pStage, "houghcircles_dp", 1, model.argMap);
-    double hc_minDist = jo_double(pStage, "houghcircles_minDist", 10, model.argMap);
-    double hc_param1 = jo_double(pStage, "houghcircles_param1", 80, model.argMap);
-    double hc_param2 = jo_double(pStage, "houghcircles_param2", 10, model.argMap);
-
-    const char *errMsg = NULL;
-
-    if (diamMin <= 0 || diamMax <= 0 || diamMin > diamMax) {
-        errMsg = "expected: 0 < diamMin < diamMax ";
-    } else if (showCircles < 0) {
-        errMsg = "expected: 0 < showCircles ";
-    } else if (logLevel >= FIRELOG_TRACE) {
-        char *pStageJson = json_dumps(pStage, 0);
-        LOGTRACE1("apply_HoughCircles(%s)", pStageJson);
-        free(pStageJson);
-    }
-    if (!errMsg) {
-        vector<Circle> circles;
-        HoughCircle hough_c(diamMin, diamMax);
-        hough_c.setShowCircles(showCircles);
-        hough_c.setFilterParams(bf_d, bf_sigmaColor, bf_sigmaSpace);
-        hough_c.setHoughParams(hc_dp, hc_minDist, hc_param1, hc_param2);
-        hough_c.scan(model.image, circles);
-        json_t *circles_json = json_array();
-        json_object_set(pStageModel, "circles", circles_json);
-        for (size_t i = 0; i < circles.size(); i++) {
-            json_array_append(circles_json, circles[i].as_json_t());
-        }
-    }
-
-    return stageOK("apply_HoughCircles(%s) %s", errMsg, pStage, pStageModel);
-}
-
 Pipeline::Pipeline(const char *pDefinition, DefinitionType defType) {
     json_error_t jerr;
     string pipelineString = pDefinition;
@@ -1132,8 +1090,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new FireSightStage(pStage, model, pName));
     if (strcmp(pOp, "HoleRecognizer")==0)
         stage = unique_ptr<Stage>(new HoleRecognizer(pStage, model, pName));
-//    if (strcmp(pOp, "HoughCircles")==0) {
-//        ok = apply_HoughCircles(pStage, pStageModel, model);
+    if (strcmp(pOp, "HoughCircles")==0)
+        stage = unique_ptr<Stage>(new HoughCircles(pStage, model, pName));
 //    if (strcmp(pOp, "points2resolution_RANSAC")==0) {
 //        ok = apply_points2resolution_RANSAC(pStage, pStageModel, model);
     if (strcmp(pOp, "imread")==0)
