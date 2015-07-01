@@ -18,6 +18,7 @@
 #include "stages/fourier.h"
 #include "stages/io.h"
 #include "stages/meanStdDev.h"
+#include "stages/minAreaRect.h"
 #include "stages/model.h"
 #include "stages/morph.h"
 #include "stages/resize.h"
