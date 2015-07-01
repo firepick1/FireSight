@@ -8,6 +8,7 @@
 #include "stages/absdiff.h"
 #include "stages/bgSubtraction.h"
 #include "stages/blur.h"
+#include "stages/calcHist.h"
 #include "stages/canny.h"
 #include "stages/color.h"
 #include "stages/detector.h"
