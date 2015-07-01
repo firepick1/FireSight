@@ -12,6 +12,7 @@
 #include "stages/detector.h"
 #include "stages/drawing.h"
 #include "stages/FireSightStage.h"
+#include "stages/fourier.h"
 #include "stages/io.h"
 #include "stages/model.h"
 #include "stages/morph.h"

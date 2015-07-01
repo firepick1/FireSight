@@ -1071,17 +1071,16 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new Canny(pStage, model, pName));
     if (strcmp(pOp, "cvtColor")==0)
         stage = unique_ptr<Stage>(new CvtColor(pStage, model, pName));
-//    if (strcmp(pOp, "dft")==0) {
-//        ok = apply_dft(pStage, pStageModel, model);
-//    if (strcmp(pOp, "dftSpectrum")==0) {
-//        ok = apply_dftSpectrum(pStage, pStageModel, model);
+    if (strcmp(pOp, "dft")==0)
+        stage = unique_ptr<Stage>(new DFT(pStage, model, pName));
+    if (strcmp(pOp, "dftSpectrum")==0)
+        stage = unique_ptr<Stage>(new DFTSpectrum(pStage, model, pName));
     if (strcmp(pOp, "dilate")==0)
         stage = unique_ptr<Stage>(new Dilate(pStage, model, pName));
     if (strcmp(pOp, "drawKeypoints")==0)
         stage = unique_ptr<Stage>(new DrawKeypoints(pStage, model, pName));
     if (strcmp(pOp, "drawRects")==0)
         stage = unique_ptr<Stage>(new DrawRects(pStage, model, pName));
-//        ok = apply_drawRects(pStage, pStageModel, model);
 //    if (strcmp(pOp, "equalizeHist")==0) {
 //        ok = apply_equalizeHist(pStage, pStageModel, model);
     if (strcmp(pOp, "erode")==0)
@@ -1102,8 +1101,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_Mat(pStage, pStageModel, model);
 //    if (strcmp(pOp, "matchGrid")==0) {
 //        ok = apply_matchGrid(pStage, pStageModel, model);
-//    if (strcmp(pOp, "matchTemplate")==0) {
-//        ok = apply_matchTemplate(pStage, pStageModel, model);
+    if (strcmp(pOp, "matchTemplate")==0)
+        stage = unique_ptr<Stage>(new TemplateMatch(pStage, model, pName));
 //    if (strcmp(pOp, "meanStdDev")==0) {
 //        ok = apply_meanStdDev(pStage, pStageModel, model);
 //    if (strcmp(pOp, "minAreaRect")==0) {
