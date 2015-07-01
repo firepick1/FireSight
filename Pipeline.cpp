@@ -955,10 +955,9 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
     try {
     if (strcmp(pOp, "absdiff")==0)
         stage = unique_ptr<Stage>(new AbsDiff(pStage, model, pName));
-//    if (strcmp(pOp, "backgroundSubtractor")==0)
-//        ok = apply_backgroundSubtractor(pStage, pStageModel, model);
-//    if (strcmp(pOp, "bgsub")==0)
-//        ok = apply_backgroundSubtractor(pStage, pStageModel, model);
+    if ((strcmp(pOp, "backgroundSubtractor")==0)
+        || (strcmp(pOp, "bgsub")==0))
+        stage = unique_ptr<Stage>(new BackgroundSubtraction(pStage, model, pName));
     if (strcmp(pOp, "blur")==0)
         stage = unique_ptr<Stage>(new Blur(pStage, model, pName));
 //    if (strcmp(pOp, "calcHist")==0)

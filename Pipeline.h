@@ -347,8 +347,6 @@ namespace firesight {
       void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
       void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
 
-      bool apply_backgroundSubtractor(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_matchTemplate(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model);
