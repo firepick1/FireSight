@@ -364,7 +364,6 @@ namespace firesight {
       bool apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_split(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_transparent(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
 
       void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
@@ -399,6 +398,9 @@ namespace firesight {
        * @return pointer to jansson root node of JSON object that has a field for each recognized stage model. E.g., {s1:{...}, s2:{...}, ... , sN:{...}}
        */
       json_t *process(Input * input, ArgMap &argMap, Mat &output, bool gui = false);
+
+    private:
+      static const int UP = 65362;
 
   } Pipeline;
 

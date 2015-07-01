@@ -10,7 +10,7 @@
 #include "stages/blur.h"
 #include "stages/calcHist.h"
 #include "stages/canny.h"
-#include "stages/color.h"
+#include "stages/convert.h"
 #include "stages/detector.h"
 #include "stages/drawing.h"
 #include "stages/equalizeHist.h"
@@ -23,6 +23,7 @@
 #include "stages/resize.h"
 #include "stages/stageImage.h"
 #include "stages/transform.h"
+#include "stages/transparent.h"
 #include "stages/threshold.h"
 
 #endif // STAGES_H

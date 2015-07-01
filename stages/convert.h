@@ -1,10 +1,5 @@
-#ifndef COLOR_H
-#define COLOR_H
-
-/*
- * @Author  : Simon Fojtu
- * @Date    : 17.06.2015
- */
+#ifndef CONVERT_H
+#define CONVERT_H
 
 #include "Pipeline.h"
 #include "jo_util.hpp"
@@ -285,4 +280,4 @@ protected:
 }
 
 
-#endif // COLOR_H
+#endif // CONVERT_H
