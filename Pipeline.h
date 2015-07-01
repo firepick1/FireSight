@@ -159,6 +159,18 @@ namespace firesight {
         int& value;
     };
 
+    class SizeTParameter : public Parameter {
+    public:
+        SizeTParameter(Stage *stage, size_t& value) :
+            Parameter(stage), value(value)
+        {}
+        string toString() const { return std::to_string(value); }
+        void inc() { value++; }
+        void dec() { if (value > 0) value--; }
+    private:
+        size_t& value;
+    };
+
     class BoolParameter : public Parameter {
     public:
         BoolParameter(Stage * stage, bool& value) :
@@ -360,7 +372,6 @@ namespace firesight {
       bool apply_normalize(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_proto(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_split(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
 

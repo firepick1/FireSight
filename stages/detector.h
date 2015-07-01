@@ -244,6 +244,90 @@ private:
     double hc_param2;
 };
 
+class BlobDetector : public Stage {
+public:
+    BlobDetector(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
+        params.thresholdStep = jo_float(pStage, "thresholdStep", params.thresholdStep, model.argMap);
+        _params["thresholdStep"] = new FloatParameter(this, params.thresholdStep);
+        params.minThreshold = jo_float(pStage, "minThreshold", params.minThreshold, model.argMap);
+        _params["minThreshold"] = new FloatParameter(this, params.minThreshold);
+        params.maxThreshold = jo_float(pStage, "maxThreshold", params.maxThreshold, model.argMap);
+        _params["maxThreshold"] = new FloatParameter(this, params.maxThreshold);
+        params.minRepeatability = jo_int(pStage, "minRepeatability", params.minRepeatability, model.argMap);
+        _params["minRepeatability"] = new SizeTParameter(this, params.minRepeatability);
+        params.minDistBetweenBlobs = jo_float(pStage, "minDistBetweenBlobs", params.minDistBetweenBlobs, model.argMap);
+        _params["minDistBetweenBlobs"] = new FloatParameter(this, params.minDistBetweenBlobs);
+        params.filterByColor = jo_bool(pStage, "filterByColor", params.filterByColor);
+        _params["filterByColor"] = new BoolParameter(this, params.filterByColor);
+        params.blobColor = jo_int(pStage, "blobColor", params.blobColor, model.argMap);
+        _params["blobColor"] = new SizeTParameter(this, (size_t&) params.blobColor);
+        params.filterByArea = jo_bool(pStage, "filterByArea", params.filterByArea);
+        _params["filterByArea"] = new BoolParameter(this, params.filterByArea);
+        params.minArea = jo_float(pStage, "minArea", params.minArea, model.argMap);
+        _params["minArea"] = new FloatParameter(this, params.minArea);
+        params.maxArea = jo_float(pStage, "maxArea", params.maxArea, model.argMap);
+        _params["maxArea"] = new FloatParameter(this, params.maxArea);
+        params.filterByCircularity = jo_bool(pStage, "filterByCircularity", params.filterByCircularity);
+        _params["filterByCircularity"] = new BoolParameter(this, params.filterByCircularity);
+        params.minCircularity = jo_float(pStage, "minCircularity", params.minCircularity, model.argMap);
+        _params["minCircularity"] = new FloatParameter(this, params.minCircularity);
+        params.maxCircularity = jo_float(pStage, "maxCircularity", params.maxCircularity, model.argMap);
+        _params["maxCircularity"] = new FloatParameter(this, params.maxCircularity);
+        params.filterByInertia = jo_bool(pStage, "filterByInertia", params.filterByInertia, model.argMap);
+        _params["filterByIntertia"] = new BoolParameter(this, params.filterByInertia);
+        params.minInertiaRatio = jo_float(pStage, "minInertiaRatio", params.minInertiaRatio, model.argMap);
+        _params["minInertiaRatio"] = new FloatParameter(this, params.minInertiaRatio);
+        params.maxInertiaRatio = jo_float(pStage, "maxInertiaRatio", params.maxInertiaRatio, model.argMap);
+        _params["maxInertiaRatio"] = new FloatParameter(this, params.maxInertiaRatio);
+        params.filterByConvexity = jo_bool(pStage, "filterByConvexity", params.filterByConvexity);
+        _params["filterByCOnvexity"] = new BoolParameter(this, params.filterByConvexity);
+        params.minConvexity = jo_float(pStage, "minConvexity", params.minConvexity, model.argMap);
+        _params["minConvexity"] = new FloatParameter(this, params.minConvexity);
+        params.maxConvexity = jo_float(pStage, "maxConvexity", params.maxConvexity, model.argMap);
+        _params["maxConvexity"] = new FloatParameter(this, params.maxConvexity);
+
+    }
+
+protected:
+    bool apply_internal(json_t *pStageModel, Model &model) {
+        validateImage(model.image);
+        const char *errMsg = NULL;
+
+        if (!errMsg) {
+            SimpleBlobDetector detector(params);
+            SimpleBlobDetector(params);
+            detector.create("SimpleBlob");
+            vector<cv::KeyPoint> keyPoints;
+            LOGTRACE("apply_SimpleBlobDetector detect()");
+            detector.detect(model.image, keyPoints);
+            modelKeyPoints(pStageModel, keyPoints);
+        }
+
+        return stageOK("apply_SimpleBlobDetector(%s) %s", errMsg, pStage, pStageModel);
+    }
+
+    static void modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &keyPoints) {
+        json_t *pKeyPoints = json_array();
+        json_object_set(pStageModel, "keypoints", pKeyPoints);
+        for (size_t i=0; i<keyPoints.size(); i++) {
+            json_t *pKeyPoint = json_object();
+            json_object_set(pKeyPoint, "pt.x", json_real(keyPoints[i].pt.x));
+            json_object_set(pKeyPoint, "pt.y", json_real(keyPoints[i].pt.y));
+            json_object_set(pKeyPoint, "size", json_real(keyPoints[i].size));
+            if (keyPoints[i].angle != -1) {
+                json_object_set(pKeyPoint, "angle", json_real(keyPoints[i].angle));
+            }
+            if (keyPoints[i].response != 0) {
+                json_object_set(pKeyPoint, "response", json_real(keyPoints[i].response));
+            }
+            json_array_append(pKeyPoints, pKeyPoint);
+        }
+    }
+
+
+    SimpleBlobDetector::Params params;
+};
+
 }
 
 

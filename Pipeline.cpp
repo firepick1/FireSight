@@ -171,61 +171,6 @@ bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model)
 }
 #endif // LGPL2_1
 
-static void modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &keyPoints) {
-    json_t *pKeyPoints = json_array();
-    json_object_set(pStageModel, "keypoints", pKeyPoints);
-    for (size_t i=0; i<keyPoints.size(); i++) {
-        json_t *pKeyPoint = json_object();
-        json_object_set(pKeyPoint, "pt.x", json_real(keyPoints[i].pt.x));
-        json_object_set(pKeyPoint, "pt.y", json_real(keyPoints[i].pt.y));
-        json_object_set(pKeyPoint, "size", json_real(keyPoints[i].size));
-        if (keyPoints[i].angle != -1) {
-            json_object_set(pKeyPoint, "angle", json_real(keyPoints[i].angle));
-        }
-        if (keyPoints[i].response != 0) {
-            json_object_set(pKeyPoint, "response", json_real(keyPoints[i].response));
-        }
-        json_array_append(pKeyPoints, pKeyPoint);
-    }
-}
-
-bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    SimpleBlobDetector::Params params;
-    params.thresholdStep = jo_float(pStage, "thresholdStep", params.thresholdStep, model.argMap);
-    params.minThreshold = jo_float(pStage, "minThreshold", params.minThreshold, model.argMap);
-    params.maxThreshold = jo_float(pStage, "maxThreshold", params.maxThreshold, model.argMap);
-    params.minRepeatability = jo_int(pStage, "minRepeatability", params.minRepeatability, model.argMap);
-    params.minDistBetweenBlobs = jo_float(pStage, "minDistBetweenBlobs", params.minDistBetweenBlobs, model.argMap);
-    params.filterByColor = jo_bool(pStage, "filterByColor", params.filterByColor);
-    params.blobColor = jo_int(pStage, "blobColor", params.blobColor, model.argMap);
-    params.filterByArea = jo_bool(pStage, "filterByArea", params.filterByArea);
-    params.minArea = jo_float(pStage, "minArea", params.minArea, model.argMap);
-    params.maxArea = jo_float(pStage, "maxArea", params.maxArea, model.argMap);
-    params.filterByCircularity = jo_bool(pStage, "filterByCircularity", params.filterByCircularity);
-    params.minCircularity = jo_float(pStage, "minCircularity", params.minCircularity, model.argMap);
-    params.maxCircularity = jo_float(pStage, "maxCircularity", params.maxCircularity, model.argMap);
-    params.filterByInertia = jo_bool(pStage, "filterByInertia", params.filterByInertia, model.argMap);
-    params.minInertiaRatio = jo_float(pStage, "minInertiaRatio", params.minInertiaRatio, model.argMap);
-    params.maxInertiaRatio = jo_float(pStage, "maxInertiaRatio", params.maxInertiaRatio, model.argMap);
-    params.filterByConvexity = jo_bool(pStage, "filterByConvexity", params.filterByConvexity);
-    params.minConvexity = jo_float(pStage, "minConvexity", params.minConvexity, model.argMap);
-    params.maxConvexity = jo_float(pStage, "maxConvexity", params.maxConvexity, model.argMap);
-    const char *errMsg = NULL;
-
-    if (!errMsg) {
-        SimpleBlobDetector detector(params);
-        SimpleBlobDetector(params);
-        detector.create("SimpleBlob");
-        vector<cv::KeyPoint> keyPoints;
-        LOGTRACE("apply_SimpleBlobDetector detect()");
-        detector.detect(model.image, keyPoints);
-        modelKeyPoints(pStageModel, keyPoints);
-    }
-
-    return stageOK("apply_SimpleBlobDetector(%s) %s", errMsg, pStage, pStageModel);
-}
-
 int Pipeline::parseCvType(const char *typeStr, const char *&errMsg) {
     int type = CV_8U;
 
@@ -833,8 +778,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
     if (strcmp(pOp, "detectParts")==0)
         stage = unique_ptr<Stage>(new PartDetector(pStage, model, pName));
 //        ok = apply_detectParts(pStage, pStageModel, model);
-//    if (strcmp(pOp, "SimpleBlobDetector")==0) {
-//        ok = apply_SimpleBlobDetector(pStage, pStageModel, model);
+    if (strcmp(pOp, "SimpleBlobDetector")==0)
+        stage = unique_ptr<Stage>(new BlobDetector(pStage, model, pName));
 //    if (strcmp(pOp, "split")==0) {
 //        ok = apply_split(pStage, pStageModel, model);
     if (strcmp(pOp, "stageImage")==0)
