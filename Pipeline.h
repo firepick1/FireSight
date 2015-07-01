@@ -364,7 +364,6 @@ namespace firesight {
       bool apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_split(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_transparent(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
 

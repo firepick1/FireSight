@@ -121,23 +121,6 @@ bool Pipeline::apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &mod
     return stageOK("apply_minAreaRect(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model) {
-    string stageStr = jo_string(pStage, "stage", "input", model.argMap);
-    const char *errMsg = NULL;
-
-    if (stageStr.empty()) {
-        errMsg = "Expected name of stage for image";
-    } else {
-        model.image = model.imageMap[stageStr.c_str()];
-        if (!model.image.rows || !model.image.cols) {
-            model.image = model.imageMap["input"].clone();
-            LOGTRACE1("Could not locate stage image '%s', using input image", stageStr.c_str());
-        }
-    }
-
-    return stageOK("apply_stageImage(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model) {
 
     char *errMsg = NULL;
@@ -1004,8 +987,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_SimpleBlobDetector(pStage, pStageModel, model);
 //    if (strcmp(pOp, "split")==0) {
 //        ok = apply_split(pStage, pStageModel, model);
-//    if (strcmp(pOp, "stageImage")==0) {
-//        ok = apply_stageImage(pStage, pStageModel, model);
+    if (strcmp(pOp, "stageImage")==0)
+        stage = unique_ptr<Stage>(new StageImage(pStage, model, pName));
 //    if (strcmp(pOp, "transparent")==0) {
 //        ok = apply_transparent(pStage, pStageModel, model);
     if (strcmp(pOp, "threshold")==0)
