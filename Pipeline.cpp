@@ -121,24 +121,6 @@ bool Pipeline::apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &mod
     return stageOK("apply_minAreaRect(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_resize(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    double fx = jo_float(pStage, "fx", 1, model.argMap);
-    double fy = jo_float(pStage, "fy", 1, model.argMap);
-    const char *errMsg = NULL;
-
-    if (fx <= 0 || fy <= 0) {
-        errMsg = "Expected 0<fx and 0<fy";
-    }
-    if (!errMsg) {
-        Mat result;
-        resize(model.image, result, Size(), fx, fy, INTER_AREA);
-        model.image = result;
-    }
-
-    return stageOK("apply_resize(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_stageImage(json_t *pStage, json_t *pStageModel, Model &model) {
     string stageStr = jo_string(pStage, "stage", "input", model.argMap);
     const char *errMsg = NULL;
@@ -1011,8 +993,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //#endif // LGPL2_1
     if (strcmp(pOp, "rectangle")==0)
         stage = unique_ptr<Stage>(new DrawRectangle(pStage, model, pName));
-//    if (strcmp(pOp, "resize")==0) {
-//        ok = apply_resize(pStage, pStageModel, model);
+    if (strcmp(pOp, "resize")==0)
+        stage = unique_ptr<Stage>(new Resize(pStage, model, pName));
 //    if (strcmp(pOp, "sharpness")==0) {
 //        ok = apply_sharpness(pStage, pStageModel, model);
     if (strcmp(pOp, "detectParts")==0)

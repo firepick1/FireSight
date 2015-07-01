@@ -19,6 +19,7 @@
 #include "stages/meanStdDev.h"
 #include "stages/model.h"
 #include "stages/morph.h"
+#include "stages/resize.h"
 #include "stages/transform.h"
 #include "stages/threshold.h"
 
