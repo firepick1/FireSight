@@ -13,6 +13,7 @@
 #include "stages/color.h"
 #include "stages/detector.h"
 #include "stages/drawing.h"
+#include "stages/equalizeHist.h"
 #include "stages/FireSightStage.h"
 #include "stages/fourier.h"
 #include "stages/io.h"

@@ -227,16 +227,6 @@ bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model)
 }
 #endif // LGPL2_1
 
-bool Pipeline::apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model) {
-    const char *errMsg = NULL;
-
-    if (!errMsg) {
-        equalizeHist(model.image, model.image);
-    }
-
-    return stageOK("apply_equalizeHist(%s) %s", errMsg, pStage, pStageModel);
-}
-
 static void modelKeyPoints(json_t*pStageModel, const vector<KeyPoint> &keyPoints) {
     json_t *pKeyPoints = json_array();
     json_object_set(pStageModel, "keypoints", pKeyPoints);
@@ -929,8 +919,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new DrawKeypoints(pStage, model, pName));
     if (strcmp(pOp, "drawRects")==0)
         stage = unique_ptr<Stage>(new DrawRects(pStage, model, pName));
-//    if (strcmp(pOp, "equalizeHist")==0) {
-//        ok = apply_equalizeHist(pStage, pStageModel, model);
+    if (strcmp(pOp, "equalizeHist")==0)
+        stage = unique_ptr<Stage>(new EqualizeHist(pStage, model, pName));
     if (strcmp(pOp, "erode")==0)
         stage = unique_ptr<Stage>(new Erode(pStage, model, pName));
     if (strcmp(pOp, "FireSight")==0)
