@@ -65,26 +65,6 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
     return Stage::stageOK(fmt, errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_meanStdDev(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    const char *errMsg = NULL;
-
-	Scalar mean;
-	Scalar stdDev;
-	meanStdDev(model.image, mean, stdDev);
-
-	json_t * jmean = json_array();
-    json_object_set(pStageModel, "mean", jmean);
-	json_t * jstddev = json_array();
-    json_object_set(pStageModel, "stdDev", jstddev);
-	for (int i = 0; i < 4; i++) {
-		json_array_append(jmean, json_real(mean[i]));
-		json_array_append(jstddev, json_real(stdDev[i]));
-	}
-
-    return stageOK("apply_meanStdDev(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_minAreaRect(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
     const char *errMsg = NULL;
@@ -1006,8 +986,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_matchGrid(pStage, pStageModel, model);
     if (strcmp(pOp, "matchTemplate")==0)
         stage = unique_ptr<Stage>(new TemplateMatch(pStage, model, pName));
-//    if (strcmp(pOp, "meanStdDev")==0) {
-//        ok = apply_meanStdDev(pStage, pStageModel, model);
+    if (strcmp(pOp, "meanStdDev")==0)
+        stage = unique_ptr<Stage>(new MeanStdDev(pStage, model, pName));
 //    if (strcmp(pOp, "minAreaRect")==0) {
 //        ok = apply_minAreaRect(pStage, pStageModel, model);
     if (strcmp(pOp, "model")==0)

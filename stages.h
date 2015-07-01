@@ -16,6 +16,7 @@
 #include "stages/FireSightStage.h"
 #include "stages/fourier.h"
 #include "stages/io.h"
+#include "stages/meanStdDev.h"
 #include "stages/model.h"
 #include "stages/morph.h"
 #include "stages/transform.h"
