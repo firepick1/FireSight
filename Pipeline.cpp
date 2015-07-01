@@ -963,8 +963,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new Blur(pStage, model, pName));
 //    if (strcmp(pOp, "calcHist")==0)
 //        ok = apply_calcHist(pStage, pStageModel, model);
-//    if (strcmp(pOp, "calcOffset")==0)
-//        ok = apply_calcOffset(pStage, pStageModel, model);
+    if (strcmp(pOp, "calcOffset")==0)
+        stage = unique_ptr<Stage>(new CalcOffset(pStage, model, pName));
     if (strcmp(pOp, "circle")==0)
         stage = unique_ptr<Stage>(new DrawCircle(pStage, model, pName));
 //    if (strcmp(pOp, "convertTo")==0)
