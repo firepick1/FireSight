@@ -482,102 +482,6 @@ bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model
     return stageOK("apply_convertTo(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_cout(json_t *pStage, json_t *pStageModel, Model &model) {
-    int col = jo_int(pStage, "col", 0, model.argMap);
-    int row = jo_int(pStage, "row", 0, model.argMap);
-    int cols = jo_int(pStage, "cols", model.image.cols, model.argMap);
-    int rows = jo_int(pStage, "rows", model.image.rows, model.argMap);
-    int precision = jo_int(pStage, "precision", 1, model.argMap);
-    int width = jo_int(pStage, "width", 5, model.argMap);
-    int channel = jo_int(pStage, "channel", 0, model.argMap);
-    string comment = jo_string(pStage, "comment", "", model.argMap);
-    const char *errMsg = NULL;
-
-    if (row<0 || col<0 || rows<=0 || cols<=0) {
-        errMsg = "Expected 0<=row and 0<=col and 0<cols and 0<rows";
-    }
-    if (rows > model.image.rows) {
-        rows = model.image.rows;
-    }
-    if (cols > model.image.cols) {
-        cols = model.image.cols;
-    }
-
-    if (!errMsg) {
-        int depth = model.image.depth();
-        cout << matInfo(model.image);
-        cout << " show:[" << row << "-" << row+rows-1 << "," << col << "-" << col+cols-1 << "]";
-        if (comment.size()) {
-            cout << " " << comment;
-        }
-        cout << endl;
-        for (int r = row; r < row+rows; r++) {
-            for (int c = col; c < col+cols; c++) {
-                cout.precision(precision);
-                cout.width(width);
-                if (model.image.channels() == 1) {
-                    switch (depth) {
-                    case CV_8S:
-                    case CV_8U:
-                        cout << (short) model.image.at<unsigned char>(r,c,channel) << " ";
-                        break;
-                    case CV_16U:
-                        cout << model.image.at<unsigned short>(r,c) << " ";
-                        break;
-                    case CV_16S:
-                        cout << model.image.at<short>(r,c) << " ";
-                        break;
-                    case CV_32S:
-                        cout << model.image.at<int>(r,c) << " ";
-                        break;
-                    case CV_32F:
-                        cout << std::fixed;
-                        cout << model.image.at<float>(r,c) << " ";
-                        break;
-                    case CV_64F:
-                        cout << std::fixed;
-                        cout << model.image.at<double>(r,c) << " ";
-                        break;
-                    default:
-                        cout << "UNSUPPORTED-CONVERSION" << " ";
-                        break;
-                    }
-                } else {
-                    switch (depth) {
-                    case CV_8S:
-                    case CV_8U:
-                        cout << (short) model.image.at<Vec2b>(r,c)[channel] << " ";
-                        break;
-                    case CV_16U:
-                        cout << model.image.at<Vec2w>(r,c)[channel] << " ";
-                        break;
-                    case CV_16S:
-                        cout << model.image.at<Vec2s>(r,c)[channel] << " ";
-                        break;
-                    case CV_32S:
-                        cout << model.image.at<Vec2i>(r,c)[channel] << " ";
-                        break;
-                    case CV_32F:
-                        cout << std::fixed;
-                        cout << model.image.at<Vec2f>(r,c)[channel] << " ";
-                        break;
-                    case CV_64F:
-                        cout << std::fixed;
-                        cout << model.image.at<Vec2d>(r,c)[channel] << " ";
-                        break;
-                    default:
-                        cout << "UNSUPPORTED-CONVERSION" << " ";
-                        break;
-                    }
-                }
-            }
-            cout << endl;
-        }
-    }
-
-    return stageOK("apply_cout(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
     string path = jo_string(pStage, "path", "", model.argMap);
@@ -1065,8 +969,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new DrawCircle(pStage, model, pName));
 //    if (strcmp(pOp, "convertTo")==0)
 //        ok = apply_convertTo(pStage, pStageModel, model);
-//    if (strcmp(pOp, "cout")==0)
-//        ok = apply_cout(pStage, pStageModel, model);
+    if (strcmp(pOp, "cout")==0)
+        stage = unique_ptr<Stage>(new Cout(pStage, model, pName));
     if (strcmp(pOp, "Canny")==0)
         stage = unique_ptr<Stage>(new Canny(pStage, model, pName));
     if (strcmp(pOp, "cvtColor")==0)
