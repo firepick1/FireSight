@@ -21,6 +21,7 @@
 #include "stages/model.h"
 #include "stages/morph.h"
 #include "stages/resize.h"
+#include "stages/Sharpness.h"
 #include "stages/stageImage.h"
 #include "stages/transform.h"
 #include "stages/transparent.h"

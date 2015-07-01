@@ -350,7 +350,6 @@ namespace firesight {
       bool apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_sharpness(json_t *pStage, json_t *pStageModel, Model &model);
 #ifdef LGPL2_1
       bool apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model);
 #endif // LGPL2_1

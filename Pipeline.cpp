@@ -282,26 +282,6 @@ bool Pipeline::apply_SimpleBlobDetector(json_t *pStage, json_t *pStageModel, Mod
     return stageOK("apply_SimpleBlobDetector(%s) %s", errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_sharpness(json_t *pStage, json_t *pStageModel, Model &model) {
-    const char *errMsg = NULL;
-    string methodStr = jo_string(pStage, "method", "GRAS", model.argMap);
-    
-    /* Apply selected method */
-    double sharpness = 0;
-    if (strcmp("GRAS", methodStr.c_str()) == 0) {
-        sharpness = Sharpness::GRAS(model.image);
-    } else if (strcmp("LAPE", methodStr.c_str()) == 0) {
-        sharpness = Sharpness::LAPE(model.image);
-    } else if (strcmp("LAPM", methodStr.c_str()) == 0) {
-        sharpness = Sharpness::LAPM(model.image);
-    }
-
-    json_object_set(pStageModel, "sharpness", json_real(sharpness));
-
-    return stageOK("apply_sharpness(%s) %s", errMsg, pStage, pStageModel);
-
-}
-
 int Pipeline::parseCvType(const char *typeStr, const char *&errMsg) {
     int type = CV_8U;
 
@@ -904,8 +884,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new DrawRectangle(pStage, model, pName));
     if (strcmp(pOp, "resize")==0)
         stage = unique_ptr<Stage>(new Resize(pStage, model, pName));
-//    if (strcmp(pOp, "sharpness")==0) {
-//        ok = apply_sharpness(pStage, pStageModel, model);
+    if (strcmp(pOp, "sharpness")==0)
+        stage = unique_ptr<Stage>(new Sharpness(pStage, model, pName));
     if (strcmp(pOp, "detectParts")==0)
         stage = unique_ptr<Stage>(new PartDetector(pStage, model, pName));
 //        ok = apply_detectParts(pStage, pStageModel, model);
