@@ -314,18 +314,16 @@ namespace firesight {
       bool processModelGUI(Input *input, Model &model);
       unique_ptr<Stage> parseStage(int index, json_t * pStage, Model &model);
 //      bool processStage(int index, json_t *pStage, Model &model);
-      KeyPoint _regionKeypoint(const vector<Point> &region);
-      void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
-      void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
+//      KeyPoint _regionKeypoint(const vector<Point> &region);
+//      void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
+//      void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
 
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_normalize(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
 
-      void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
-      void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);
-      int parseCvType(const char *typeName, const char *&errMsg);
+//      void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
+//      void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);
       json_t *pPipeline;
 
     public:

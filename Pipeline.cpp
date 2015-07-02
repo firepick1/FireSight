@@ -475,8 +475,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new Morph(pStage, model, pName));
     if (strcmp(pOp, "MSER")==0)
         stage = unique_ptr<Stage>(new MSERStage(pStage, model, pName));
-//    if (strcmp(pOp, "normalize")==0) {
-//        ok = apply_normalize(pStage, pStageModel, model);
+    if (strcmp(pOp, "normalize")==0)
+        stage = unique_ptr<Stage>(new Normalize(pStage, model, pName));
     if (strcmp(pOp, "PSNR")==0)
         stage = unique_ptr<Stage>(new PSNR(pStage, model, pName));
     if (strcmp(pOp, "proto")==0)
