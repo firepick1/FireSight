@@ -29,22 +29,11 @@ public:
         reflect = jo_Point2f(pStage, "reflect", Point(0,0), model.argMap);
 
         /* Border type */
-        border = BORDER_DEFAULT;
-        mapBorder[BORDER_DEFAULT]	= "Default";
-        mapBorder[BORDER_CONSTANT]	= "Constant";
-        mapBorder[BORDER_REPLICATE] = "Replicate";
-        mapBorder[BORDER_ISOLATED]	= "Isolated";
-        mapBorder[BORDER_REFLECT]	= "Reflect";
-        mapBorder[BORDER_REFLECT_101] = "Reflect 101";
-        mapBorder[BORDER_WRAP]		= "Wrap";
-        string sborder = jo_string(pStage, "borderMode", "BORDER_REPLICATE", model.argMap);
-        auto findBorder = std::find_if(std::begin(mapBorder), std::end(mapBorder), [&](const std::pair<int, string> &pair)
-        {
-            return sborder.compare(pair.second) == 0;
-        });
-        if (findBorder != std::end(mapBorder))
-            border = findBorder->first;
-        _params["border"] = new EnumParameter(this, border, mapBorder);
+        border = BORDER_REPLICATE; //!< default value
+        string sborder = jo_string(pStage, "borderMode", BorderTypeParser::get(border).c_str(), model.argMap);
+        border = BorderTypeParser::get(sborder);
+        mapBorder = BorderTypeParser::get();
+        _params["Border"] = new EnumParameter(this, border, mapBorder);
 
 
         if (reflect.x && reflect.y && reflect.x != reflect.y) {

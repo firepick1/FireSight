@@ -32,12 +32,6 @@ class BackgroundSubtraction: public Stage {
 
 public:
 
-    enum Method {
-        MOG,
-        MOG2,
-        ABSDIFF
-    };
-
     BackgroundSubtraction(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
         history = jo_int(pStage, "history", 0, model.argMap);
         _params["history"] = new IntParameter(this, history);
@@ -48,17 +42,11 @@ public:
         background = jo_string(pStage, "background", "", model.argMap);
         _params["background"] = new StringParameter(this, background);
 
-        method = MOG;
-        mapMethod[MOG] = "MOG";
-        mapMethod[MOG2] = "MOG2";
-        mapMethod[ABSDIFF] = "absdiff";
-        string smethod = jo_string(pStage, "method", mapMethod[method].c_str(), model.argMap);
-        auto findMethod = std::find_if(std::begin(mapMethod), std::end(mapMethod), [&](const std::pair<int, string> &pair)
-        {
-            return smethod.compare(pair.second) == 0;
-        });
-        if (findMethod != std::end(mapMethod))
-            method = findMethod->first;
+        // method
+        method = MOG; //!< default value
+        string smethod = jo_string(pStage, "method", BGSubTypeParser::get(method).c_str(), model.argMap);
+        method = BGSubTypeParser::get(smethod);
+        mapMethod = BGSubTypeParser::get();
         _params["method"] = new EnumParameter(this, method, mapMethod);
 
         //        stageName = jo_string(pStage, "name", method.c_str(), model.argMap);

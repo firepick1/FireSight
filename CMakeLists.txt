@@ -108,6 +108,7 @@ set(FIRESIGHT_LIB_FILES
   MatUtil.cpp
   Model.cpp 
   Pipeline.cpp 
+  mapParser.cpp
   )
 
 # conditinally included sources with LGPL 2.1 license

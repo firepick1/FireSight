@@ -20,6 +20,8 @@
 #include "jansson.h"
 #include "input.h"
 
+#include "mapParser.h"
+
 #ifdef _MSC_VER
 #include "winjunk.hpp"
 #else
