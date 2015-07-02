@@ -9,6 +9,7 @@
 #include "stages/bgSubtraction.h"
 #include "stages/blur.h"
 #include "stages/calcHist.h"
+#include "stages/calibrate.h"
 #include "stages/canny.h"
 #include "stages/convert.h"
 #include "stages/detector.h"

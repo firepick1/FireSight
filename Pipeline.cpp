@@ -461,8 +461,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new ImWrite(pStage, model, pName));
     if (strcmp(pOp, "Mat")==0)
         stage = unique_ptr<Stage>(new MatStage(pStage, model, pName));
-//    if (strcmp(pOp, "matchGrid")==0) {
-//        ok = apply_matchGrid(pStage, pStageModel, model);
+    if (strcmp(pOp, "matchGrid")==0)
+        stage = unique_ptr<Stage>(new MatchGrid(pStage, model, pName));
     if (strcmp(pOp, "matchTemplate")==0)
         stage = unique_ptr<Stage>(new TemplateMatch(pStage, model, pName));
     if (strcmp(pOp, "meanStdDev")==0)

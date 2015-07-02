@@ -167,6 +167,18 @@ namespace firesight {
         float& value;
     };
 
+    class Point2fParameter : public Parameter {
+    public:
+        Point2fParameter(Stage * stage, Point2f& value) :
+            Parameter(stage), value(value)
+        {}
+//        string toString() const { return std::to_string(value); }
+        void inc() {;}
+        void dec() {;}
+    private:
+        Point2f& value;
+    };
+
     class ScalarParameter : public Parameter {
     public:
         ScalarParameter(Stage * stage, Scalar& value) :
@@ -319,7 +331,6 @@ namespace firesight {
 //      void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
 
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
 
 //      void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);

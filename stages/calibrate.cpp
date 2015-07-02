@@ -14,6 +14,8 @@
 #include "MatUtil.hpp"
 #include "version.h"
 
+#include "calibrate.h"
+
 using namespace cv;
 using namespace std;
 using namespace firesight;
@@ -1292,13 +1294,7 @@ void initializePointMaps(json_t *pRects, vector<Point2f> &pointsXY, vector<Point
     sort(pointsYX, cmpYX);
 }
 
-bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model) {
-    string rectsModelName = jo_string(pStage, "model", "", model.argMap);
-    string opStr = jo_string(pStage, "calibrate", "best", model.argMap);
-    Scalar color = jo_Scalar(pStage, "color", Scalar(255,255,255), model.argMap);
-	Point2f scale = jo_Point2f(pStage, "scale", Point2f(1,1), model.argMap);
-    Point2f objSep = jo_Point2f(pStage, "sep", Point2f(5,5), model.argMap);
-    double tolerance = jo_double(pStage, "tolerance", 0.35, model.argMap);
+bool MatchGrid::apply_internal(json_t *pStageModel, Model &model) {
     Size imgSize(model.image.cols, model.image.rows);
     Point2f imgCenter(model.image.cols/2.0, model.image.rows/2.0);
     json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName.c_str());
