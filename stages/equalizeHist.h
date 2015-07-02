@@ -9,6 +9,7 @@
 #include <string>
 #include <stdexcept>
 #include <vector>
+#include "opencv2/imgproc/imgproc.hpp"
 
 namespace firesight {
 

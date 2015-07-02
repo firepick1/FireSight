@@ -318,11 +318,9 @@ namespace firesight {
       void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
       void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
 
-      bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_normalize(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_proto(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
 
       void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);

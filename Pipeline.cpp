@@ -479,11 +479,10 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_normalize(pStage, pStageModel, model);
     if (strcmp(pOp, "PSNR")==0)
         stage = unique_ptr<Stage>(new PSNR(pStage, model, pName));
-//    if (strcmp(pOp, "proto")==0) {
-//        ok = apply_proto(pStage, pStageModel, model);
+    if (strcmp(pOp, "proto")==0)
+        stage = unique_ptr<Stage>(new Proto(pStage, model, pName));
     if (strcmp(pOp, "putText")==0)
         stage = unique_ptr<Stage>(new Text(pStage, model, pName));
-//        ok = apply_putText(pStage, pStageModel, model);
 #ifdef LGPL2_1
     if (strcmp(pOp, "qrDecode")==0)
         stage = unique_ptr<Stage>(new QrDecode(pStage, model, pName));
@@ -496,7 +495,6 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new Sharpness(pStage, model, pName));
     if (strcmp(pOp, "detectParts")==0)
         stage = unique_ptr<Stage>(new PartDetector(pStage, model, pName));
-//        ok = apply_detectParts(pStage, pStageModel, model);
     if (strcmp(pOp, "SimpleBlobDetector")==0)
         stage = unique_ptr<Stage>(new BlobDetector(pStage, model, pName));
     if (strcmp(pOp, "split")==0)
