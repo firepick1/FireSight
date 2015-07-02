@@ -6,13 +6,65 @@
 #ifndef __SHARPNESS_H_
 #define __SHARPNESS_H_
 
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
+#include "Pipeline.h"
+#include "jo_util.hpp"
 
-class Sharpness {
+#include <map>
+#include <string>
+#include <stdexcept>
+#include <vector>
 
-    public:
+namespace firesight {
+
+class Sharpness : public Stage {
+public:
+    enum mapMethod {
+        METHOD_GRAS,
+        METHOD_LAPE,
+        METHOD_LAPM
+    };
+
+    Sharpness(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
+        method = METHOD_GRAS;
+        mapMethod[METHOD_GRAS] = "GRAS";
+        mapMethod[METHOD_LAPE] = "LAPE";
+        mapMethod[METHOD_LAPM] = "LAPM";
+        string smethod = jo_string(pStage, "method", mapMethod[method].c_str(), model.argMap);
+        auto findMethod = std::find_if(std::begin(mapMethod), std::end(mapMethod), [&](const std::pair<int, string> &pair)
+        {
+            return smethod.compare(pair.second) == 0;
+        });
+        if (findMethod != std::end(mapMethod))
+            method = findMethod->first;
+        else
+            throw std::invalid_argument("Expected method value: {GRAS,LAPE,LAPM}");
+    }
+
+protected:
+    bool apply_internal(json_t *pStageModel, Model &model) {
+        const char *errMsg = NULL;
+
+        /* Apply selected method */
+        double sharpness = 0;
+        switch (method) {
+        case METHOD_GRAS:
+            sharpness = Sharpness::GRAS(model.image);
+            break;
+        case METHOD_LAPE:
+            sharpness = Sharpness::LAPE(model.image);
+            break;
+        case METHOD_LAPM:
+            sharpness = Sharpness::LAPM(model.image);
+            break;
+        }
+
+        json_object_set(pStageModel, "sharpness", json_real(sharpness));
+
+        return stageOK("apply_sharpness(%s) %s", errMsg, pStage, pStageModel);
+    }
+
+    int method;
+    map<int, string> mapMethod;
 
     /**
      * GRAS - Absolute squared gradient
@@ -48,6 +100,8 @@ class Sharpness {
      */
     static double LAPM(cv::Mat & image);
 };
+
+}
 
 #endif
 

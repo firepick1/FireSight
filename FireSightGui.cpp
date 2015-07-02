@@ -12,16 +12,17 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
+#include "input.h"
 
 using namespace cv;
 using namespace std;
 using namespace firesight;
 
-typedef enum{UI_STILL, UI_VIDEO} UIMode;
+typedef enum{UI_STILL, UI_VIDEO, UI_AMPHIBIOUS} UIMode;
 
 static void help() {
   cout << "FireSight image processing pipeline v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << endl;
-  cout << "Copyright 2014, Karl Lew, Simon Fojtu" << endl;
+  cout << "Copyright 2014,2015 Karl Lew, Simon Fojtu" << endl;
   cout << "https://github.com/firepick1/FireSight/wiki" << endl;
   cout << "OpenCV " CV_VERSION << " (" << FIRESIGHT_PLATFORM_BITS << "-bit)" << endl;
   cout << endl;
@@ -43,6 +44,8 @@ static void help() {
   cout << "    Define pipeline parameter value" << endl;
   cout << " -ji JSON-model-indent" << endl;
   cout << "    Specify 0 for compact JSON output of model" << endl;
+  cout << " -jp JSON-model-real-precision" << endl;
+  cout << "    Default is 6-digit precision for real numbers in JSON model output" << endl;
   cout << " -o output-image-file" << endl;
   cout << "    File for saving pipeline image " << endl;
   cout << " -p JSON-pipeline-file" << endl;
@@ -61,10 +64,12 @@ static void help() {
   cout << "    Start logging at TRACE log level" << endl;
   cout << " -warn " << endl;
   cout << "    Start logging at WARN log level" << endl;
+  cout << " -version " << endl;
+  cout << "    Print out FireSight version" << endl;
 }
 
 bool parseArgs(int argc, char *argv[], 
-  string &pipelinePath, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap, bool &isTime, int &jsonIndent) 
+  string &pipelinePath, char *&imagePath, char * &outputPath, UIMode &uimode, ArgMap &argMap, bool &isTime, int &jsonIndent, int &jsonPrecision) 
 {
   uimode = UI_STILL;
   isTime = false;
@@ -87,6 +92,16 @@ bool parseArgs(int argc, char *argv[],
       }
       pipelinePath = argv[++i];
       LOGTRACE1("parseArgs(-p) \"%s\" is JSON pipeline path", pipelinePath.c_str());
+    } else if (strcmp("-jp",argv[i]) == 0) {
+      if (i+1>=argc) {
+        LOGERROR("expected JSON precision after -jp");
+        exit(-1);
+      }
+      jsonPrecision = atoi(argv[++i]);
+	  if (jsonPrecision < 0) {
+	  	LOGERROR1("invalid JSON precision: %d", jsonPrecision);
+	  }
+      LOGTRACE1("parseArgs(-jp) JSON precision:%d", jsonPrecision);
     } else if (strcmp("-ji",argv[i]) == 0) {
       if (i+1>=argc) {
         LOGERROR("expected JSON indent after -ji");
@@ -101,6 +116,9 @@ bool parseArgs(int argc, char *argv[],
       }
       outputPath = argv[++i];
       LOGTRACE1("parseArgs(-o) \"%s\" is output image path", outputPath);
+    } else if (strcmp("-version",argv[i]) == 0) {
+	  cout << "{\"version\":\"" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH << "\"}" << endl;
+	  exit(0);
     } else if (strcmp("-time",argv[i]) == 0) {
       isTime = true;
     } else if (strncmp("-D",argv[i],2) == 0) {
@@ -125,6 +143,9 @@ bool parseArgs(int argc, char *argv[],
     } else if (strcmp("-video", argv[i]) == 0) {
       uimode = UI_VIDEO;
       LOGTRACE("parseArgs(-video) UI_VIDEO user interface selected");
+    } else if (strcmp("-amphibious", argv[i]) == 0) {
+        uimode = UI_AMPHIBIOUS;
+        LOGTRACE("parseArgs(-amphibious) UI_AMPHIBIOUS user interface selected");
     } else if (strcmp("-warn", argv[i]) == 0) {
       firelog_level(FIRELOG_WARN);
     } else if (strcmp("-error", argv[i]) == 0) {
@@ -144,12 +165,37 @@ bool parseArgs(int argc, char *argv[],
 }
 
 /**
+ * Amphibious image/video processing
+ */
+static int ui(const char * pipelinePath, Input * input, ArgMap &argMap, Mat& output, int jsonIndent, int jsonPrecision) {
+    Pipeline pipeline(pipelinePath, Pipeline::PATH);
+    Mat image;
+
+    json_t *pModel = pipeline.process(input, argMap, image, true);
+
+    // Print out returned model
+    char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT);//|JSON_INDENT(jsonIndent));
+    cout << pModelStr << endl;
+    free(pModelStr);
+
+    // Free model
+    json_decref(pModel);
+
+    output = image;
+
+    return 0;
+
+}
+
+/**
  * Single image example of FireSight lib_firesight library use
  */
-static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool isTime, int jsonIndent) {
+static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool isTime, int jsonIndent, int jsonPrecision) {
   Pipeline pipeline(pipelinePath, Pipeline::PATH);
+
+  Input * input = (Input *) new ImageInput(image);
   
-  json_t *pModel = pipeline.process(image, argMap);
+  json_t *pModel = pipeline.process(input, argMap, image, true);
 
   if (isTime) {
     long long tickStart = cvGetTickCount();
@@ -158,7 +204,7 @@ static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool i
     int iterations = 100;
     for (int i=0; i < iterations; i++) {
       json_decref(pModel);
-      pModel = pipeline.process(image, argMap);
+      pModel = pipeline.process(input, argMap, image, false);
     }
     float ticksElapsed = cvGetTickCount() - tickStart;
     //cout << "ticksElapsed:" << ticksElapsed << endl;
@@ -170,7 +216,7 @@ static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool i
   }
 
   // Print out returned model 
-  char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(jsonIndent));
+  char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(jsonIndent)|JSON_REAL_PRECISION(jsonPrecision));
   cout << pModelStr << endl;
   free(pModelStr);
 
@@ -184,21 +230,16 @@ static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool i
  * Video capture example of FireSight lib_firesight library use
  */
 static int uiVideo(const char * pipelinePath, ArgMap &argMap) {
-  VideoCapture cap(0); // open the default camera
-  if(!cap.isOpened()) {  // check if we succeeded
-    LOGERROR("Could not open camera");
-    exit(-1);
-  }
+    Input * input = (Input *) new VideoInput();
 
   namedWindow("image",1);
 
   Pipeline pipeline(pipelinePath, Pipeline::PATH);
 
   for(;;) {
-    Mat frame;
-    cap >> frame; // get a new frame from camera
+      Mat frame = input->get(); // get a new frame from camera
 
-    json_t *pModel = pipeline.process(frame, argMap);
+    json_t *pModel = pipeline.process(input, argMap, frame, true);
 
     // Display pipeline output
     imshow("image", frame);
@@ -220,35 +261,34 @@ int main(int argc, char *argv[])
   ArgMap argMap;
   bool isTime;
   int jsonIndent = 2;
-  bool argsOk = parseArgs(argc, argv, pipelinePath, imagePath, outputPath, uimode, argMap, isTime, jsonIndent);
+  int jsonPrecision = 6;
+  bool argsOk = parseArgs(argc, argv, pipelinePath, imagePath, outputPath, uimode, argMap, isTime, jsonIndent, jsonPrecision);
   if (!argsOk) {
     help();
     exit(-1);
   }
 
-  Mat image;
-  if (imagePath) {
-    LOGTRACE1("Reading image: %s", imagePath);
-    image = imread(imagePath);
-    if (!image.data) {
-      LOGERROR1("main() imread(%s) failed", imagePath);
-      exit(-1);
-    }
-  } else {
-    LOGDEBUG("No image specified.");
-  }
+  Input * input;
+
+  if (!imagePath)
+      uimode = UI_VIDEO;
+  else
+      uimode = UI_STILL;
 
   switch (uimode) {
-    case UI_STILL: 
-      uiStill(pipelinePath.c_str(), image, argMap, isTime, jsonIndent);
+  case UI_STILL:
+      input = (Input *) new ImageInput(imagePath);
       break;
-    case UI_VIDEO: 
-      uiVideo(pipelinePath.c_str(), argMap); 
+  case UI_VIDEO:
+      input = (Input *) new VideoInput();
       break;
-    default: 
-      LOGERROR("Unknown UI mode");
-      exit(-1);
+  default:
+    LOGERROR("Unknown UI mode");
+    exit(-1);
   }
+
+  Mat image;
+  ui(pipelinePath.c_str(), input, argMap, image, jsonIndent, jsonPrecision);
 
   if (outputPath) {
     if (!imwrite(outputPath, image)) {

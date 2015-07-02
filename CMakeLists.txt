@@ -85,7 +85,19 @@ link_directories( ${BUILD_TARGET_DIR} ${BUILD_TARGET_DIR}/lib /usr/lib /usr/loca
 
 
 # files
-file(GLOB STAGE_FILES "stages/*.cpp")
+set(STAGE_FILES
+    stages/calcHist.cpp
+    stages/calibrate.cpp
+    stages/detector.cpp
+    stages/HoleRecognizer.cpp
+    stages/MSER.cpp
+    stages/normalize.cpp
+    stages/PartDetector.cpp
+    stages/proto.cpp
+    stages/Pt2Res_RANSAC.cpp
+    stages/Sharpness.cpp
+    stages/warpRing.cpp
+    )
 
 set(FIRESIGHT_LIB_FILES
   ${STAGE_FILES}
@@ -96,6 +108,7 @@ set(FIRESIGHT_LIB_FILES
   MatUtil.cpp
   Model.cpp 
   Pipeline.cpp 
+  mapParser.cpp
   )
 
 # conditinally included sources with LGPL 2.1 license

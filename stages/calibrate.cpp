@@ -4,7 +4,6 @@
 #include <iostream>
 #include <stdexcept>
 #include "FireLog.h"
-#include "Pipeline.h"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -13,6 +12,8 @@
 #include "jo_util.hpp"
 #include "MatUtil.hpp"
 #include "version.h"
+
+#include "calibrate.h"
 
 using namespace cv;
 using namespace std;
@@ -1240,19 +1241,19 @@ typedef struct GridMatcher {
         json_object_set(pCalibrate, "matched", json_integer(subImgSet.size()));
         json_object_set(pCalibrate, "images", json_real(vImagePts.size()));
         json_object_set(pCalibrate, "rmserror", 
-			isnan(rmserror) ? json_string("NaN") : json_real(rmserror));
+            std::isnan(rmserror) ? json_string("NaN") : json_real(rmserror));
 		json_t * jgridnessIn = json_array();
         json_object_set(pCalibrate, "gridnessIn", jgridnessIn);
 		json_array_append(jgridnessIn, 
-			isnan(gridnessIn.x) ? json_string("NaN") : json_real(gridnessIn.x));
+            std::isnan(gridnessIn.x) ? json_string("NaN") : json_real(gridnessIn.x));
 		json_array_append(jgridnessIn, 
-			isnan(gridnessIn.y) ? json_string("NaN") : json_real(gridnessIn.y));
+            std::isnan(gridnessIn.y) ? json_string("NaN") : json_real(gridnessIn.y));
 		json_t * jgridnessOut = json_array();
         json_object_set(pCalibrate, "gridnessOut", jgridnessOut);
 		json_array_append(jgridnessOut, 
-			isnan(gridnessOut.x) ? json_string("NaN") : json_real(gridnessOut.x));
+            std::isnan(gridnessOut.x) ? json_string("NaN") : json_real(gridnessOut.x));
 		json_array_append(jgridnessOut, 
-			isnan(gridnessOut.y) ? json_string("NaN") : json_real(gridnessOut.y));
+            std::isnan(gridnessOut.y) ? json_string("NaN") : json_real(gridnessOut.y));
 #ifdef RVECS_TVECS
         json_t *pRvecs = json_array();
         json_object_set(pCalibrate, "rvecs", pRvecs);
@@ -1292,13 +1293,7 @@ void initializePointMaps(json_t *pRects, vector<Point2f> &pointsXY, vector<Point
     sort(pointsYX, cmpYX);
 }
 
-bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model) {
-    string rectsModelName = jo_string(pStage, "model", "", model.argMap);
-    string opStr = jo_string(pStage, "calibrate", "best", model.argMap);
-    Scalar color = jo_Scalar(pStage, "color", Scalar(255,255,255), model.argMap);
-	Point2f scale = jo_Point2f(pStage, "scale", Point2f(1,1), model.argMap);
-    Point2f objSep = jo_Point2f(pStage, "sep", Point2f(5,5), model.argMap);
-    double tolerance = jo_double(pStage, "tolerance", 0.35, model.argMap);
+bool MatchGrid::apply_internal(json_t *pStageModel, Model &model) {
     Size imgSize(model.image.cols, model.image.rows);
     Point2f imgCenter(model.image.cols/2.0, model.image.rows/2.0);
     json_t *pRectsModel = json_object_get(model.getJson(false), rectsModelName.c_str());
@@ -1359,9 +1354,8 @@ bool Pipeline::apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model
     return stageOK("apply_matchGrid(%s) %s", errMsg.c_str(), pStage, pStageModel);
 }
 
-bool Pipeline::apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model) {
+bool Undistort::apply_internal(json_t *pStageModel, Model &model) {
     string errMsg;
-    string modelName = jo_string(pStage, "model", pName, model.argMap);
     vector<double> cm;
     vector<double> pm;
     vector<double> dc;

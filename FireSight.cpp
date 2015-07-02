@@ -173,8 +173,10 @@ bool parseArgs(int argc, char *argv[],
  */
 static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool isTime, int jsonIndent, int jsonPrecision) {
   Pipeline pipeline(pipelinePath, Pipeline::PATH);
-  
-  json_t *pModel = pipeline.process(image, argMap);
+
+  Input * input = (Input *) new ImageInput(image);
+
+  json_t *pModel = pipeline.process(input, argMap, image);
 
   if (isTime) {
     long long tickStart = cvGetTickCount();
@@ -183,7 +185,7 @@ static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool i
     int iterations = 100;
     for (int i=0; i < iterations; i++) {
       json_decref(pModel);
-      pModel = pipeline.process(image, argMap);
+      pModel = pipeline.process(input, argMap, image);
     }
     float ticksElapsed = cvGetTickCount() - tickStart;
     //cout << "ticksElapsed:" << ticksElapsed << endl;
@@ -209,11 +211,7 @@ static int uiStill(const char * pipelinePath, Mat &image, ArgMap &argMap, bool i
  * Video capture example of FireSight lib_firesight library use
  */
 static int uiVideo(const char * pipelinePath, ArgMap &argMap) {
-  VideoCapture cap(0); // open the default camera
-  if(!cap.isOpened()) {  // check if we succeeded
-    LOGERROR("Could not open camera");
-    exit(-1);
-  }
+  Input * input = (Input *) new VideoInput();
 
   namedWindow("image",1);
 
@@ -221,9 +219,7 @@ static int uiVideo(const char * pipelinePath, ArgMap &argMap) {
 
   for(;;) {
     Mat frame;
-    cap >> frame; // get a new frame from camera
-
-    json_t *pModel = pipeline.process(frame, argMap);
+    json_t *pModel = pipeline.process(input, argMap, frame, false);
 
     // Display pipeline output
     imshow("image", frame);
