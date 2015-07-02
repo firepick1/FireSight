@@ -3,11 +3,12 @@
 #include <fstream>
 #include <sstream>
 #include "FireLog.h"
-#include "FireSight.hpp"
+#include "Pipeline.h"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
 #include "MatUtil.hpp"
+#include "stages/detector.h"
 
 using namespace cv;
 using namespace std;
@@ -17,7 +18,7 @@ namespace firesight {
  typedef class TestPipeline : public Pipeline {
    public:
       KeyPoint regionKeypoint(const vector<Point> &region) {
-	return _regionKeypoint(region);
+         return MSERStage::_regionKeypoint(region);
       }
 
       TestPipeline(const char * pJson) : Pipeline(pJson) {

@@ -7,11 +7,11 @@
 #include <math.h>
 #include <stdexcept>
 #include "FireLog.h"
-#include "FireSight.hpp"
 #include "jansson.h"
+#include "points2resolution.h"
 
 using namespace std;
-using namespace firesight;
+namespace firesight {
 
 bool Pt2Res::compare_XY_by_x(XY a, XY b) {
     return a.x < b.x;
@@ -196,3 +196,4 @@ double Pt2Res::getResolution(double thr1, double thr2, double confidence, double
     return resolution;
 }
 
+} // namespace

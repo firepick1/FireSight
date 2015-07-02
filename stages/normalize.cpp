@@ -1,27 +1,21 @@
-#include <string.h>
+#include "normalize.h"
+
 #include <math.h>
 #include <iostream>
-#include <stdexcept>
-#include "FireLog.h"
-#include "FireSight.hpp"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
-#include "jo_util.hpp"
-#include "MatUtil.hpp"
-#include "version.h"
+
 
 using namespace cv;
 using namespace std;
-using namespace firesight;
 
-bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model) {
-  vector<float> domain = jo_vectorf(pStage, "domain", vector<float>(), model.argMap);
-  vector<float> range = jo_vectorf(pStage, "range", vector<float>(), model.argMap);
+namespace firesight {
+
+bool Normalize::apply_internal(json_t *pStageModel, Model &model) {
   double alpha = 1;
   double beta = 0;
-  string normTypeStr = jo_string(pStage, "normType", "NORM_L2", model.argMap);
   int normType;
   string errMsg;
 
@@ -109,3 +103,4 @@ bool Pipeline::apply_normalize(json_t *pStage, json_t *pStageModel, Model &model
   return stageOK("apply_normalize(%s) %s", errMsg.c_str(), pStage, pStageModel);
 }
 
+}

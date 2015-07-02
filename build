@@ -126,66 +126,66 @@ else
 	popd
 fi
 
-if [ -e /usr/lib/libopencv_core.so.2.3 ]; then
-  echo "STATUS	: removing OpenCV 2.3 found in /usr/lib:"
-  sudo apt-get -y remove libopencv-dev
-  if [ $? -ne 0 ]; then echo "ERROR	: Could not remove existing OpenCV 2.3"; exit -1; fi
-  sudo apt-get -y autoremove libopencv-dev
-  if [ $? -ne 0 ]; then echo "ERROR	: Could not remove existing OpenCV 2.3"; exit -1; fi
-fi
-
-if [ -e /usr/local/lib/libopencv_core.so.3.* ]; then
-  ls /usr/local/lib/libopencv_core.so.*
-  echo "ERROR	: FireSight does not yet work with OpenCV 3. Please use OpenCV 2.4.9 or earlier"
-  exit -1
-elif [ -e /usr/local/lib/libopencv_core.so.2.4.8 ]; then
-  echo "STATUS	: OpenCV found in /usr/local/lib:"
-  ls /usr/local/lib/libopencv_core.so.*
-elif [ "$cv" == "install" ]; then
-  echo "STATUS	: INSTALLING OPENCV C++ LIBRARIES "
-  if [ `uname -o` == "Solaris" ]; then
-    pkgin -y install opencv
-  elif [ "$(arch)" == "armv6l" ] && [ "$(lsb_release -is)" == "Debian" ] ;then
-    echo "SYSTEM	: Raspberry Pi with Rasbian"
-    echo "COMMAND	: sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip"
-    sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip
-  elif [ "$(type -p apt-get)" == "" ]; then
-    echo "ERROR	: apt-get is UNAVAILABLE"
-    echo "TRY	: Install OpenCV using following command:"
-    echo "TRY	:  sudo ./build -c make"
-    exit -1
-  else
-    sudo apt-get -y install libopencv-dev
-  fi
-else
-  echo "STATUS	: BUILDING  OPENCV C++ LIBRARIES" 
-  #if [ `uname -o` == "Solaris" ]; then
-    if [ "$(type -p apt-get)" != "" ] [ `uname -o` == "Solaris" ]; then
-      echo "ERROR	: apt-get: UNAVAILABLE"
-      echo "ASSUME	: (assuming OpenCV prerequisites are already on your system)..."
-    else
-      echo "STATUS	: apt-get installing openexr for libIlmImf.so.6"
-      sudo apt-get -y install openexr
-      sudo apt-get -y install libavcodec-dev
-      sudo apt-get -y install libavformat-dev
-      sudo apt-get -y install libswscale-dev
-      sudo apt-get -y install libdc1394-22
-      sudo apt-get -y install libz-dev
-    fi
-
-    if [ ! -e opencv ] ; then
-      git clone https://github.com/firepick1/opencv -b 2.4
-    fi
-    mkdir opencv/build
-    pushd opencv/build
-      cmake \
-	-D WITH_OPENEXR=OFF \
-        -D CMAKE_BUILD_TYPE=DEBUG \
-	-D CMAKE_INSTALL_PREFIX=/usr/local \
-        ..
-      sudo -E make install
-    popd
-fi
+#if [ -e /usr/lib/libopencv_core.so.2.3 ]; then
+#  echo "STATUS	: removing OpenCV 2.3 found in /usr/lib:"
+#  sudo apt-get -y remove libopencv-dev
+#  if [ $? -ne 0 ]; then echo "ERROR	: Could not remove existing OpenCV 2.3"; exit -1; fi
+#  sudo apt-get -y autoremove libopencv-dev
+#  if [ $? -ne 0 ]; then echo "ERROR	: Could not remove existing OpenCV 2.3"; exit -1; fi
+#fi
+#
+#if [ -e /usr/local/lib/libopencv_core.so.3.* ]; then
+#  ls /usr/local/lib/libopencv_core.so.*
+#  echo "ERROR	: FireSight does not yet work with OpenCV 3. Please use OpenCV 2.4.9 or earlier"
+#  exit -1
+#elif [ -e /usr/local/lib/libopencv_core.so.2.4.8 ]; then
+#  echo "STATUS	: OpenCV found in /usr/local/lib:"
+#  ls /usr/local/lib/libopencv_core.so.*
+#elif [ "$cv" == "install" ]; then
+#  echo "STATUS	: INSTALLING OPENCV C++ LIBRARIES "
+#  if [ `uname -o` == "Solaris" ]; then
+#    pkgin -y install opencv
+#  elif [ "$(arch)" == "armv6l" ] && [ "$(lsb_release -is)" == "Debian" ] ;then
+#    echo "SYSTEM	: Raspberry Pi with Rasbian"
+#    echo "COMMAND	: sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip"
+#    sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip
+#  elif [ "$(type -p apt-get)" == "" ]; then
+#    echo "ERROR	: apt-get is UNAVAILABLE"
+#    echo "TRY	: Install OpenCV using following command:"
+#    echo "TRY	:  sudo ./build -c make"
+#    exit -1
+#  else
+#    sudo apt-get -y install libopencv-dev
+#  fi
+#else
+#  echo "STATUS	: BUILDING  OPENCV C++ LIBRARIES" 
+#  #if [ `uname -o` == "Solaris" ]; then
+#    if [ "$(type -p apt-get)" != "" ] [ `uname -o` == "Solaris" ]; then
+#      echo "ERROR	: apt-get: UNAVAILABLE"
+#      echo "ASSUME	: (assuming OpenCV prerequisites are already on your system)..."
+#    else
+#      echo "STATUS	: apt-get installing openexr for libIlmImf.so.6"
+#      sudo apt-get -y install openexr
+#      sudo apt-get -y install libavcodec-dev
+#      sudo apt-get -y install libavformat-dev
+#      sudo apt-get -y install libswscale-dev
+#      sudo apt-get -y install libdc1394-22
+#      sudo apt-get -y install libz-dev
+#    fi
+#
+#    if [ ! -e opencv ] ; then
+#      git clone https://github.com/firepick1/opencv -b 2.4
+#    fi
+#    mkdir opencv/build
+#    pushd opencv/build
+#      cmake \
+#	-D WITH_OPENEXR=OFF \
+#        -D CMAKE_BUILD_TYPE=DEBUG \
+#	-D CMAKE_INSTALL_PREFIX=/usr/local \
+#        ..
+#      sudo -E make install
+#    popd
+#fi
 
 if [ -e CMakeFiles ] ; then 
   echo "STATUS	: removing existing makefiles"

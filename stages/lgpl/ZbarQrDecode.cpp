@@ -3,14 +3,17 @@
  * @Date    : 13.07.2014
  */
 
+#ifdef LGPL2_1
+
 #include "FireLog.h"
-#include "FireSight.hpp"
 #include "jansson.h"
 
 #include "opencv2/imgproc/imgproc.hpp"
 
 #include <zbar.h>
 #include <iostream>
+
+#include "qrdecode.h"
 
 using namespace std;
 using namespace firesight;
@@ -75,3 +78,4 @@ vector<QRPayload> ZbarQrDecode::scan(Mat &img, int show) {
     return result;
 }
 
+#endif

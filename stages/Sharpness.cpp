@@ -8,6 +8,8 @@
 
 using namespace cv;
 
+namespace firesight {
+
 double Sharpness::GRAS(Mat & image) {
     int sum = 0;
     Mat matGray;
@@ -117,4 +119,6 @@ double Sharpness::LAPM(Mat & image) {
     }
 
     return ((double) sum / (dst.cols * dst.rows));;
+}
+
 }

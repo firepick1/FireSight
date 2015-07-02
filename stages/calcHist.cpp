@@ -1,37 +1,14 @@
-#include <string.h>
-#include <math.h>
-#include <iostream>
-#include <stdexcept>
-#include "FireLog.h"
-#include "FireSight.hpp"
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "jansson.h"
-#include "jo_util.hpp"
-#include "MatUtil.hpp"
-#include "version.h"
+#include "calcHist.h"
 
 using namespace cv;
 using namespace std;
-using namespace firesight;
 
-bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model) {
+
+namespace firesight {
+
+bool CalcHist::apply_internal(json_t *pStageModel, Model &model) {
   validateImage(model.image);
-  int nChannels = model.image.channels();
-  float rangeMin = jo_float(pStage, "rangeMin", 0, model.argMap);
-  float rangeMax = jo_float(pStage, "rangeMax", 256, model.argMap);
-  float binMax = jo_float(pStage, "binMax", 0, model.argMap);
-  float binMin = jo_float(pStage, "binMin", 1, model.argMap);
-  int dims = jo_int(pStage, "dims", 1, model.argMap);
-  bool accumulate = jo_bool(pStage, "accumulate", false, model.argMap);
-  vector<int> defaultChannels;
-  for (int i = 0; i < nChannels; i++) {
-    defaultChannels.push_back(i);
-  }
-  vector<int> histChannels = jo_vectori(pStage, "channels", defaultChannels, model.argMap);
-  int locations = jo_int(pStage, "locations", 0, model.argMap);
-  int bins = jo_int(pStage, "bins", (int)(rangeMax-rangeMin), model.argMap);
+
   int histSize[] = {bins,bins,bins,bins};
   bool split = !accumulate && nChannels > 1 && histChannels.size() > 1;
   bool uniform = true;
@@ -116,3 +93,4 @@ bool Pipeline::apply_calcHist(json_t *pStage, json_t *pStageModel, Model &model)
   return stageOK("apply_calcHist(%s) %s", errMsg, pStage, pStageModel);
 }
 
+}

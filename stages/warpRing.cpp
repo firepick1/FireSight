@@ -2,7 +2,7 @@
 #include <iostream>
 #include <math.h>
 #include "FireLog.h"
-#include "FireSight.hpp"
+#include "Pipeline.h"
 #include "version.h"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -71,42 +71,6 @@ void matWarpRing(const Mat &image, Mat &result, vector<float> angles) {
     resultSum.convertTo(result, CV_MAKETYPE(image.type(), image.channels()));
   }
   LOGTRACE1("matWarpRing() => %s", matInfo(result).c_str()); 
-}
-
-bool Pipeline::apply_warpRing(json_t *pStage, json_t *pStageModel, Model &model) {
-  validateImage(model.image);
-  const char *errMsg = NULL;
-  json_t *pAngles = jo_object(pStage, "angles", model.argMap);
-  vector<float> angles;
-  if (json_is_array(pAngles)) {
-    size_t index;
-    json_t *pAngle;
-    json_array_foreach(pAngles, index, pAngle) {
-      if (json_is_number(pAngle)) {
-        angles.push_back((float) json_number_value(pAngle));
-      } else if (json_is_string(pAngle)) {
-        float angle = (float) atof(json_string_value(pAngle));
-        angles.push_back(angle);
-      } else {
-        errMsg = "Expected angle values in degrees";
-        break;
-      }
-    }
-  } else if (pAngles == NULL) {
-    // Ring
-  } else {
-    errMsg = "Expected JSON array of angles";
-  }
-
-  if (!errMsg) {
-    Mat result;
-    matWarpRing(model.image, result, angles);
-    model.image = result;
-    json_object_set(pStageModel, "width", json_integer(model.image.cols));
-    json_object_set(pStageModel, "height", json_integer(model.image.rows));
-  }
-
-  return stageOK("apply_ring(%s) %s", errMsg, pStage, pStageModel);
 }
 
 void matRing(const Mat &image, Mat &result) {

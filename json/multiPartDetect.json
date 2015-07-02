@@ -1,0 +1,9 @@
+[
+  {"op":"cvtColor", "code":"CV_BGR2GRAY"},
+  {"op":"blur","ksize.width":3, "ksize.height":3},
+  {"op":"threshold"},
+  {"op":"Canny","threshold1":1,"threshold2":100,"apertureSize":3,"L2gradient":false},
+  {"op":"detectParts", "name":"multi"},
+  {"op":"drawRects", "model":"multi", "thickness":"1", "color":[0,0,255]}
+]
+

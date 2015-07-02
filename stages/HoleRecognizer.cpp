@@ -1,35 +1,19 @@
 #include <string.h>
 #include <math.h>
 #include "FireLog.h"
-#include "FireSight.hpp"
+#include "Pipeline.h"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
 
+#include "stages/detector.h"
+
 using namespace cv;
 using namespace std;
 using namespace firesight;
 
-const float PI = 3.141592653589793f;
 
-HoleRecognizer::HoleRecognizer(float minDiameter, float maxDiameter) {
-	maxDiam = maxDiameter;
-	minDiam = minDiameter;
-	_showMatches = HOLE_SHOW_NONE;
-  delta = 5;
-	minArea = (int)(minDiameter*minDiameter*PI/4); // 60;
-	maxArea = (int)(maxDiameter*maxDiameter*PI/4); // 14400;
-	maxVariation = 0.25;
-	minDiversity = (maxDiam - minDiam)/(float)minDiam; // 0.2;
-	max_evolution = 200;
-	area_threshold = 1.01f;
-	min_margin = .003f;
-	edge_blur_size = 5;
-	LOGTRACE3("HoleRecognizer() MSER(minArea:%d maxArea:%d minDiversity:%d/100)", minArea, maxArea, (int)(minDiversity*100+0.5));
-	mser = MSER(delta, minArea, maxArea, maxVariation, minDiversity,
-		max_evolution, area_threshold, min_margin, edge_blur_size);
-}
 
 void HoleRecognizer::scanRegion(vector<Point> &pts, int i, 
 	Mat &image, vector<MatchedRegion> &matches, float maxEllipse, float maxCovar) 
@@ -66,10 +50,10 @@ void HoleRecognizer::scanRegion(vector<Point> &pts, int i,
 
 	int duplicate = 0;
 	bool matched = 0;
-	if (covar < maxCovar && maxX - minX < maxDiam && maxY - minY < maxDiam) {
+    if (covar < maxCovar && maxX - minX < diamMax && maxY - minY < diamMax) {
 		for (size_t j = 0; !duplicate && j < matches.size(); j++) {
-			if (abs(match.average.x - matches[j].average.x) < maxDiam &&
-					abs(match.average.y - matches[j].average.y) < maxDiam) 
+            if (abs(match.average.x - matches[j].average.x) < diamMax &&
+                    abs(match.average.y - matches[j].average.y) < diamMax)
 			{ duplicate++; }
 		}
 		if (!duplicate && abs(match.ellipse-match.pointCount)/match.ellipse <= maxEllipse) {
@@ -85,7 +69,7 @@ void HoleRecognizer::scanRegion(vector<Point> &pts, int i,
 		}
 	}
 	if (!duplicate && image.channels() >= 3) {
-		if (matched && _showMatches==HOLE_SHOW_MATCHES || _showMatches==HOLE_SHOW_MSER) {
+        if (matched && showMatches == SHOW_MATCHES || showMatches == SHOW_MSER) {
 			for (int j = 0; j < nPts; j++) {
 				image.at<Vec3b>(pts[j])[0] = red;
 				image.at<Vec3b>(pts[j])[1] = green;
@@ -93,10 +77,6 @@ void HoleRecognizer::scanRegion(vector<Point> &pts, int i,
 			}
 		}
 	}
-}
-
-void HoleRecognizer::showMatches(int show) {
-  _showMatches = show;
 }
 
 void HoleRecognizer::scan(Mat &image, vector<MatchedRegion> &matches, float maxEllipse, float maxCovar) {

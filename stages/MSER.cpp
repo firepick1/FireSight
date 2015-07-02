@@ -1,18 +1,18 @@
 #include <string.h>
 #include <math.h>
 #include "FireLog.h"
-#include "FireSight.hpp"
+#include "Pipeline.h"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "jansson.h"
 #include "jo_util.hpp"
 
+#include "detector.h"
+
 using namespace cv;
 using namespace std;
 using namespace firesight;
-
-typedef enum {DETECT_NONE, DETECT_KEYPOINTS, DETECT_RECTS} Detect;
 
 /** (DEPRECATED: should be private) */
 //void Pipeline::covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut) {
@@ -23,7 +23,7 @@ typedef enum {DETECT_NONE, DETECT_KEYPOINTS, DETECT_RECTS} Detect;
 /**
  * Compute covariance and mean of region
  */
-void Pipeline::_covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut) {
+void MSERStage::_covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut) {
   Mat_<double> data(pts.size(),2);
   for (size_t i = 0; i < pts.size(); i++) {
     data(i,0) = pts[i].x;
@@ -51,7 +51,7 @@ void Pipeline::_covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut
 /** 
  * Compute eigenvectors, eigenvalues, mean, and covariance of region
  */
-void Pipeline::_eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut) {
+void MSERStage::_eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut) {
   _covarianceXY(pts, covOut, meanOut);
 
   Mat eigenvalues;
@@ -70,7 +70,7 @@ void Pipeline::_eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &mea
  * or use the default of 2*CV_PI for a horizontal bias ("landscape regions").
  * @param region of points to analyze
  */
-KeyPoint Pipeline::_regionKeypoint(const vector<Point> &region) {
+KeyPoint MSERStage::_regionKeypoint(const vector<Point> &region) {
   Mat covOut;
   Mat mean;
   Mat eigenvectors;
@@ -119,7 +119,7 @@ KeyPoint Pipeline::_regionKeypoint(const vector<Point> &region) {
 }
 
 
-static void drawRegions(Mat &image, vector<vector<Point> > &regions, Scalar color) {
+void MSERStage::drawRegions(Mat &image, vector<vector<Point> > &regions, Scalar color) {
   int nRegions = (int) regions.size();
   int blue = (int) color[0];
   int green = (int) color[1];
@@ -141,7 +141,7 @@ static void drawRegions(Mat &image, vector<vector<Point> > &regions, Scalar colo
   }
 }
 
-void Pipeline::detectRects(json_t *pStageModel, vector<vector<Point> > &regions) {
+void MSERStage::detectRects(json_t *pStageModel, vector<vector<Point> > &regions) {
   int nRegions = regions.size();
   json_t *pRects = json_array();
   json_object_set(pStageModel, "rects", pRects);
@@ -158,7 +158,7 @@ void Pipeline::detectRects(json_t *pStageModel, vector<vector<Point> > &regions)
   }
 }
 
-void Pipeline::detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions) {
+void MSERStage::detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions) {
   int nRegions = regions.size();
   json_t *pKeypoints = json_array();
   json_object_set(pStageModel, "keypoints", pKeypoints);
@@ -172,124 +172,5 @@ void Pipeline::detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regi
     json_object_set(pKeypoint, "angle", json_real(keypoint.angle));
     json_array_append(pKeypoints, pKeypoint);
   }
-}
-
-bool Pipeline::apply_MSER(json_t *pStage, json_t *pStageModel, Model &model) {
-  validateImage(model.image);
-  int delta = jo_int(pStage, "delta", 5, model.argMap);
-  int minArea = jo_int(pStage, "minArea", 60, model.argMap);
-  int maxArea = jo_int(pStage, "maxArea", 14400, model.argMap);
-  float maxVariation = jo_float(pStage, "maxVariation", 0.25, model.argMap);
-  float minDiversity = jo_float(pStage, "minDiversity", 0.2, model.argMap);
-  int maxEvolution = jo_int(pStage, "maxEvolution", 200, model.argMap);
-  float areaThreshold = jo_float(pStage, "areaThreshold", 1.01, model.argMap);
-  float minMargin = jo_float(pStage, "minMargin", .003, model.argMap);
-  int edgeBlurSize = jo_int(pStage, "edgeBlurSize", 5, model.argMap);
-  json_t *pDetect = jo_object(pStage, "detect", model.argMap);
-  Scalar color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
-  json_t * pMask = jo_object(pStage, "mask", model.argMap);
-  const char *errMsg = NULL;
-  char errBuf[150];
-  int maskX;
-  int maskY;
-  int maskW;
-  int maskH;
-
-  if (minArea < 0 || maxArea <= minArea) {
-    errMsg = "expected 0<=minArea and minArea<maxArea";
-  } else if (maxVariation < 0 || minDiversity < 0) {
-    errMsg = "expected 0<=minDiversity and 0<=maxVariation";
-  } else if (maxEvolution<0) {
-    errMsg = "expected 0<=maxEvolution";
-  } else if (areaThreshold < 0 || minMargin < 0) {
-    errMsg = "expected 0<=areaThreshold and 0<=minMargin";
-  } else if (edgeBlurSize < 0) {
-    errMsg = "expected 0<=edgeBlurSize";
-  } if (pMask) {
-    if (!json_is_object(pMask)) {
-      errMsg = "expected mask JSON object with x, y, width, height";
-    } else {
-      if (pMask) {
-        LOGTRACE("mask:{");
-      }
-      maskX = jo_int(pMask, "x", 0, model.argMap);
-      maskY = jo_int(pMask, "y", 0, model.argMap);
-      maskW = jo_int(pMask, "width", model.image.cols, model.argMap);
-      maskH = jo_int(pMask, "height", model.image.rows, model.argMap);
-      if (pMask) {
-        LOGTRACE("}");
-      }
-      if (maskX < 0 || model.image.cols <= maskX) {
-        snprintf(errBuf, sizeof(errBuf), "expected 0 <= mask.x < %d", model.image.cols);
-        errMsg = errBuf;
-      } else if (maskY < 0 || model.image.rows <= maskY) {
-        snprintf(errBuf, sizeof(errBuf), "expected 0 <= mask.y < %d", model.image.cols);
-        errMsg = errBuf;
-      } else if (maskW <= 0 || model.image.cols < maskW) {
-        snprintf(errBuf, sizeof(errBuf), "expected 0 < mask.width <= %d", model.image.cols);
-        errMsg = errBuf;
-      } else if (maskH <= 0 || model.image.rows < maskH) {
-        snprintf(errBuf, sizeof(errBuf), "expected 0 < mask.height <= %d", model.image.rows);
-        errMsg = errBuf;
-      }
-    }
-  }
-
-  Detect detect = DETECT_NONE;
-  if (!errMsg && pDetect) {
-    if (json_is_string(pDetect)) {
-      if (strcmp("keypoints", json_string_value(pDetect)) == 0) {
-        detect = DETECT_KEYPOINTS;
-      } else if (strcmp("none", json_string_value(pDetect)) == 0) {
-        detect = DETECT_NONE;
-      } else if (strcmp("rects", json_string_value(pDetect)) == 0) {
-        detect = DETECT_RECTS;
-      } else {
-        errMsg = "Invalid value for detect";
-      }
-    } else {
-      errMsg = "Expected string value for detect";
-    }
-  }
-
-  if (!errMsg) {
-    MSER mser(delta, minArea, maxArea, maxVariation, minDiversity,
-      maxEvolution, areaThreshold, minMargin, edgeBlurSize);
-    Mat mask;
-    Rect maskRect(maskX, maskY, maskW, maskH);
-    if (pMask) {
-      mask = Mat::zeros(model.image.rows, model.image.cols, CV_8UC1);
-      mask(maskRect) = 1;
-    }
-    vector<vector<Point> > regions;
-    mser(model.image, regions, mask);
-
-    int nRegions = (int) regions.size();
-    LOGTRACE1("apply_MSER matched %d regions", nRegions);
-    switch (detect) {
-      case DETECT_RECTS:
-        detectRects(pStageModel, regions);
-        break;
-      case DETECT_KEYPOINTS:
-        detectKeypoints(pStageModel, regions);
-        break;
-    }
-    if (jo_object(pStage, "color", model.argMap)) {
-      if (model.image.channels() == 1) {
-        cvtColor(model.image, model.image, CV_GRAY2BGR);
-        LOGTRACE("cvtColor(CV_GRAY2BGR)");
-      }
-      drawRegions(model.image, regions, color);
-      if (pMask) {
-        if (color[0]==-1 && color[1]==-1 && color[2]==-1 && color[3]==-1) {
-          rectangle(model.image, maskRect, Scalar(255, 0, 255));
-        } else {
-          rectangle(model.image, maskRect, color);
-        }
-      }
-    }
-  }
-
-  return stageOK("apply_MSER(%s) %s", errMsg, pStage, pStageModel);
 }
 

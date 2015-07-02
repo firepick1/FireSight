@@ -1,5 +1,5 @@
 [
-  {"op":"HoleRecognizer", "diamMin":"{{diamMin||22.6}}", "diamMax":"{{diamMax||29.9}}", "show":1},
+  {"op":"HoleRecognizer", "diamMin":"{{diamMin||22.6}}", "diamMax":"{{diamMax||29.9}}", "show":"NONE"},
   {"op":"imwrite", "path":"target/HoleRecognizer.jpg"}
 ]
 
