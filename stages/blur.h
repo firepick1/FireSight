@@ -78,7 +78,7 @@ private:
     bool apply_internal(json_t *pStageModel, Model &model)
     {
         const char *errMsg = NULL;
-        Pipeline::validateImage(model.image);
+        validateImage(model.image);
 
         if (!errMsg) {
             switch (type) {

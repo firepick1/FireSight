@@ -42,7 +42,7 @@ private:
     bool apply_internal(json_t *pStageModel, Model &model)
     {
         const char *errMsg = NULL;
-        Pipeline::validateImage(model.image);
+        validateImage(model.image);
 
         Point org_(org);
         if (org_.y < 0) {
@@ -213,7 +213,7 @@ public:
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model) {
-        Pipeline::validateImage(model.image);
+        validateImage(model.image);
         string errMsg;
 
         if (shift < 0) {
@@ -347,7 +347,7 @@ public:
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model) {
-        Pipeline::validateImage(model.image);
+        validateImage(model.image);
 
         const char *errMsg = NULL;
 

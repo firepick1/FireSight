@@ -37,7 +37,7 @@ private:
     bool apply_internal(json_t *pStageModel, Model &model)
     {
         const char *errMsg = NULL;
-        Pipeline::validateImage(model.image);
+        validateImage(model.image);
 
         if (!errMsg) {
             cv::Canny(model.image, model.image, threshold1, threshold2, apertureSize, L2gradient);

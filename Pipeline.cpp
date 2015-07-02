@@ -119,11 +119,6 @@ static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStag
     return true;
 }
 
-// TODO remove
-void Pipeline::validateImage(Mat &image) {
-    Stage::validateImage(image);
-}
-
 json_t *Pipeline::process(Input * input, ArgMap &argMap, Mat &output, bool gui) {
     Model model(argMap);
     json_t *pModelJson = model.getJson(true);
@@ -478,8 +473,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new ModelStage(pStage, model, pName));
     if (strcmp(pOp, "morph")==0)
         stage = unique_ptr<Stage>(new Morph(pStage, model, pName));
-//    if (strcmp(pOp, "MSER")==0) {
-//        ok = apply_MSER(pStage, pStageModel, model);
+    if (strcmp(pOp, "MSER")==0)
+        stage = unique_ptr<Stage>(new MSERStage(pStage, model, pName));
 //    if (strcmp(pOp, "normalize")==0) {
 //        ok = apply_normalize(pStage, pStageModel, model);
     if (strcmp(pOp, "PSNR")==0)

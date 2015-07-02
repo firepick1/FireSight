@@ -36,7 +36,7 @@ public:
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model) {
-        Pipeline::validateImage(model.image);
+        validateImage(model.image);
 
         const char *errMsg = NULL;
         int code = CV_BGR2GRAY;

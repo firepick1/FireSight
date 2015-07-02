@@ -328,6 +328,166 @@ protected:
     SimpleBlobDetector::Params params;
 };
 
+typedef enum {DETECT_NONE, DETECT_KEYPOINTS, DETECT_RECTS} Detect;
+
+class MSERStage: public Stage {
+public:
+    MSERStage(json_t *pStage, Model &model, string pName) : Stage(pStage, pName) {
+        delta = jo_int(pStage, "delta", 5, model.argMap);
+        _params["delta"] = new IntParameter(this, delta);
+        minArea = jo_int(pStage, "minArea", 60, model.argMap);
+        _params["minArea"] = new IntParameter(this, minArea);
+        maxArea = jo_int(pStage, "maxArea", 14400, model.argMap);
+        _params["maxArea"] = new IntParameter(this, maxArea);
+        maxVariation = jo_float(pStage, "maxVariation", 0.25, model.argMap);
+        _params["maxVariation"] = new FloatParameter(this, maxVariation);
+        minDiversity = jo_float(pStage, "minDiversity", 0.2, model.argMap);
+        _params["minDiversity"] = new FloatParameter(this, minDiversity);
+        maxEvolution = jo_int(pStage, "maxEvolution", 200, model.argMap);
+        _params["maxEvolution"] = new IntParameter(this, maxEvolution);
+        areaThreshold = jo_float(pStage, "areaThreshold", 1.01, model.argMap);
+        _params["areaThreshold"] = new FloatParameter(this, areaThreshold);
+        minMargin = jo_float(pStage, "minMargin", .003, model.argMap);
+        _params["minMargin"] = new FloatParameter(this, minMargin);
+        edgeBlurSize = jo_int(pStage, "edgeBlurSize", 5, model.argMap);
+        _params["edgeBlurSize"] = new IntParameter(this, edgeBlurSize);
+        color = jo_Scalar(pStage, "color", Scalar::all(-1), model.argMap);
+        _params["color"] = new ScalarParameter(this, color);
+    }
+
+protected:
+    bool apply_internal(json_t *pStageModel, Model &model) {
+        validateImage(model.image);
+        json_t *pDetect = jo_object(pStage, "detect", model.argMap);
+        json_t * pMask = jo_object(pStage, "mask", model.argMap);
+        const char *errMsg = NULL;
+        char errBuf[150];
+        int maskX;
+        int maskY;
+        int maskW;
+        int maskH;
+
+        if (minArea < 0 || maxArea <= minArea) {
+          errMsg = "expected 0<=minArea and minArea<maxArea";
+        } else if (maxVariation < 0 || minDiversity < 0) {
+          errMsg = "expected 0<=minDiversity and 0<=maxVariation";
+        } else if (maxEvolution<0) {
+          errMsg = "expected 0<=maxEvolution";
+        } else if (areaThreshold < 0 || minMargin < 0) {
+          errMsg = "expected 0<=areaThreshold and 0<=minMargin";
+        } else if (edgeBlurSize < 0) {
+          errMsg = "expected 0<=edgeBlurSize";
+        } if (pMask) {
+          if (!json_is_object(pMask)) {
+            errMsg = "expected mask JSON object with x, y, width, height";
+          } else {
+            if (pMask) {
+              LOGTRACE("mask:{");
+            }
+            maskX = jo_int(pMask, "x", 0, model.argMap);
+            maskY = jo_int(pMask, "y", 0, model.argMap);
+            maskW = jo_int(pMask, "width", model.image.cols, model.argMap);
+            maskH = jo_int(pMask, "height", model.image.rows, model.argMap);
+            if (pMask) {
+              LOGTRACE("}");
+            }
+            if (maskX < 0 || model.image.cols <= maskX) {
+              snprintf(errBuf, sizeof(errBuf), "expected 0 <= mask.x < %d", model.image.cols);
+              errMsg = errBuf;
+            } else if (maskY < 0 || model.image.rows <= maskY) {
+              snprintf(errBuf, sizeof(errBuf), "expected 0 <= mask.y < %d", model.image.cols);
+              errMsg = errBuf;
+            } else if (maskW <= 0 || model.image.cols < maskW) {
+              snprintf(errBuf, sizeof(errBuf), "expected 0 < mask.width <= %d", model.image.cols);
+              errMsg = errBuf;
+            } else if (maskH <= 0 || model.image.rows < maskH) {
+              snprintf(errBuf, sizeof(errBuf), "expected 0 < mask.height <= %d", model.image.rows);
+              errMsg = errBuf;
+            }
+          }
+        }
+
+        Detect detect = DETECT_NONE;
+        if (!errMsg && pDetect) {
+          if (json_is_string(pDetect)) {
+            if (strcmp("keypoints", json_string_value(pDetect)) == 0) {
+              detect = DETECT_KEYPOINTS;
+            } else if (strcmp("none", json_string_value(pDetect)) == 0) {
+              detect = DETECT_NONE;
+            } else if (strcmp("rects", json_string_value(pDetect)) == 0) {
+              detect = DETECT_RECTS;
+            } else {
+              errMsg = "Invalid value for detect";
+            }
+          } else {
+            errMsg = "Expected string value for detect";
+          }
+        }
+
+        if (!errMsg) {
+          MSER mser(delta, minArea, maxArea, maxVariation, minDiversity,
+            maxEvolution, areaThreshold, minMargin, edgeBlurSize);
+          Mat mask;
+          Rect maskRect(maskX, maskY, maskW, maskH);
+          if (pMask) {
+            mask = Mat::zeros(model.image.rows, model.image.cols, CV_8UC1);
+            mask(maskRect) = 1;
+          }
+          vector<vector<Point> > regions;
+          mser(model.image, regions, mask);
+
+          int nRegions = (int) regions.size();
+          LOGTRACE1("apply_MSER matched %d regions", nRegions);
+          switch (detect) {
+            case DETECT_RECTS:
+              detectRects(pStageModel, regions);
+              break;
+            case DETECT_KEYPOINTS:
+              detectKeypoints(pStageModel, regions);
+              break;
+          }
+          if (jo_object(pStage, "color", model.argMap)) {
+            if (model.image.channels() == 1) {
+              cvtColor(model.image, model.image, CV_GRAY2BGR);
+              LOGTRACE("cvtColor(CV_GRAY2BGR)");
+            }
+            drawRegions(model.image, regions, color);
+            if (pMask) {
+              if (color[0]==-1 && color[1]==-1 && color[2]==-1 && color[3]==-1) {
+                rectangle(model.image, maskRect, Scalar(255, 0, 255));
+              } else {
+                rectangle(model.image, maskRect, color);
+              }
+            }
+          }
+        }
+
+        return stageOK("apply_MSER(%s) %s", errMsg, pStage, pStageModel);
+    }
+
+    static void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);
+    static void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
+    static void drawRegions(Mat &image, vector<vector<Point> > &regions, Scalar color);
+    static void _eigenXY(const vector<Point> &pts, Mat &eigenvectorsOut, Mat &meanOut, Mat &covOut);
+    static void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
+
+public: // for test_RegionKeypoint
+    static KeyPoint _regionKeypoint(const vector<Point> &region);
+
+private:
+
+    int delta;
+    int minArea;
+    int maxArea;
+    float maxVariation;
+    float minDiversity;
+    int maxEvolution;
+    float areaThreshold;
+    float minMargin;
+    int edgeBlurSize;
+    Scalar color;
+};
+
 }
 
 

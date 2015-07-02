@@ -52,7 +52,7 @@ public:
 
 private:
     virtual bool apply_internal(json_t *pStageModel, Model &model) {
-        Pipeline::validateImage(model.image);
+        validateImage(model.image);
         const char *errMsg = NULL;
 
         if (!gray && isOtsu) {

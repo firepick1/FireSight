@@ -308,7 +308,6 @@ namespace firesight {
 
   typedef class CLASS_DECLSPEC Pipeline {
     public:
-      static void validateImage(Mat &image);
       bool stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel);
     protected:
       bool processModel(Model &model);
@@ -322,7 +321,6 @@ namespace firesight {
       bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_MSER(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_normalize(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_proto(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
