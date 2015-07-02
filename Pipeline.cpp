@@ -65,61 +65,6 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
     return Stage::stageOK(fmt, errMsg, pStage, pStageModel);
 }
 
-
-int Pipeline::parseCvType(const char *typeStr, const char *&errMsg) {
-    int type = CV_8U;
-
-    if (strcmp("CV_8UC3", typeStr) == 0) {
-        type = CV_8UC3;
-    } else if (strcmp("CV_8UC2", typeStr) == 0) {
-        type = CV_8UC2;
-    } else if (strcmp("CV_8UC1", typeStr) == 0) {
-        type = CV_8UC1;
-    } else if (strcmp("CV_8U", typeStr) == 0) {
-        type = CV_8UC1;
-    } else if (strcmp("CV_32F", typeStr) == 0) {
-        type = CV_32F;
-    } else if (strcmp("CV_32FC1", typeStr) == 0) {
-        type = CV_32FC1;
-    } else if (strcmp("CV_32FC2", typeStr) == 0) {
-        type = CV_32FC2;
-    } else if (strcmp("CV_32FC3", typeStr) == 0) {
-        type = CV_32FC3;
-    } else {
-        errMsg = "Unsupported type";
-    }
-
-    return type;
-}
-
-
-bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    double alpha = jo_float(pStage, "alpha", 1, model.argMap);
-    double delta = jo_float(pStage, "delta", 0, model.argMap);
-    string transform = jo_string(pStage, "transform", "", model.argMap);
-    string rTypeStr = jo_string(pStage, "rType", "CV_8U", model.argMap);
-    const char *errMsg = NULL;
-    int rType;
-
-    if (!errMsg) {
-        rType = parseCvType(rTypeStr.c_str(), errMsg);
-    }
-
-    if (!transform.empty()) {
-        if (transform.compare("log") == 0) {
-            LOGTRACE("log()");
-            log(model.image, model.image);
-        }
-    }
-
-    if (!errMsg) {
-        model.image.convertTo(model.image, rType, alpha, delta);
-    }
-
-    return stageOK("apply_convertTo(%s) %s", errMsg, pStage, pStageModel);
-}
-
 bool Pipeline::apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
     string path = jo_string(pStage, "path", "", model.argMap);
