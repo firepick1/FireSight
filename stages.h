@@ -24,6 +24,7 @@
 #include "stages/morph.h"
 #include "stages/lgpl/qrdecode.h"
 #include "stages/points2resolution.h"
+#include "stages/psnr.h"
 #include "stages/resize.h"
 #include "stages/Sharpness.h"
 #include "stages/stageImage.h"

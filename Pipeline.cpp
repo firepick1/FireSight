@@ -65,61 +65,6 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
     return Stage::stageOK(fmt, errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    string path = jo_string(pStage, "path", "", model.argMap);
-    string psnrSame = jo_string(pStage, "psnrSame", "SAME", model.argMap);
-    double threshold = jo_double(pStage, "threshold", -1, model.argMap);
-    const char *errMsg = NULL;
-    Mat thatImage;
-
-    if (path.empty()) {
-        errMsg = "apply_PSNR() expected path for imread";
-    } else {
-        thatImage = imread(path.c_str(), CV_LOAD_IMAGE_COLOR);
-        LOGTRACE2("apply_PSNR(%s) %s", path.c_str(), matInfo(thatImage).c_str());
-        if (thatImage.data) {
-            assert(model.image.cols == thatImage.cols);
-            assert(model.image.rows == thatImage.rows);
-            assert(model.image.channels() == thatImage.channels());
-        } else {
-            errMsg = "apply_PSNR() imread failed";
-        }
-    }
-
-    if (!errMsg) {
-        Mat s1;
-        absdiff(model.image, thatImage, s1);  // |I1 - I2|
-        s1.convertTo(s1, CV_32F);              // cannot make a square on 8 bits
-        s1 = s1.mul(s1);                       // |I1 - I2|^2
-        Scalar s = sum(s1);                   // sum elements per channel
-        double sse = s.val[0] + s.val[1] + s.val[2]; // sum channels
-
-#define SSE_THRESHOLD 1e-10
-        if( sse > 1e-10) {
-            double  mse =sse /(double)(model.image.channels() * model.image.total());
-            double psnr = 10.0*log10((255*255)/mse);
-            json_object_set(pStageModel, "PSNR", json_real(psnr));
-            if (threshold >= 0) {
-                if (psnr >= threshold) {
-                    LOGTRACE2("apply_PSNR() threshold passed: %f >= %f", psnr, threshold);
-                    json_object_set(pStageModel, "PSNR", json_string(psnrSame.c_str()));
-                } else {
-                    LOGTRACE2("apply_PSNR() threshold failed: %f < %f", psnr, threshold);
-                }
-            }
-        } else if (sse == 0) {
-            LOGTRACE("apply_PSNR() identical images: SSE == 0");
-            json_object_set(pStageModel, "PSNR", json_string(psnrSame.c_str()));
-        } else {
-            LOGTRACE2("apply_PSNR() threshold passed: SSE %f < %f", sse, SSE_THRESHOLD);
-            json_object_set(pStageModel, "PSNR", json_string(psnrSame.c_str()));
-        }
-    }
-
-    return stageOK("apply_PSNR(%s) %s", errMsg, pStage, pStageModel);
-}
-
 Pipeline::Pipeline(const char *pDefinition, DefinitionType defType) {
     json_error_t jerr;
     string pipelineString = pDefinition;
@@ -537,8 +482,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_MSER(pStage, pStageModel, model);
 //    if (strcmp(pOp, "normalize")==0) {
 //        ok = apply_normalize(pStage, pStageModel, model);
-//    if (strcmp(pOp, "PSNR")==0) {
-//        ok = apply_PSNR(pStage, pStageModel, model);
+    if (strcmp(pOp, "PSNR")==0)
+        stage = unique_ptr<Stage>(new PSNR(pStage, model, pName));
 //    if (strcmp(pOp, "proto")==0) {
 //        ok = apply_proto(pStage, pStageModel, model);
     if (strcmp(pOp, "putText")==0)

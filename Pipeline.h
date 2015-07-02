@@ -325,7 +325,6 @@ namespace firesight {
       bool apply_MSER(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_normalize(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_proto(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_PSNR(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
 
       void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
