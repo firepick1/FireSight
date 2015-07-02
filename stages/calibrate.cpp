@@ -4,7 +4,6 @@
 #include <iostream>
 #include <stdexcept>
 #include "FireLog.h"
-#include "Pipeline.h"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -1355,9 +1354,8 @@ bool MatchGrid::apply_internal(json_t *pStageModel, Model &model) {
     return stageOK("apply_matchGrid(%s) %s", errMsg.c_str(), pStage, pStageModel);
 }
 
-bool Pipeline::apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model) {
+bool Undistort::apply_internal(json_t *pStageModel, Model &model) {
     string errMsg;
-    string modelName = jo_string(pStage, "model", pName, model.argMap);
     vector<double> cm;
     vector<double> pm;
     vector<double> dc;

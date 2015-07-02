@@ -331,7 +331,6 @@ namespace firesight {
 //      void _covarianceXY(const vector<Point> &pts, Mat &covOut, Mat &meanOut);
 
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_undistort(const char *pName, json_t *pStage, json_t *pStageModel, Model &model);
 
 //      void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
 //      void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);

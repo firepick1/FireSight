@@ -505,8 +505,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new Transparent(pStage, model, pName));
     if (strcmp(pOp, "threshold")==0)
         stage = unique_ptr<Stage>(new Threshold(pStage, model, pName));
-//    if (strcmp(pOp, "undistort")==0) {
-//        ok = apply_undistort(pName, pStage, pStageModel, model);
+    if (strcmp(pOp, "undistort")==0)
+        stage = unique_ptr<Stage>(new Undistort(pStage, model, pName));
     if (strcmp(pOp, "warpAffine")==0)
         stage = unique_ptr<Stage>(new WarpAffine(pStage, model, pName));
     if (strcmp(pOp, "warpRing")==0)
