@@ -65,111 +65,6 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
     return Stage::stageOK(fmt, errMsg, pStage, pStageModel);
 }
 
-bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model) {
-
-    char *errMsg = NULL;
-    // input parameters
-    double thr1 = jo_double(pStage, "threshold1", 1.2, model.argMap);
-    double thr2 = jo_double(pStage, "threshold2", 1.2, model.argMap);
-    double confidence = jo_double(pStage, "confidence", (1.0-1e-12), model.argMap);
-    double separation = jo_double(pStage, "separation", 4.0, model.argMap); // separation [mm]
-
-    string pointsModelName = jo_string(pStage, "model", "", model.argMap);
-    json_t *pPointsModel = json_object_get(model.getJson(false), pointsModelName.c_str());
-
-    try {
-        if (pointsModelName.empty()) {
-            throw runtime_error("model: expected name of stage with points");
-        } else if (!json_is_object(pPointsModel)) {
-            throw runtime_error("Named stage is not in model");
-        }
-
-        json_t *pPoints = NULL;
-        do {
-            pPoints = json_object_get(pPointsModel, "circles");
-            if (json_is_array(pPoints))
-                break;
-
-            pPoints = json_object_get(pPointsModel, "points");
-            if (json_is_array(pPoints))
-                break;
-
-            throw runtime_error("Expected array of points (circles, ...)");
-        } while (0);
-
-        size_t index;
-        json_t *pPoint;
-
-        vector<XY> coords;
-
-        json_array_foreach(pPoints, index, pPoint) {
-            double x = jo_double(pPoint, "x", DBL_MAX, model.argMap);
-            double y = jo_double(pPoint, "y", DBL_MAX, model.argMap);
-            //double r = jo_double(pCircle, "radius", DBL_MAX, model.argMap);
-
-            if (x == DBL_MAX || y == DBL_MAX) {
-                LOGERROR("apply_points2resolution_RANSAC() x, y are required values (skipping)");
-                continue;
-            }
-
-            XY xy;
-            xy.x = x;
-            xy.y = y;
-            coords.push_back(xy);
-        }
-
-        Pt2Res pt2res;
-
-        double resolution;
-
-        try {
-            resolution = pt2res.getResolution(thr1, thr2, confidence, separation, coords);
-            json_object_set(pStageModel, "resolution", json_real(resolution));
-        } catch (runtime_error &e) {
-            errMsg = (char *) malloc(sizeof(char) * (strlen(e.what()) + 1));
-            strcpy(errMsg, e.what());
-        }
-
-    } catch (exception &e) {
-        errMsg = (char *) malloc(sizeof(char) * (strlen(e.what()) + 1));
-        strcpy(errMsg, e.what());
-    }
-
-    return stageOK("apply_points2resolution_RANSAC(%s) %s", errMsg, pStage, pStageModel);
-}
-
-#ifdef LGPL2_1
-bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model) {
-    validateImage(model.image);
-    char *errMsg = NULL;
-
-    int show = jo_int(pStage, "show", 0, model.argMap);
-
-    if (logLevel >= FIRELOG_TRACE) {
-        char *pStageJson = json_dumps(pStage, 0);
-        LOGTRACE1("apply_qrdecode(%s)", pStageJson);
-        free(pStageJson);
-    }
-
-    try {
-        ZbarQrDecode qr;
-        vector<QRPayload> payload = qr.scan(model.image, show);
-
-        json_t *payload_json = json_array();
-        json_object_set(pStageModel, "qrdata", payload_json);
-        for (size_t i = 0; i < payload.size(); i++) {
-            json_array_append(payload_json, payload[i].as_json_t());
-        }
-
-
-    } catch (runtime_error &e) {
-        errMsg = (char *) malloc(sizeof(char) * (strlen(e.what())+1));
-        strcpy(errMsg, e.what());
-    }
-
-    return stageOK("apply_qrdecode(%s) %s", errMsg, pStage, pStageModel);
-}
-#endif // LGPL2_1
 
 int Pipeline::parseCvType(const char *typeStr, const char *&errMsg) {
     int type = CV_8U;
@@ -734,8 +629,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new HoleRecognizer(pStage, model, pName));
     if (strcmp(pOp, "HoughCircles")==0)
         stage = unique_ptr<Stage>(new HoughCircles(pStage, model, pName));
-//    if (strcmp(pOp, "points2resolution_RANSAC")==0) {
-//        ok = apply_points2resolution_RANSAC(pStage, pStageModel, model);
+    if (strcmp(pOp, "points2resolution_RANSAC")==0)
+        stage = unique_ptr<Stage>(new Points2Resolution(pStage, model, pName));
     if (strcmp(pOp, "imread")==0)
         stage = unique_ptr<Stage>(new ImRead(pStage, model, pName));
     if (strcmp(pOp, "imwrite")==0)
@@ -765,10 +660,10 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
     if (strcmp(pOp, "putText")==0)
         stage = unique_ptr<Stage>(new Text(pStage, model, pName));
 //        ok = apply_putText(pStage, pStageModel, model);
-//#ifdef LGPL2_1
-//    if (strcmp(pOp, "qrDecode")==0) {
-//        ok = apply_qrdecode(pStage, pStageModel, model);
-//#endif // LGPL2_1
+#ifdef LGPL2_1
+    if (strcmp(pOp, "qrDecode")==0)
+        stage = unique_ptr<Stage>(new QrDecode(pStage, model, pName));
+#endif // LGPL2_1
     if (strcmp(pOp, "rectangle")==0)
         stage = unique_ptr<Stage>(new DrawRectangle(pStage, model, pName));
     if (strcmp(pOp, "resize")==0)

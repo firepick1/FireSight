@@ -58,48 +58,6 @@ namespace firesight {
       XY(double x_, double y_): x(x_), y(y_) {}
   } XY;
 
-  typedef class Pt2Res {
-      public:
-
-          Pt2Res() {}
-          double getResolution(double thr1, double thr2, double confidence, double separation, vector<XY> coords);
-      private:
-          static bool compare_XY_by_x(XY a, XY b);
-          static bool compare_XY_by_y(XY a, XY b);
-          int nsamples_RANSAC(size_t ninl, size_t xlen, unsigned int NSAMPL, double confidence);
-          static double _RANSAC_line(XY * x, size_t nx, XY C);
-          static double _RANSAC_pattern(XY * x, size_t nx, XY C);
-          vector<XY> RANSAC_2D(unsigned int NSAMPL, vector<XY> coords, double thr, double confidence, double(*err_fun)(XY *, size_t, XY));
-          void least_squares(vector<XY> xy, double * a, double * b);
-
-  } Pt2Res;
-
-#ifdef LGPL2_1
-  typedef struct QRPayload {
-      double x, y;
-      string text;
-      json_t * as_json_t() {
-          json_t *pObj = json_object();
-          json_object_set(pObj, "x", json_real(x));
-          json_object_set(pObj, "y", json_real(y));
-          json_object_set(pObj, "text", json_string(text.c_str()));
-          return pObj;
-      }
-      string asJson() {
-          json_t *pObj = as_json_t();
-          char *pObjStr = json_dumps(pObj, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
-          string result(pObjStr);
-          return result;
-      }
-  } QRPayload;
-
-  typedef class ZbarQrDecode {
-      public:
-          ZbarQrDecode() {}
-          vector<QRPayload> scan(Mat &img, int show);
-  } ZbarQrDecode;
-#endif // LGPL2_1
-
   typedef class StageData {
     public:
       StageData(string stageName);
@@ -361,10 +319,6 @@ namespace firesight {
 
       bool apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_equalizeHist(json_t *pStage, json_t *pStageModel, Model &model);
-      bool apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageModel, Model &model);
-#ifdef LGPL2_1
-      bool apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model);
-#endif // LGPL2_1
       bool apply_log(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_Mat(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_matchGrid(json_t *pStage, json_t *pStageModel, Model &model);
