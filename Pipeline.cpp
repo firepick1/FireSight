@@ -92,67 +92,6 @@ int Pipeline::parseCvType(const char *typeStr, const char *&errMsg) {
     return type;
 }
 
-bool Pipeline::apply_Mat(json_t *pStage, json_t *pStageModel, Model &model) {
-    int width = jo_int(pStage, "width", model.image.cols, model.argMap);
-    int height = jo_int(pStage, "height", model.image.rows, model.argMap);
-    string typeStr = jo_string(pStage, "type", "CV_8UC3", model.argMap);
-    Scalar color = jo_Scalar(pStage, "color", Scalar::all(0), model.argMap);
-    const char *errMsg = NULL;
-    int type = CV_8UC3;
-
-    if (width <= 0 || height <= 0) {
-        errMsg = "Expected 0<width and 0<height";
-    } else if (color[0] <0 || color[1]<0 || color[2]<0) {
-        errMsg = "Expected color JSON array with non-negative values";
-    }
-
-    if (!errMsg) {
-        type = parseCvType(typeStr.c_str(), errMsg);
-    }
-
-    if (!errMsg) {
-        model.image = Mat(height, width, type, color);
-    }
-
-    return stageOK("apply_Mat(%s) %s", errMsg, pStage, pStageModel);
-}
-
-bool Pipeline::apply_split(json_t *pStage, json_t *pStageModel, Model &model) {
-    json_t *pFromTo = jo_object(pStage, "fromTo", model.argMap);
-    const char *errMsg = NULL;
-#define MAX_FROMTO 32
-    int fromTo[MAX_FROMTO];
-    int nFromTo;
-
-    if (!json_is_array(pFromTo)) {
-        errMsg = "Expected JSON array for fromTo";
-    }
-
-    if (!errMsg) {
-        json_t *pInt;
-        size_t index;
-        json_array_foreach(pFromTo, index, pInt) {
-            if (index >= MAX_FROMTO) {
-                errMsg = "Too many channels";
-                break;
-            }
-            nFromTo = index+1;
-            fromTo[index] = (int)json_integer_value(pInt);
-        }
-    }
-
-    if (!errMsg) {
-        int depth = model.image.depth();
-        int channels = 1;
-        Mat outImage( model.image.rows, model.image.cols, CV_MAKETYPE(depth, channels) );
-        LOGTRACE1("Creating output model.image %s", matInfo(outImage).c_str());
-        Mat out[] = { outImage };
-        mixChannels( &model.image, 1, out, 1, fromTo, nFromTo/2 );
-        model.image = outImage;
-    }
-
-    return stageOK("apply_split(%s) %s", errMsg, pStage, pStageModel);
-}
 
 bool Pipeline::apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
@@ -601,8 +540,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new CalcOffset(pStage, model, pName));
     if (strcmp(pOp, "circle")==0)
         stage = unique_ptr<Stage>(new DrawCircle(pStage, model, pName));
-//    if (strcmp(pOp, "convertTo")==0)
-//        ok = apply_convertTo(pStage, pStageModel, model);
+    if (strcmp(pOp, "convertTo")==0)
+        stage = unique_ptr<Stage>(new ConvertTo(pStage, model, pName));
     if (strcmp(pOp, "cout")==0)
         stage = unique_ptr<Stage>(new Cout(pStage, model, pName));
     if (strcmp(pOp, "Canny")==0)
@@ -635,8 +574,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
         stage = unique_ptr<Stage>(new ImRead(pStage, model, pName));
     if (strcmp(pOp, "imwrite")==0)
         stage = unique_ptr<Stage>(new ImWrite(pStage, model, pName));
-//    if (strcmp(pOp, "Mat")==0) {
-//        ok = apply_Mat(pStage, pStageModel, model);
+    if (strcmp(pOp, "Mat")==0)
+        stage = unique_ptr<Stage>(new MatStage(pStage, model, pName));
 //    if (strcmp(pOp, "matchGrid")==0) {
 //        ok = apply_matchGrid(pStage, pStageModel, model);
     if (strcmp(pOp, "matchTemplate")==0)
@@ -675,8 +614,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 //        ok = apply_detectParts(pStage, pStageModel, model);
     if (strcmp(pOp, "SimpleBlobDetector")==0)
         stage = unique_ptr<Stage>(new BlobDetector(pStage, model, pName));
-//    if (strcmp(pOp, "split")==0) {
-//        ok = apply_split(pStage, pStageModel, model);
+    if (strcmp(pOp, "split")==0)
+        stage = unique_ptr<Stage>(new Split(pStage, model, pName));
     if (strcmp(pOp, "stageImage")==0)
         stage = unique_ptr<Stage>(new StageImage(pStage, model, pName));
     if (strcmp(pOp, "transparent")==0)

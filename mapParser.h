@@ -50,9 +50,9 @@ private:
     static std::map<int, string> amap;
 };
 
-
-
 typedef MapParser<CvTypeParser_> CvTypeParser;
+
+
 
 class BorderTypeParser_ : public MapParser< BorderTypeParser_ > {
     friend class MapParser< BorderTypeParser_ >;

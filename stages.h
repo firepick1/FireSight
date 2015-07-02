@@ -16,6 +16,7 @@
 #include "stages/equalizeHist.h"
 #include "stages/FireSightStage.h"
 #include "stages/fourier.h"
+#include "stages/image.h"
 #include "stages/io.h"
 #include "stages/meanStdDev.h"
 #include "stages/minAreaRect.h"
