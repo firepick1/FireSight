@@ -20,15 +20,15 @@ typedef struct QRPayload {
   string text;
   json_t * as_json_t() {
       json_t *pObj = json_object();
-      json_object_set(pObj, "x", json_real(x));
-      json_object_set(pObj, "y", json_real(y));
-      json_object_set(pObj, "text", json_string(text.c_str()));
+      json_object_set_new(pObj, "x", json_real(x));
+      json_object_set_new(pObj, "y", json_real(y));
+      json_object_set_new(pObj, "text", json_string(text.c_str()));
       return pObj;
   }
-  string asJson() {
+  string asJson(JSONSerializer& serializer=defaultSerializer) {
       json_t *pObj = as_json_t();
-      char *pObjStr = json_dumps(pObj, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
-      string result(pObjStr);
+	  string result = serializer.serialize(pObj);
+	  json_decref(pObj);
       return result;
   }
 } QRPayload;
@@ -46,14 +46,12 @@ public:
     }
 
 protected:
-    bool apply_internal(json_t *pStageModel, Model &model) {
+    bool apply_internal(json_t *pStageModel, Model &model, JSONSerializer& serializer) {
         validateImage(model.image);
         char *errMsg = NULL;
 
         if (logLevel >= FIRELOG_TRACE) {
-            char *pStageJson = json_dumps(pStage, 0);
-            LOGTRACE1("apply_qrdecode(%s)", pStageJson);
-            free(pStageJson);
+            LOGTRACE1("apply_qrdecode(%s)", serializer.serialize(pStage).c_str());
         }
 
         try {

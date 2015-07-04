@@ -92,9 +92,7 @@ public:
             throw std::invalid_argument("expected: 0 < showMatches ");
 
         if (logLevel >= FIRELOG_TRACE) {
-            char *pStageJson = json_dumps(pStage, 0);
-            LOGTRACE1("apply_HoleRecognizer(%s)", pStageJson);
-            free(pStageJson);
+            LOGTRACE1("apply_HoleRecognizer(%s)", serializer.serialize(pStage).c_str());
         }
 
         // TODO parametrize?
@@ -165,18 +163,18 @@ struct Circle {
         this->y = y;
         this->radius = radius;
     }
-    string asJson() {
+    string asJson(JSONSerializer& serializer=defaultSerializer) {
         json_t *pObj = as_json_t();
-        char *pObjStr = json_dumps(pObj, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
-        string result(pObjStr);
+		string result = serializer.serialize(pObj);
+		json_decref(pObj);
         return result;
     }
     json_t *as_json_t() {
         json_t *pObj = json_object();
 
-        json_object_set(pObj, "x", json_real(x));
-        json_object_set(pObj, "y", json_real(y));
-        json_object_set(pObj, "radius", json_real(radius));
+        json_object_set_new(pObj, "x", json_real(x));
+        json_object_set_new(pObj, "y", json_real(y));
+        json_object_set_new(pObj, "radius", json_real(radius));
 
         return pObj;
     }
@@ -203,9 +201,7 @@ public:
             throw std::invalid_argument("expected: 0 < diamMin < diamMax ");
 
         if (logLevel >= FIRELOG_TRACE) {
-            char *pStageJson = json_dumps(pStage, 0);
-            LOGTRACE1("apply_HoughCircles(%s)", pStageJson);
-            free(pStageJson);
+            LOGTRACE1("apply_HoughCircles(%s)", serializer.serialize(pStage).c_str());
         }
 
         LOGTRACE2("HoughCircle() (maxDiam:%d minDiam:%d)", diamMax, diamMin);

@@ -21,6 +21,8 @@ using namespace cv;
 using namespace std;
 using namespace firesight;
 
+JSONSerializer firesight::defaultSerializer;
+
 StageData::StageData(string stageName) {
     LOGTRACE1("StageData constructor %s", stageName.c_str());
 }
@@ -31,20 +33,15 @@ StageData::~StageData() {
 
 bool Stage::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json_t *pStageModel) {
     if (errMsg && *errMsg) {
-        char *pStageJson = json_dumps(pStage, JSON_COMPACT|JSON_PRESERVE_ORDER);
-        LOGERROR2(fmt, pStageJson, errMsg);
-        free(pStageJson);
+		string s = defaultSerializer.serialize(pStage);
+		LOGERROR2(fmt, s.c_str(), errMsg);
         json_object_set(pStageModel, "error", json_string(errMsg));
         return false;
     }
 
     if (logLevel >= FIRELOG_TRACE) {
-        char *pStageJson = json_dumps(pStage, 0);
-        //char *pModelJson = json_dumps(pStageModel, 0);
-        //LOGTRACE2(fmt, pStageJson, pModelJson);
-        LOGTRACE2(fmt, pStageJson, "");
-        //free(pModelJson);
-        free(pStageJson);
+		string s = defaultSerializer.serialize(pStage);
+        LOGTRACE2(fmt, s.c_str(), "");
     }
 
     return true;
@@ -65,7 +62,9 @@ bool Pipeline::stageOK(const char *fmt, const char *errMsg, json_t *pStage, json
     return Stage::stageOK(fmt, errMsg, pStage, pStageModel);
 }
 
-Pipeline::Pipeline(const char *pDefinition, DefinitionType defType) {
+Pipeline::Pipeline(const char *pDefinition, DefinitionType defType) 
+	: serializer(defaultSerializer)
+{
     json_error_t jerr;
     string pipelineString = pDefinition;
     if (defType == PATH) {
@@ -95,7 +94,9 @@ Pipeline::Pipeline(const char *pDefinition, DefinitionType defType) {
     }
 }
 
-Pipeline::Pipeline(json_t *pJson) {
+Pipeline::Pipeline(json_t *pJson) 
+	: serializer(defaultSerializer)
+{
     pPipeline = json_incref(pJson);
 }
 
@@ -111,9 +112,8 @@ Pipeline::~Pipeline() {
 static bool logErrorMessage(const char *errMsg, const char *pName, json_t *pStage, json_t *pStageModel) {
     if (errMsg) {
         json_object_set(pStageModel, "ERROR", json_string(errMsg));
-        char *pStageJson = json_dumps(pStage, 0);
-        LOGERROR3("Pipeline::process stage:%s error:%s pStageJson:%s", pName, errMsg, pStageJson);
-        free(pStageJson);
+		string s = defaultSerializer.serialize(pStage);
+        LOGERROR3("Pipeline::process stage:%s error:%s pStageJson:%s", pName, errMsg, s.c_str());
         return false;
     }
     return true;
@@ -218,10 +218,7 @@ bool Pipeline::processModelGUI(Input * input, Model &model) {
             }
 
             // Print out returned model
-//            json_t *pModel = workModel.getJson(true);
-//            char *pModelStr = json_dumps(pModel, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_INDENT(2));
-//            cout << pModelStr << endl;
-//            free(pModelStr);
+//            cout << serializer.serialize(pModel) << endl;
 
             history.push_back(workModel.image.clone());
         } // json_array_foreach
@@ -313,7 +310,7 @@ unique_ptr<Stage> Pipeline::parseStage(int index, json_t * pStage, Model &model)
     json_t *jmodel = model.getJson(false);
     json_object_set(jmodel, pName.c_str(), pStageModel);
     if (logLevel >= FIRELOG_DEBUG) {
-        string stageDump = jo_object_dump(pStage, model.argMap);
+        string stageDump = jo_object_dump(pStage, model.argMap, serializer);
         snprintf(debugBuf,sizeof(debugBuf), "process() %s %s",
                  matInfo(model.image).c_str(), stageDump.c_str());
     }
@@ -361,7 +358,7 @@ unique_ptr<Stage> Pipeline::parseStage(int index, json_t * pStage, Model &model)
 //    json_t *jmodel = model.getJson(false);
 //    json_object_set(jmodel, pName.c_str(), pStageModel);
 //    if (logLevel >= FIRELOG_DEBUG) {
-//        string stageDump = jo_object_dump(pStage, model.argMap);
+//        string stageDump = jo_object_dump(pStage, model.argMap, serializer);
 //        snprintf(debugBuf,sizeof(debugBuf), "process() %s %s",
 //                 matInfo(model.image).c_str(), stageDump.c_str());
 //    }

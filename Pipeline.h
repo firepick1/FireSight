@@ -19,6 +19,7 @@
 
 #include "jansson.h"
 #include "input.h"
+#include "JSONSerializer.hpp"
 
 #include "mapParser.h"
 
@@ -50,7 +51,7 @@ namespace firesight {
     float covar;
 
     MatchedRegion(Range xRange, Range yRange, Point2f average, int pointCount, float covar);
-    string asJson();
+    string asJson(JSONSerializer& serializer=defaultSerializer);
     json_t *as_json_t();
   } MatchedRegion;
 
@@ -258,7 +259,8 @@ namespace firesight {
 
     class Stage {
     public:
-        Stage(json_t *pStage, string pName) : pStage(pStage), errMsg(""), name(pName) { }
+        Stage(json_t *pStage, string pName, JSONSerializer& serializer=defaultSerializer) 
+			: pStage(pStage), errMsg(""), name(pName), serializer(serializer) { }
 
         bool apply(json_t *pStageModel, Model &model) {
             bool result;
@@ -306,11 +308,19 @@ namespace firesight {
         map<string, Parameter*>& getParams() { return _params; }
         void setParameter(string name, Parameter * value);
 
+		JSONSerializer& getSerializer() {
+			return serializer;
+		}
+		void setSerializer(JSONSerializer& value) {
+			this->serializer = value;
+		}
+
     protected:
         map<string, Parameter*> _params;
         json_t *pStage;
         string errMsg;
         string name;
+		JSONSerializer& serializer;
     };
 
     class StageFactory {
@@ -335,6 +345,7 @@ namespace firesight {
 //      void detectKeypoints(json_t *pStageModel, vector<vector<Point> > &regions);
 //      void detectRects(json_t *pStageModel, vector<vector<Point> > &regions);
       json_t *pPipeline;
+	  JSONSerializer &serializer;
 
     public:
       enum DefinitionType { PATH, JSON };
@@ -364,9 +375,16 @@ namespace firesight {
        */
       json_t *process(Input * input, ArgMap &argMap, Mat &output, bool gui = false);
 
+	public:
+	  void setSerializer(JSONSerializer& serializer) {
+	  	this->serializer = serializer;
+	  }
+	  JSONSerializer& getSerializer() {
+	  	return serializer;
+	  }
     private:
       static const int UP = 65362;
-
+	
   } Pipeline;
 
 }

@@ -70,7 +70,7 @@ string jo_parse(const char * pSource, const char * defaultValue, ArgMap &argMap)
     return result;
 }
 
-string jo_object_dump(json_t *pObj, ArgMap &argMap) {
+string jo_object_dump(json_t *pObj, ArgMap &argMap, JSONSerializer &serializer) {
     json_t *pValue;
     const char *key;
     string result;
@@ -87,13 +87,7 @@ string jo_object_dump(json_t *pObj, ArgMap &argMap) {
         if (json_is_string(pValue)) {
             result = result + jo_parse(json_string_value(pValue), "", argMap);
         } else if (pValue) {
-            char *valueStr = json_dumps(pValue, JSON_PRESERVE_ORDER|JSON_COMPACT);
-            if (valueStr) {
-                result = result + valueStr;
-                free(valueStr);
-            } else {
-                result = result + "N/A";
-            }
+			result += serializer.serialize(pValue);
         }
     }
 
