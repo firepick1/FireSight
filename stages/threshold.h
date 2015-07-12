@@ -37,8 +37,8 @@ public:
         } else
             throw std::invalid_argument("unknown 'type'");
 
-        isOtsu = jo_bool(pStage, "otsu", false, model.argMap);
-        _params["otsu"] = new BoolParameter(this, isOtsu);
+        isOtsu = jo_bool(pStage, "isOtsu", false, model.argMap);
+        _params["isOtsu"] = new BoolParameter(this, isOtsu);
 
         maxval = jo_float(pStage, "maxval", 255, model.argMap);
         _params["maxval"] = new FloatParameter(this, maxval);

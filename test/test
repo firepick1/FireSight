@@ -82,7 +82,7 @@ test/test-one pcb.png absdiff "$suffix" "-Dimg=img/mog2.png" -ji 0
 if [ $? -ne 0 ] ; then exit 1 ; fi
 
 suffix=""
-test/test-one part1-0.png threshold "-otsu$suffix" 
+test/test-one part1-0.png threshold "-otsu$suffix" "-Dotsu=true"
 if [ $? -ne 0 ] ; then exit 1 ; fi
 test/test-one absdiff.png threshold "64-color$suffix" "-Dthresh=64" "-Dgray=false"
 if [ $? -ne 0 ] ; then exit 1 ; fi

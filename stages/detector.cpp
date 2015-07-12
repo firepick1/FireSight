@@ -18,7 +18,12 @@ namespace firesight {
 
 
     void HoughCircles::scan(Mat &image, vector<Circle> &circles) {
-        Mat matGray, matFiltered;
+        Mat matGray;
+        if (image.channels() > 1)
+            cvtColor(image, matGray, CV_RGB2GRAY);
+        else
+            matGray = image.clone();
+
 
         vector<Vec3f> vec3f_circles;
         cv::HoughCircles(matGray, vec3f_circles, CV_HOUGH_GRADIENT, hc_dp, hc_minDist, hc_param1, hc_param2, diamMin/2.0, diamMax/2.0);
