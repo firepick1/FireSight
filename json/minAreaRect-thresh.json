@@ -2,6 +2,7 @@
   {"op":"threshold", 
     "type":"{{type}}", 
     "thresh":"{{thresh}}", 
+    "otsu":"{{otsu}}",
     "maxval":"{{maxval}}"}, 
   {"op":"minAreaRect",
     "name":"singleBlob",

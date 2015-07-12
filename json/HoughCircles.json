@@ -1,4 +1,4 @@
 [
-  {"op":"HoughCircles", "diamMin":"{{diamMin||22.6}}", "diamMax":"{{diamMax||29.9}}", "show":1}
+  {"op":"HoughCircles", "diamMin":"{{diamMin||22.6}}", "diamMax":"{{diamMax||29.9}}", "show":"{{show||false}}"}
 ]
 

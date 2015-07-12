@@ -314,9 +314,7 @@ unique_ptr<Stage> Pipeline::parseStage(int index, json_t * pStage, Model &model)
         snprintf(debugBuf,sizeof(debugBuf), "process() %s %s",
                  matInfo(model.image).c_str(), stageDump.c_str());
     }
-    if (strncmp(pOp.c_str(), "nop", 3)==0) {
-        LOGDEBUG1("%s (NO ACTION TAKEN)", debugBuf);
-    } else if (pName.compare("input")==0) {
+    if (pName.compare("input")==0) {
         ok = logErrorMessage("\"input\" is the reserved stage name for the input image",
                              pName.c_str(), pStage, pStageModel);
     } else {
@@ -511,8 +509,9 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
     if (strcmp(pOp, "warpPerspective")==0)
         stage = unique_ptr<Stage>(new WarpPerspective(pStage, model, pName));
 
-//    if (strncmp(pOp, "nop", 3)==0) {
-//        LOGDEBUG("Skipping nop...");
+    if (strncmp(pOp, "nop", 3)==0)
+        stage = unique_ptr<Stage>(new NOPStage(pStage, model, pName));
+//        ;
 
     } catch (invalid_argument &e) {
         string pName = jo_string(pStage, "name");

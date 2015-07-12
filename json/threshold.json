@@ -1,9 +1,8 @@
 [
-  {"op":"cvtColor", "code":"CV_BGR2GRAY"},
   {"op":"threshold", 
-    "type":"THRESH_BINARY", 
-    "thresh":128, 
-    "isOtsu": true,
-    "gray":true, 
-    "maxval":255} 
+    "type":"{{type}}", 
+    "thresh":"{{thresh}}", 
+    "otsu":"{{otsu}}",
+    "gray":"{{gray}}", 
+    "maxval":"{{maxval}}"} 
 ]

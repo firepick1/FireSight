@@ -4,7 +4,7 @@
     "name": "circles",
     "diamMin": "{{diamMin||14}}",
     "diamMax": "{{diamMax||20}}",
-    "show": "{{show||1}}"
+    "show": "{{show||true}}"
   },
   {
     "op": "points2resolution_RANSAC",

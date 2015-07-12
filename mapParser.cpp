@@ -53,7 +53,7 @@ map<int, string> BGSubTypeParser_::amap = [] {
     map<int, string> ret;
     ret[MOG]			= "MOG";
     ret[MOG2]			= "MOG2";
-    ret[ABSDIFF]			= "ABSDIFF";
+    ret[ABSDIFF]			= "absdiff";
     return ret;
 }();
 

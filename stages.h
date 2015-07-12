@@ -23,6 +23,7 @@
 #include "stages/minAreaRect.h"
 #include "stages/model.h"
 #include "stages/morph.h"
+#include "stages/nop.h"
 #include "stages/normalize.h"
 #include "stages/lgpl/qrdecode.h"
 #include "stages/points2resolution.h"
