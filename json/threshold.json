@@ -2,7 +2,7 @@
   {"op":"threshold", 
     "type":"{{type}}", 
     "thresh":"{{thresh}}", 
-    "isOtsu":"{{otsu}}",
+    "otsu":"{{otsu}}",
     "gray":"{{gray}}", 
     "maxval":"{{maxval}}"} 
 ]
