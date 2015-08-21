@@ -4,6 +4,8 @@
   {"op":"threshold"},
   {"op":"Canny","threshold1":1,"threshold2":100,"apertureSize":3,"L2gradient":false},
   {"op":"detectParts", "name":"multi"},
-  {"op":"drawRects", "model":"multi", "thickness":"1", "color":[0,0,255]}
+  {"op":"drawRects", "model":"multi", "thickness":"1", "color":[0,0,255]},
+  {"op":"rectFilter", "model":"multi", "name":"filtered", "max_width":40, "max_height":50, "min_width":30, "min_height":40},
+  {"op":"drawRects", "model":"filtered", "thickness":"1", "color":[255,0,255]}
 ]
 
