@@ -145,26 +145,32 @@ namespace firesight {
 
     class DoubleParameter : public Parameter {
     public:
-        DoubleParameter(Stage * stage, double& value) :
-            Parameter(stage), value(value)
+        DoubleParameter(Stage * stage, double& value, double start = 0, double end = 1, double step=0.1) :
+            Parameter(stage), value(value), step(step), start(start), end(end)
         {}
         string toString() const { return std::to_string(value); }
-        void inc() { value++; }
-        void dec() { value--; }
+        void inc() { value = min(value + step, end); }
+        void dec() { value = max(value - step, start); }
     private:
         double& value;
+        double step;
+        double start;
+        double end;
     };
 
     class FloatParameter : public Parameter {
     public:
-        FloatParameter(Stage * stage, float& value) :
-            Parameter(stage), value(value)
+        FloatParameter(Stage * stage, float& value, float start = 0, float end = 1, float step = 0.1) :
+            Parameter(stage), value(value), step(step), start(start), end(end)
         {}
         string toString() const { return std::to_string(value); }
-        void inc() { value++; }
-        void dec() { value--; }
+        void inc() { value = min(value + step, end); }
+        void dec() { value = max(value - step, start); }
     private:
         float& value;
+        float step;
+        float start;
+        float end;
     };
 
     class Point2fParameter : public Parameter {

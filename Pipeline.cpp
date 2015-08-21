@@ -281,6 +281,12 @@ bool Pipeline::processModelGUI(Input * input, Model &model) {
             case -1:
                 rerunPipeline = true;
                 break;
+            case 's':
+                // save current pipeline parameters to file
+            {
+                // TODO
+            }
+                break;
             case 27:
                 go = false;
                 break;
@@ -487,6 +493,8 @@ std::unique_ptr<Stage> StageFactory::getStage(const char *pOp, json_t *pStage, M
 #endif // LGPL2_1
     if (strcmp(pOp, "rectangle")==0)
         stage = unique_ptr<Stage>(new DrawRectangle(pStage, model, pName));
+    if (strcmp(pOp, "rectFilter")==0)
+        stage = unique_ptr<Stage>(new RectFilter(pStage, model, pName));
     if (strcmp(pOp, "resize")==0)
         stage = unique_ptr<Stage>(new Resize(pStage, model, pName));
     if (strcmp(pOp, "sharpness")==0)

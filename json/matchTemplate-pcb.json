@@ -1,14 +1,5 @@
 [
   {"op":"cvtColor", "code":"CV_BGR2GRAY"},
-  {"name":"find-rects", "op":"matchTemplate", "rangeMin":215, "method":"CV_TM_CCORR", "template":"img/tmplt-33x29.jpg"},
-  {"op":"cvtColor", "code":"CV_GRAY2BGR"},
-  {"op":"drawRects", "model":"find-rects", "color":[255,0,255]},
-  {"op":"nop-matchTemplate", "method":"CV_TM_CCORR_NORMED", "template":"img/tmplt-33x29.jpg"},
-  {"op":"nop-matchTemplate", "method":"CV_TM_CCEFF", "template":"img/tmplt-33x29.jpg"},
-  {"op":"nop-matchTemplate", "method":"CV_TM_CCEFF_NORMED", "template":"img/tmplt-33x29.jpg"},
-  {"op":"nop-matchTemplate", "method":"CV_TM_SQDIFF_NORMED", "template":"img/tmplt-33x29.jpg"},
-  {"op":"nop-normalize", "alpha":0, "beta":255, "normType":"NORM_MINMAX", "comment":"normalize values for viewing"},
-  {"op":"nop-cout", "cols":28, "rows":64, "comment":"matchTemplate output"},
-  {"op":"nopcalcHist", "histSize":32, "bins":32, "rangeMin":223, "comment":"histogram of match candidates"},
-  {"op":"nop", "comment":"end of pipeline"}
+  {"name":"find-rects", "op":"matchTemplate", "rangeMin":215, "method":"CV_TM_CCORR", "template":"tmplt/R.png"},
+  {"op":"drawRects", "model":"find-rects", "color":[255,0,255]}
 ]

@@ -15,6 +15,7 @@
 #include "stages/detector.h"
 #include "stages/drawing.h"
 #include "stages/equalizeHist.h"
+#include "stages/filter.h"
 #include "stages/FireSightStage.h"
 #include "stages/fourier.h"
 #include "stages/image.h"

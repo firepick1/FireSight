@@ -222,7 +222,8 @@ class TemplateMatch : public Stage {
     enum Output {
         CURRENT,
         INPUT,
-        CORR
+        CORR,
+        TEMPLATE
     };
 
 public:
@@ -268,7 +269,7 @@ public:
         tmpltPath = jo_string(pStage, "template", "", model.argMap);
         if (tmpltPath.empty())
             throw std::invalid_argument("Expected path to template ('template')");
-        _params["tempalte"] = new StringParameter(this, tmpltPath);
+        _params["template"] = new StringParameter(this, tmpltPath);
 
         /* Threshold */
         threshold = jo_float(pStage, "threshold", 0.7f, model.argMap);
@@ -282,6 +283,7 @@ public:
         mapOutput[CURRENT]          = "current";
         mapOutput[INPUT]            = "input";
         mapOutput[CORR]             = "corr";
+        mapOutput[TEMPLATE]         = "template";
         string soutput = jo_string(pStage, "output", mapOutput[output].c_str(), model.argMap);
         auto findOutput = std::find_if(std::begin(mapOutput), std::end(mapOutput), [&](const std::pair<int, string> &pair)
         {
@@ -303,6 +305,13 @@ public:
             float angle = jo_float(pStage, "angle", 0, model.argMap);
             angles.push_back(angle);
         }
+
+        min_scale = 0.5;
+        max_scale = 2;
+        step_scale = 0.1;
+        _params["min_scale"] = new FloatParameter(this, min_scale, 0.5, 2, 0.1);
+        _params["max_scale"] = new FloatParameter(this, max_scale, 0.5, 2, 0.1);
+        _params["step_scale"] = new FloatParameter(this, step_scale, 0.05, 1, 0.05);
     }
 
 protected:
@@ -367,6 +376,9 @@ protected:
             } else if (output == INPUT) {
                 LOGTRACE("apply_matchTemplate() clone input");
                 model.image = model.imageMap["input"].clone();
+            } else if (output == TEMPLATE) {
+                resize(warpedTmplt, warpedTmplt, model.image.size(), 0, 0, INTER_LINEAR);
+                warpedTmplt.convertTo(model.image, CV_8U);
             }
         }
 
@@ -419,6 +431,9 @@ protected:
     int output;
     map<int, string> mapOutput;
     vector<float> angles;
+    float min_scale;
+    float max_scale;
+    float step_scale;
 };
 
 class CalcOffset : public Stage {
