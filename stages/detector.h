@@ -55,7 +55,7 @@ class HoleRecognizer : public Stage {
 public:
     /**
      * Update the working image to show MSER matches.
-     * Image must have at least three channels representing RGB values.
+     * Image must have at least three channels representing BGR values.
      * @param show matched regions. Default is HOLE_SHOW_NONE
      */
     enum ShowMode {
@@ -127,7 +127,7 @@ private:
         return stageOK("apply_HoleRecognizer(%s) %s", errMsg, pStage, pStageModel);
     }
 
-    void scan(Mat &matRGB, vector<MatchedRegion> &matches, float maxEllipse = 1.05, float maxCovar = 2.0);
+    void scan(Mat &matBGR, vector<MatchedRegion> &matches, float maxEllipse = 1.05, float maxCovar = 2.0);
 
     float diamMin;
     float diamMax;
@@ -149,7 +149,7 @@ private:
     float min_margin;
     int edge_blur_size;
     void scanRegion(vector<Point> &pts, int i,
-    Mat &matRGB, vector<MatchedRegion> &matches, float maxEllipse, float maxCovar);
+    Mat &matBGR, vector<MatchedRegion> &matches, float maxEllipse, float maxCovar);
 };
 
 

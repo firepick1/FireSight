@@ -84,7 +84,7 @@ void HoleRecognizer::scan(Mat &image, vector<MatchedRegion> &matches, float maxE
 	if (image.channels() == 1) {
 		image = matGray;
 	} else {
-		cvtColor(image, matGray, CV_RGB2GRAY);
+		cvtColor(image, matGray, CV_BGR2GRAY);
 	}
 	
 	Mat mask;
