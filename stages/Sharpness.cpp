@@ -17,7 +17,7 @@ double Sharpness::GRAS(Mat & image) {
     if (image.channels() == 1)
         matGray = image;
     else
-        cvtColor(image, matGray, CV_RGB2GRAY);
+        cvtColor(image, matGray, CV_BGR2GRAY);
 
     for (int r = 0; r < matGray.rows; r++) {
         for (int c = 0; c < matGray.cols - 1; c++) {
@@ -44,7 +44,7 @@ double Sharpness::LAPE(Mat & image) {
     if (image.channels() == 1)
         src = image;
     else
-        cvtColor(image, src, CV_RGB2GRAY);
+        cvtColor(image, src, CV_BGR2GRAY);
 
     // Laplace operator according to MATLAB: fspecial('laplacian')
     kernel = Mat::zeros(3, 3, CV_32F);
@@ -90,7 +90,7 @@ double Sharpness::LAPM(Mat & image) {
     if (image.channels() == 1)
         src = image;
     else
-        cvtColor(image, src, CV_RGB2GRAY);
+        cvtColor(image, src, CV_BGR2GRAY);
 
     kernel = Mat::zeros(3, 3, CV_32F);
     kernel.at<float>(0,1) = -1;

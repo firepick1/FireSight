@@ -20,7 +20,7 @@ namespace firesight {
     void HoughCircles::scan(Mat &image, vector<Circle> &circles) {
         Mat matGray;
         if (image.channels() > 1)
-            cvtColor(image, matGray, CV_RGB2GRAY);
+            cvtColor(image, matGray, CV_BGR2GRAY);
         else
             matGray = image.clone();
 
