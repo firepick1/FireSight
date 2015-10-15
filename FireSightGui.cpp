@@ -85,7 +85,7 @@ bool parseArgs(int argc, char *argv[],
             if (argv[i][0] == 0) {
                 // empty argument
             } else if (strcmp("-opencv", argv[i]) == 0) {
-                cout << CV_MAJOR_VERSION << "." << CV_MINOR_VERSION << endl;
+                cout << CV_MAJOR_VERSION << "." << CV_MINOR_VERSION << "." << CV_SUBMINOR_VERSION << endl;
                 exit(0);
             } else if (strcmp("-p", argv[i]) == 0) {
                 if (i + 1 >= argc) {
