@@ -1,28 +1,28 @@
 #! /bin/bash
 
 echo
-echo "========= test-one $1 $2 $3 $4 $5 $6 $7 $8 $9 =========="
-echo target/firesight -trace -i img/$1  -p json/$2.json -o target/$2$3.png $4 $5 $6 $7 $8 $9
+echo "TEST	: test-one $1 $2 $3 $4 $5 $6 $7 $8 $9" 
+echo "TEST	: target/firesight -trace -i img/$1  -p json/$2.json -o target/$2$3.png $4 $5 $6 $7 $8 $9"
 target/firesight -trace -i img/$1  -p json/$2.json -o target/$2$3.png "$4" "$5" "$6" "$7" "$8" "$9" > target/$2$3-model.json
-if [ $? -ne 0 ] ; then exit 1 ; fi
-echo "verifying output image..."
+RC=$?; if [ $RC -ne 0 ] ; then echo "ERROR	: firesight failed RC:$RC ($1) "; exit 1 ; fi
+echo "TEST	: verifying output image..."
 target/firesight -i img/$2$3.png -p json/PSNR.json -Dthreshold=36 -Dpath=target/$2$3.png > target/samePSNR.json
 diff -b target/samePSNR.json test/samePSNR.json
-if [ $? -ne 0 ] 
+RC=$?; if [ $RC -ne 0 ] 
 then 
-  echo diff -b target/samePSNR.json test/samePSNR.json
-  echo target/firesight.exe -i img/$2$3.png -p json/PSNR.json -Dthreshold=50 -Dpath=target/$2$3.png 
-  echo FAILED: PSNR detected a difference between: target/$2$3.png img/$2$3.png
+  echo "TEST	: diff -b target/samePSNR.json test/samePSNR.json"
+  echo "TEST	: target/firesight.exe -i img/$2$3.png -p json/PSNR.json -Dthreshold=50 -Dpath=target/$2$3.png "
+  echo "ERROR	: PSNR detected a PNG difference. actual:target/$2$3.png expected:img/$2$3.png"
   echo "#! /bin/bash" > target/diff.sh
   chmod +x target/diff.sh
   echo "target/firesight -i target/$2$3.png -p json/diff.json -Dimg=img/$2$3.png -o ~/Downloads/diff.png -ji 0" >> target/diff.sh
   exit 1
 fi
-echo "verifying JSON output..."
-diff -b target/$2$3-model.json test/$2$3-model.json
+echo "TEST	: verifying JSON output..."
+diff test/$2$3-model.json target/$2$3-model.json 
 if [ $? -ne 0 ] 
 then 
-  echo FAILED: diff -b target/$2$3-model.json test/$2$3-model.json
+  echo "ERROR	: diff expected:test/$2$3-model.json(<) actual:target/$2$3-model.json(>) "
   exit 1
 fi
-echo TEST PASSED
+echo "TEST	: $1 TEST PASSED"
