@@ -69,7 +69,6 @@ typedef MapParser<BorderTypeParser_> BorderTypeParser;
 
 enum BlurType {
     BILATERAL,
-    BILATERAL_ADAPTIVE,
     BOX,
     BOX_NORMALIZED,
     GAUSSIAN,

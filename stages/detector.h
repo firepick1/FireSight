@@ -106,7 +106,7 @@ public:
         min_margin = .003f;
         edge_blur_size = 5;
         LOGTRACE3("HoleRecognizer() MSER(minArea:%d maxArea:%d minDiversity:%d/100)", minArea, maxArea, (int)(minDiversity*100+0.5));
-        mser = MSER(delta, minArea, maxArea, maxVariation, minDiversity,
+        mser = MSER::create(delta, minArea, maxArea, maxVariation, minDiversity,
             max_evolution, area_threshold, min_margin, edge_blur_size);
     }
 
@@ -136,7 +136,7 @@ private:
 
 private:
 //    int _showMatches;
-    MSER mser;
+    Ptr<MSER> mser;
 //    float minDiam;
 //    float maxDiam;
     int delta;
@@ -290,12 +290,11 @@ protected:
         const char *errMsg = NULL;
 
         if (!errMsg) {
-            SimpleBlobDetector detector(params);
-            SimpleBlobDetector(params);
-            detector.create("SimpleBlob");
+			Ptr<SimpleBlobDetector> detector = SimpleBlobDetector::create(params);
+
             vector<cv::KeyPoint> keyPoints;
             LOGTRACE("apply_SimpleBlobDetector detect()");
-            detector.detect(model.image, keyPoints);
+            detector->detect(model.image, keyPoints);
             modelKeyPoints(pStageModel, keyPoints);
         }
 
@@ -421,16 +420,18 @@ protected:
         }
 
         if (!errMsg) {
-          MSER mser(delta, minArea, maxArea, maxVariation, minDiversity,
+          Ptr<MSER> mser = MSER::create(delta, minArea, maxArea, maxVariation, minDiversity,
             maxEvolution, areaThreshold, minMargin, edgeBlurSize);
           Mat mask;
           Rect maskRect(maskX, maskY, maskW, maskH);
           if (pMask) {
+			LOGWARN("mask is ignored!");
             mask = Mat::zeros(model.image.rows, model.image.cols, CV_8UC1);
             mask(maskRect) = 1;
           }
           vector<vector<Point> > regions;
-          mser(model.image, regions, mask);
+		  vector<Rect> bboxes;
+		  mser->detectRegions(model.image, regions, bboxes);
 
           int nRegions = (int) regions.size();
           LOGTRACE1("apply_MSER matched %d regions", nRegions);

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "FireLog.h"
+#include <opencv2/core.hpp>
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -1288,9 +1289,9 @@ void initializePointMaps(json_t *pRects, vector<Point2f> &pointsXY, vector<Point
         }
     }
     const ComparePoint2f cmpXY(COMPARE_XY);
-    sort(pointsXY, cmpXY);
+    sort(pointsXY.begin(), pointsXY.end(), cmpXY);
     const ComparePoint2f cmpYX(COMPARE_YX);
-    sort(pointsYX, cmpYX);
+	sort(pointsXY.begin(), pointsXY.end(), cmpYX);
 }
 
 bool MatchGrid::apply_internal(json_t *pStageModel, Model &model) {

@@ -158,7 +158,7 @@ public:
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model) {
-        Morph::apply_internal(pStageModel, model);
+        return Morph::apply_internal(pStageModel, model);
     }
 
 protected:
@@ -176,7 +176,7 @@ public:
 
 private:
     bool apply_internal(json_t *pStageModel, Model &model) {
-        Morph::apply_internal(pStageModel, model);
+        return Morph::apply_internal(pStageModel, model);
     }
 
 protected:

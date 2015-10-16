@@ -3,7 +3,7 @@
 
 #include "Pipeline.h"
 #include "jo_util.hpp"
-#include "opencv2/features2d/features2d.hpp"
+#include <opencv2/core.hpp>
 
 #include <map>
 #include <string>

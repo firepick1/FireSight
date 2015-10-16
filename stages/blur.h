@@ -90,15 +90,6 @@ private:
                                 sigmaSpace,
                                 border);
                 break;
-            case BILATERAL_ADAPTIVE:
-                adaptiveBilateralFilter(model.image,
-                                        model.image,
-                                        size,
-                                        sigmaSpace,
-                                        sigmaColor,
-                                        anchor,
-                                        border);
-                break;
             case BOX:
                 boxFilter(model.image,
                           model.image,

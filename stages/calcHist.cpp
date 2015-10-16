@@ -43,6 +43,7 @@ bool CalcHist::apply_internal(json_t *pStageModel, Model &model) {
     }
     if (split) {
       for (int channel=0; channel<histChannels.size(); channel++) {
+
 	calcHist(&model.image, 1, &channels[channel], mask, hist[channel], 1, histSize, ranges, uniform, false);
       }
     } else {

@@ -89,8 +89,9 @@ void HoleRecognizer::scan(Mat &image, vector<MatchedRegion> &matches, float maxE
 	
 	Mat mask;
 	vector<vector<Point> > regions;
+	vector<Rect> bboxes;
 	LOGTRACE1("HoleRecognizer::scan() mser()", NULL);
-	mser(matGray, regions, mask);
+	mser->detectRegions(matGray, regions, bboxes);
 
 	int nRegions = (int) regions.size();
 	LOGTRACE1("HoleRecognizer::scan() -> matched %d regions", nRegions);

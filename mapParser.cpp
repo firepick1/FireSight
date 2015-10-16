@@ -3,9 +3,8 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include <cv.h>
-#include <cvaux.h>
-#include <highgui.h>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
 
 
 using namespace std;
@@ -41,7 +40,6 @@ map<int, string> BorderTypeParser_::amap = [] {
 map<int, string> BlurTypeParser_::amap = [] {
     map<int, string> ret;
     ret[BILATERAL]			= "Bilateral";
-    ret[BILATERAL_ADAPTIVE] = "Adaptive Bilateral";
     ret[BOX]				= "Box";
     ret[BOX_NORMALIZED]		= "Box Normalized";
     ret[GAUSSIAN]			= "Gaussian";

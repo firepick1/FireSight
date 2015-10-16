@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <opencv2/video/background_segm.hpp>
+
 namespace firesight {
 
 using namespace cv;
@@ -17,9 +19,9 @@ class BackgroundSubtraction: public Stage {
 
     class SubtractorStageData : public StageData {
     public:
-        BackgroundSubtractor *pSubtractor;
+		Ptr<BackgroundSubtractor> pSubtractor;
 
-        SubtractorStageData(string stageName, BackgroundSubtractor *pSubtractor) : StageData(stageName) {
+		SubtractorStageData(string stageName, Ptr<BackgroundSubtractor> pSubtractor) : StageData(stageName) {
             assert(pSubtractor);
             this->pSubtractor = pSubtractor;
         }
@@ -68,14 +70,16 @@ protected:
                 if (pStageData) {
                     pSubtractor = ((SubtractorStageData *) pStageData)->pSubtractor;
                 } else {
-                    pSubtractor = new BackgroundSubtractorMOG(history, varThreshold, bShadowDetection);
+					pSubtractor = nullptr;// createBackgroundSubtractorMOG();
+					LOGERROR("createBackgroundSubtractorMOG not implemented!");
+						//BackgroundSubtractorMOG(history, varThreshold, bShadowDetection);
                     model.stageDataMap[this->getName()] = new SubtractorStageData(this->getName(), pSubtractor);
                 }
             } else if (method == MOG2) {
                 if (pStageData) {
                     pSubtractor = ((SubtractorStageData *) pStageData)->pSubtractor;
                 } else {
-                    pSubtractor = new BackgroundSubtractorMOG2(history, varThreshold, bShadowDetection);
+					pSubtractor = createBackgroundSubtractorMOG2(history, varThreshold, bShadowDetection);
                     model.stageDataMap[this->getName()] = new SubtractorStageData(this->getName(), pSubtractor);
                 }
             } else if (method == ABSDIFF) {
@@ -121,9 +125,9 @@ protected:
                 threshold(fgMask, model.image, varThreshold, maxval, THRESH_BINARY);
             } else {
                 if (bgImage.data) {
-                    pSubtractor->operator()(bgImage, fgMask, learningRate);
+                    pSubtractor->apply(bgImage, fgMask, learningRate);
                 }
-                pSubtractor->operator()(model.image, fgMask, learningRate);
+                pSubtractor->apply(model.image, fgMask, learningRate);
                 model.image = fgMask;
             }
         }

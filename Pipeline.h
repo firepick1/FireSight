@@ -8,9 +8,9 @@
 #ifndef PIPELINE_H_
 #define PIPELINE_H_
 
-#include <cv.h>
-#include <cvaux.h>
-#include <highgui.h>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include <map>
 #include <memory>
