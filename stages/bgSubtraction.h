@@ -63,23 +63,29 @@ protected:
         StageDataPtr pStageData = model.stageDataMap[this->getName()];
         int maxval = 255;
 
-        BackgroundSubtractor *pSubtractor;
+        BackgroundSubtractor *pSubtractor = NULL;
         bool is_absdiff = false;
         if (!errMsg) {
             if (method == MOG) {
                 if (pStageData) {
                     pSubtractor = ((SubtractorStageData *) pStageData)->pSubtractor;
+					assert(pSubtractor);
                 } else {
 					pSubtractor = nullptr;// createBackgroundSubtractorMOG();
-					LOGERROR("createBackgroundSubtractorMOG not implemented!");
+					errMsg = "createBackgroundSubtractorMOG not implemented!";
+					LOGERROR(errMsg);
 						//BackgroundSubtractorMOG(history, varThreshold, bShadowDetection);
                     model.stageDataMap[this->getName()] = new SubtractorStageData(this->getName(), pSubtractor);
                 }
             } else if (method == MOG2) {
                 if (pStageData) {
                     pSubtractor = ((SubtractorStageData *) pStageData)->pSubtractor;
+					assert(pSubtractor);
+					LOGTRACE("MOG2 w/ pStageData");
                 } else {
+					LOGTRACE("MOG2 w/o pStageData");
 					pSubtractor = createBackgroundSubtractorMOG2(history, varThreshold, bShadowDetection);
+					assert(pSubtractor);
                     model.stageDataMap[this->getName()] = new SubtractorStageData(this->getName(), pSubtractor);
                 }
             } else if (method == ABSDIFF) {
