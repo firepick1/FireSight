@@ -17,7 +17,7 @@ FireSight is available as a C++ library as well as a standalone runtime under th
 ### Installation
 
 * [Build FireSight (Linux)](https://github.com/firepick1/FireSight/wiki/Build-FireSight-%28Linux%29)
-* [Build FireSight (Windows)](https://github.com/firepick1/FireSight/wiki/Build-FireSight-%28Windows%29)
+* [Build FireSight (Windows) | Depreciated*](https://github.com/firepick1/FireSight/wiki/Build-FireSight-(Windows)-%7C-Depreciated*)
 
 ### Examples
 Recognize holes in <a href="img/cam.jpg">cam.jpg</a>:
