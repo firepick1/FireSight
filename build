@@ -1,18 +1,25 @@
 #! /bin/bash
 
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
 if [ "$LGPL2_1" == "" ]; then
   LGPL2_1=OFF
 fi
 
-echo "COMMAND	: ../FireSight/build"
+echo -e "${YELLOW}COMMAND${NC}	: ../FireSight/build"
 echo "DATE	: `date`"
 echo "LGPL2_1	: $LGPL2_1"
 
 cv="install"
 
+installPrefix=/usr
+
 function help() {
-  echo "Build FireSight (non-Windows)"
-  echo 
+  echo "Build FireSight for Linux (Debian) and Solaris"
+  echo
   echo "EXAMPLES:"
   echo "  ./build"
   echo
@@ -26,6 +33,23 @@ function help() {
   echo "     Rebuild  OpenCV from latest source code (latest code, time-consuming)"
 }
 
+function packages() {
+  echo "${RED}ERROR${NC} : It seems that my programmer hasn't told me how to install these packages on your platform."
+  echo
+  echo "Please ensure you have the following packages installed on your *nix machine first before continuing:"
+  echo
+  echo "GCC"
+  echo "cmake"
+  echo "aclocal"
+  echo "libtool"
+  echo
+  echo "OPTIONAL: (not available on Solaris)"
+  echo
+  echo "libzbar"
+  echo
+  exit -1
+}
+
 while getopts "c:" flag
 do
   case "$flag" in
@@ -36,24 +60,22 @@ do
 done
 
 if [ "$SUDO_USER" != "" ]; then
-  echo "ERROR	: This script will call sudo as required and must be run by non-root user"
-  echo "TRY	:   ./build"
+  echo -e "\n\n${RED}ERROR${NC}	: This script will call sudo as required and must be run by non-root user"
+  echo -e "${YELLOW}TRY${NC}	:   ./build\n\n"
   exit -1
 fi
 
-installPrefix=/usr
-
 if [ "$LGPL2_1" == "ON" ]; then
   if [ -e /usr/lib/libzbar.so ]; then
-    echo "STATUS	: libzbar installed"
+    echo -e "${GREEN}SUCCESS${NC}	: libzbar installed\n"
   else
-    echo "INSTALL	: apt-get install libzbar0" 
+    echo -e "${YELLOW}INSTALL${NC}	: apt-get install libzbar0\n" 
     sudo apt-get update
     sudo apt-get install -y libzbar0 
-    if [ $? -ne 0 ]; then echo "ERROR	: Install failed"; exit -1; fi
-    echo "INSTALL	: npm install libzbar-dev" 
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}	: Install failed\n\n"; exit -1; fi
+    echo -e "\n${YELLOW}INSTALL${NC}	: apt-get install libzbar-dev\n" 
     sudo apt-get install -y libzbar-dev
-    if [ $? -ne 0 ]; then echo "ERROR	: Install failed"; exit -1; fi
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}	: Install failed\n\n"; exit -1; fi
   fi
 fi
 
@@ -64,54 +86,76 @@ if [ `uname -o` == "Solaris" ]; then
   sudo ln -s -f /usr/local/bin/firesight /opt/local/bin/firesight
   installPrefix=/usr/local
   if [ "$(type -p install-sh)" == "" ]; then
-    echo "COMMAND	: pkgin -y install install-sh"
+    echo -e "${YELLOW}COMMAND${NC}	: pkgin -y install install-sh\n"
     sudo pkgin -y install install-sh
   else
-    echo "STATUS	: install-sh installed"
+    echo -e "${GREEN}SUCCESS${NC}	: install-sh installed\n"
   fi
 fi
 
 if [ "$(type -p gcc)" == "" ]; then
-  echo "COMMAND	: pkgin -y install scmgit-base gcc47"
-  sudo pkgin -y install scmgit-base gcc47
-else
-  echo "STATUS	: GCC installed"
+  if [ `uname -o` == "Solaris" ]; then
+    echo -e "${YELLOW}COMMAND${NC} : pkgin -y install scmgit-base gcc47\n"
+    sudo pkgin -y install scmgit-base gcc47
+    echo -e "${GREEN}SUCCESS${NC}  : GCC installed\n"
+  elif [ "$(lsb_release -is)" == "Debian" ]; then
+    echo -e "${YELLOW}COMMAND${NC} : apt-get -y install gcc\n"
+    sudo apt-get -y install gcc git
+    echo -e "${GREEN}SUCCESS${NC}  : GCC installed\n"
+  else
+    packages
+  fi
 fi
 
 if [ "$(type -p cmake)" == "" ]; then
   if [ `uname -o` == "Solaris" ]; then
-    echo "COMMAND	: pkgin -y install gmake; pkgin -y install cmake"
+    echo -e "${YELLOW}COMMAND${NC}	: pkgin -y install gmake; pkgin -y install cmake\n"
     sudo pkgin -y install gmake
     sudo pkgin -y install cmake
-  else
-    echo "COMMAND	: apt-get -y install cmake"
+    echo -e "${GREEN}SUCCESS${NC}  : cmake installed\n"
+  elif [ "$(lsb_release -is)" == "Debian" ]; then
+    echo -e "${YELLOW}COMMAND${NC}	: apt-get -y install cmake\n"
     sudo apt-get -y install cmake
+    echo -e "${GREEN}SUCCESS${NC}  : cmake installed\n"
+  else
+    packages
   fi
-else
-  echo "STATUS	: cmake installed"
 fi
 
-if [ "$(type -p libtool)" == "" ]; then
-  echo "COMMAND	: pkgin -y install libtool"
-  sudo pkgin -y install libtool
-else
-  echo "STATUS	: libtool installed"
+if [ ! -d "/usr/share/libtool" ]; then
+  if [ `uname -o` == "Solaris" ]; then
+    echo -e "${YELLOW}COMMAND${NC}	: pkgin -y install libtool\n"
+    sudo pkgin -y install libtool
+    echo -e "${GREEN}SUCCESS${NC}  : libtool installed\n"
+  elif [ "$(lsb_release -is)" == "Debian" ]; then
+    echo -e "${YELLOW}COMMAND${NC} : apt-get -y install libtool\n"
+    sudo apt-get -y install libtool
+    echo -e "${GREEN}SUCCESS${NC}  : libtool installed\n"
+  else
+    packages
+  fi
 fi
 
 if [ "$(type -p aclocal)" == "" ]; then
-  echo "COMMAND	: pkgin -y install automake"
-  sudo pkgin -y install automake
-else
-  echo "STATUS	: automake installed"
+  if [ `uname -o` == "Solaris" ]; then
+    echo -e "${YELLOW}COMMAND${NC}	: pkgin -y install automake\n"
+    sudo pkgin -y install automake
+    echo -e "${GREEN}SUCCESS${NC}  : automake installed\n"
+  elif [ "$(lsb_release -is)" == "Debian" ]; then
+    echo -e "${YELLOW}COMMAND${NC} : apt-get -y install automake\n"
+    sudo apt-get -y install automake
+    echo -e "${GREEN}SUCCESS${NC}  : automake installed\n"
+  else
+    packages
+  fi
 fi
-
 
 grep 2.7 /usr/local/include/jansson.h
 RC=$?
 if [ $RC -eq 0 ]; then
-	echo	"STATUS	: Jansson 2.7 installed"
+	echo -e	"\n${YELLOW}STATUS${NC}	: Jansson 2.7 already installed\n"
 else
-	echo	"STATUS	: installing Jansson 2.7"
+	echo -e	"\n${YELLOW}STATUS${NC}	: installing Jansson 2.7\n"
 	if [ ! -e jannson ]; then
 		rm -rf jannson
 	fi
@@ -121,56 +165,74 @@ else
 	autoreconf -i
 	./configure
 	cmake .
-	make 
+	make $(nproc)
 	sudo -E make install
 	popd
+  echo -e "\n${GREEN}SUCCESS${NC} : Jansson 2.7 installed\n"
 fi
 
 if [ -e /usr/lib/libopencv_core.so.2.3 ]; then
-  echo "STATUS	: removing OpenCV 2.3 found in /usr/lib:"
+  echo -e "${YELLOW}STATUS${NC}	: removing OpenCV 2.3 found in /usr/lib:\n"
   sudo apt-get -y remove libopencv-dev
-  if [ $? -ne 0 ]; then echo "ERROR	: Could not remove existing OpenCV 2.3"; exit -1; fi
+  if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}	: Could not remove existing OpenCV 2.3\n\n"; exit -1; fi
   sudo apt-get -y autoremove libopencv-dev
-  if [ $? -ne 0 ]; then echo "ERROR	: Could not remove existing OpenCV 2.3"; exit -1; fi
+  if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}	: Could not remove existing OpenCV 2.3\n\n"; exit -1; fi
 fi
 
 if [ -e /usr/local/lib/libopencv_core.so.3.* ]; then
   ls /usr/local/lib/libopencv_core.so.*
-  echo "ERROR	: FireSight does not yet work with OpenCV 3. Please use OpenCV 2.4.9 or earlier"
+  echo -e "\n\n${RED}ERROR${NC}	: FireSight does not yet work with OpenCV 3. Please use OpenCV 2.4.9 or earlier"
   exit -1
 elif [ -e /usr/local/lib/libopencv_core.so.2.4.8 ]; then
-  echo "STATUS	: OpenCV found in /usr/local/lib:"
+  echo -e "${YELLOW}STATUS${NC}	: OpenCV found in /usr/local/lib:"
   ls /usr/local/lib/libopencv_core.so.*
 elif [ "$cv" == "install" ]; then
-  echo "STATUS	: INSTALLING OPENCV C++ LIBRARIES "
+  echo -e "${YELLOW}STATUS${NC}	: INSTALLING OPENCV C++ LIBRARIES\n"
   if [ `uname -o` == "Solaris" ]; then
     pkgin -y install opencv
-  elif [ "$(arch)" == "armv6l" ] && [ "$(lsb_release -is)" == "Debian" ] ;then
-    echo "SYSTEM	: Raspberry Pi with Rasbian"
-    echo "COMMAND	: sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip"
+    echo -e "${GREEN}SUCCESS${NC}  : OpenCV installed\n"
+  elif [ "`uname -m`" == "armv6l" ]; then
+    echo -e "${YELLOW}SYSTEM${NC}	       : Raspberry Pi 1"
+    echo -e "${YELLOW}COMMAND${NC}	     : sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip"
     sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip
+    echo -e "\n${GREEN}SUCCESS${NC}  : OpenCV 2.4.8 installed\n"
+  elif [ "`uname -m`" == "armv7l" ]; then
+    echo -e "${YELLOW}SYSTEM${NC}        : Raspberry Pi 2"
+    echo -e "${YELLOW}COMMAND${NC}       : sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip"
+    sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip
+    echo -e "\n${GREEN}SUCCESS${NC}  : OpenCV 2.4.8 installed\n"
+  elif [ "`cat /proc/cpuinfo | grep a02082`" == "a02082"]; then
+    echo -e "${YELLOW}SYSTEM${NC}        : Raspberry Pi 3 manufactured by Sony"
+    echo -e "${YELLOW}COMMAND${NC}       : sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip"
+    sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip
+    echo -e "\n${GREEN}SUCCESS${NC}  : OpenCV 2.4.8 installed\n"
+  elif [ "`cat /proc/cpuinfo | grep a22082`" == "a22082"]; then
+    echo -e "${YELLOW}SYSTEM${NC}        : Raspberry Pi 3 manufactured by Embest"
+    echo -e "${YELLOW}COMMAND${NC}       : sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip"
+    sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip
+    echo -e "\n${GREEN}SUCCESS${NC}  : OpenCV 2.4.8 installed\n"
   elif [ "$(type -p apt-get)" == "" ]; then
-    echo "ERROR	: apt-get is UNAVAILABLE"
-    echo "TRY	: Install OpenCV using following command:"
-    echo "TRY	:  sudo ./build -c make"
+    echo -e "\n\n${RED}ERROR${NC}	: apt-get is UNAVAILABLE"
+    echo -e "${YELLOW}TRY${NC}	  : Install OpenCV using following command:"
+    echo -e "${YELLOW}TRY${NC}	  :  sudo ./build -c make\n\n"
     exit -1
-  else
-    sudo apt-get -y install libopencv-dev
   fi
 else
-  echo "STATUS	: BUILDING  OPENCV C++ LIBRARIES" 
+  echo -e "\n${YELLOW}STATUS${NC}	: BUILDING  OPENCV C++ LIBRARIES\n" 
   #if [ `uname -o` == "Solaris" ]; then
     if [ "$(type -p apt-get)" != "" ] [ `uname -o` == "Solaris" ]; then
-      echo "ERROR	: apt-get: UNAVAILABLE"
-      echo "ASSUME	: (assuming OpenCV prerequisites are already on your system)..."
+      echo -e "\n\n${RED}ERROR${NC}	: apt-get: UNAVAILABLE"
+      echo -e "${YELLOW}ASSUME${NC}	: (assuming OpenCV prerequisites are already on your system)...\n\n"
     else
-      echo "STATUS	: apt-get installing openexr for libIlmImf.so.6"
+      echo -e "${YELLOW}STATUS${NC}	: apt-get installing needed libraries for libIlmImf.so.6\n"
       sudo apt-get -y install openexr
       sudo apt-get -y install libavcodec-dev
       sudo apt-get -y install libavformat-dev
       sudo apt-get -y install libswscale-dev
       sudo apt-get -y install libdc1394-22
       sudo apt-get -y install libz-dev
+      echo -e "\n${GREEN}SUCCESS${NC}  : OpenCV C++ libraries installed\n"
+
     fi
 
     if [ ! -e opencv ] ; then
@@ -183,38 +245,40 @@ else
         -D CMAKE_BUILD_TYPE=DEBUG \
 	-D CMAKE_INSTALL_PREFIX=/usr/local \
         ..
-      sudo -E make install
+      sudo -E make -j$(nproc) install
     popd
 fi
 
-if [ -e CMakeFiles ] ; then 
-  echo "STATUS	: removing existing makefiles"
+if [ -e CMakeFiles ] ; then
+  echo -e "\n${YELLOW}STATUS${NC}	: removing existing makefiles"
   rm -rf CMakeCache.txt CMakeFiles CMakeFiles.txt target cmake_install.cmake CPackConfig.cmake CPackSourceConfig.cmake
   mkdir target
 fi
 
 
-echo "STATUS	: creating makefile"
+echo -e "${YELLOW}STATUS${NC}	: creating makefile\n"
 cmake \
   -DBUILD_LGPL2_1=$LGPL2_1 \
-  -DCMAKE_INSTALL_PREFIX:PATH=$installPrefix "$@" \
+  -DCMAKE_${YELLOW}INSTALL${NC}_PREFIX:PATH=$installPrefix "$@" \
   .
 RC=$?; if [ $RC -ne 0 ]; then
-	echo "ERROR	: cmake failed (RC=$RC)"
+	echo -e "\n\n${RED}ERROR${NC}	: cmake failed (RC=$RC)\n\n"
 	exit -1
+
 fi
-echo "STATUS	: building and installing FireSight..."
-make
+echo -e "\n${YELLOW}STATUS${NC}	: building and installing FireSight...\n"
+make -j$(nproc)
 RC=$?; if [ $RC -ne 0 ]; then
-	echo "ERROR	: make failed (RC=$RC)"
+	echo -e "\n\n${RED}ERROR${NC}	: make failed (RC=$RC)\n\n"
 	exit -1
 fi
+
 sudo -E make install
 if [ $? -ne 0 ]; then
-  echo "ERROR	: make failed"
+  echo -e "\n\n${RED}ERROR${NC}	: make failed\n\n"
   exit -1
 fi
 
 echo "----------------------------------"
-echo "DATE	: `date`"
-echo "SUCCESS	: firesight installed"
+echo -e "\nDATE	: `date`"
+echo -e "${GREEN}SUCCESS${NC}	: firesight installed\n"
