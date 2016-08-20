@@ -47,6 +47,7 @@ function packages() {
   echo
   echo "libzbar"
   echo
+  exit -1
 }
 
 while getopts "c:" flag
