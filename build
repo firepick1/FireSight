@@ -1,22 +1,30 @@
-#! /bin/bash
+#!/bin/bash 
 
 RED='\033[1;31m'
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-if [ "$LGPL2_1" == "" ]; then
+installPrefix=/usr/local
+cv=install
+
+if [ "$LGPL2_1" = "" ]; then
   LGPL2_1=OFF
 fi
 
-echo -e "${YELLOW}COMMAND${NC}	: ../FireSight/build"
-echo "DATE	: `date`"
-echo "LGPL2_1	: $LGPL2_1"
+if [ "$WITH_TBB" = "" ]; then
+  WITH_TBB=OFF
+fi
 
-installPrefix=/usr
+echo -e "${YELLOW}COMMAND${NC}	 : ../FireSight/build"
+echo "DATE     : $(date)"
+echo "LGPL2_1  : $LGPL2_1"
+echo "WITH_TBB : $WITH_TBB"
 
 function help() {
   echo "Build FireSight for Linux (Debian) and Solaris"
+  echo
+  echo "Debian requires apt-get"
   echo
   echo "EXAMPLES:"
   echo "  ./build"
@@ -25,34 +33,53 @@ function help() {
   echo "  -h"
   echo "  --help"
   echo "     Print this help text"
+  echo
+  echo "  -p"
+  echo "     Print required packages text"
+  echo
   echo "  -c install"
-  echo "     Install pre-built OpenCV package if available (fast, simple). This is default."
+  echo "     Install pre-built OpenCV 2.4.8 package if available (fast, simple). This is default."
+  echo
   echo "  -c make"
-  echo "     Rebuild  OpenCV from latest source code (latest code, time-consuming)"
+  echo "     Build Optimized OpenCV from latest source code (latest code, time-consuming)"
 }
 
-function packages() {
-  echo "${RED}ERROR${NC} : It seems that my programmer hasn't told me how to install certain required packages on your platform."
+function errorpackages() {
   echo
-  echo "Please ensure you have the following packages installed on your platform first before continuing and append `-c make` when ready:"
+  echo -e "${RED}ERROR${NC}  : It seems that my programmer hasn't told me how to install certain required packages on your platform or they are unavailable."
+  echo
+  echo -e "Please ensure you have the following packages installed on your platform first before continuing with ${YELLOW}./build -c make${NC}"
   echo
   echo "GCC"
-  echo "g++"
+  echo "G++"
   echo "git"
   echo "cmake"
   echo "zlib"
   echo "autotools"
   echo "pkg-config"
-  echo "libavcodec"
-  echo "libavformat"
-  echo "libswscale"
-  echo "libjpeg"
   echo
-  echo "OPTIONAL: (not available on Solaris)"
+  echo -e "${YELLOW}OPTIONAL${NC}:"
   echo
   echo "libzbar"
-  echo
+  echo "wget (Intel TBB)"
   exit -1
+}
+
+function packages() {
+  echo -e "${YELLOW}REQUIRED PACKAGES${NC}:"
+  echo
+  echo "GCC"
+  echo "G++"
+  echo "git"
+  echo "cmake"
+  echo "zlib"
+  echo "autotools"
+  echo "pkg-config"
+  echo
+  echo -e "${YELLOW}OPTIONAL${NC}:"
+  echo
+  echo "libzbar"
+  echo "wget (Intel TBB)"
 }
 
 while getopts "c:" flag
@@ -60,243 +87,507 @@ do
   case "$flag" in
     c) cv="$OPTARG";;
 
+    p) packages ; exit 0;;
+
     *) help ; exit 0;;
   esac
 done
 
 if [ "$SUDO_USER" != "" ]; then
-  echo -e "\n\n${RED}ERROR${NC}	: This script will call sudo as required and must be run by non-root user"
+  echo -e "\n\n${RED}ERROR${NC}	 : This script will call sudo as required and must be run by non-root user"
   echo -e "${YELLOW}TRY${NC}	:   ./build\n\n"
   exit -1
 fi
 
-if [ "$LGPL2_1" == "ON" ]; then
+if [[ "$(type -p apt-get)" == *apt-get* ]]; then
+  echo -e "\n${YELLOW}STATUS${NC}  : UPDATING package lists\n"
+  sudo apt-get update
+  if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : Update package lists FAILED\n\n"; exit -1; fi
+fi
+
+if [ "$LGPL2_1" = "ON" ];then
   if [ -e /usr/lib/libzbar.so ]; then
-    echo -e "${GREEN}SUCCESS${NC}	: libzbar INSTALLED\n"
-  else
-    echo -e "${YELLOW}INSTALL${NC}	: apt-get install libzbar0\n" 
-    sudo apt-get install -y libzbar0 
-    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}	: INSTALL FAILED\n\n"; exit -1; fi
-    echo -e "\n${YELLOW}INSTALL${NC}	: apt-get install libzbar-dev\n" 
-    sudo apt-get install -y libzbar-dev
-    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}	: INSTALL FAILED\n\n"; exit -1; fi
+    echo -e "\n${GREEN}SUCCESS${NC}	 : libzbar INSTALLED\n"
+  elif [[ "$(type -p apt-get)" == *apt-get* ]]; then
+    echo -e "\n${YELLOW}STATUS${NC}  : INSTALLING libzbar\n"
+    echo -e "\n${YELLOW}COMMAND${NC}	: apt-get download libzbar-dev\n"
+    echo -e "\n${YELLOW}COMMAND${NC} : dpkg --force-all -i libzbar-dev\n"
+    sudo apt-get download -y libzbar-dev
+    sudo dpkg --force-all -i libzbar-dev*.deb
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : lizbar install FAILED\n\n"; errorpackages; fi
+    echo -e "\n${GREEN}SUCCESS${NC}  : libzbar INSTALLED\n"
+  elif [ "$(uname -o)" = "Solaris" ]; then
+    echo -e "\n${YELLOW}STATUS${NC}  : INSTALLING libzbar\n"
+    echo -e "\n${YELLOW}COMMAND${NC}  : pkgin install zbar\n"
+    sudo pkgin -y install zbar
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : lizbar install FAILED\n\n"; errorpackages; fi
+    echo -e "\n${GREEN}SUCCESS${NC}  : libzbar INSTALLED\n"
   fi
 fi
 
-if [ `uname -o` == "Solaris" ]; then
+echo -e "\n${YELLOW}STATUS${NC}  : CHECKING/INSTALLING OPENCV 2.4 DEPENDENCIES:\n"
+packages
+
+if [ "$(uname -o)" = "Solaris" ]; then
   echo "OS	: SOLARIS"
   sudo pkgin update
   sudo crle -l /usr/local/lib -u
   sudo ln -s -f /usr/local/bin/firesight /opt/local/bin/firesight
   installPrefix=/usr/local
-  if [ "$(type -p install-sh)" == "" ]; then
+  if [ "$(type -p install-sh)" = "" ]; then
     echo -e "${YELLOW}COMMAND${NC}	: pkgin -y install install-sh\n"
     sudo pkgin -y install install-sh
-  else
-    echo -e "${GREEN}SUCCESS${NC}	: install-sh INSTALLED\n"
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : install-sh install FAILED\n\n"; errorpackages; exit -1; fi
+    echo -e "${GREEN}SUCCESS${NC}  : install-sh INSTALLED\n"
   fi
-fi
 
-if [ "$(type -p gcc)" == "" ]; then
-  if [ `uname -o` == "Solaris" ]; then
-    echo -e "${YELLOW}COMMAND${NC} : pkgin -y install scmgit-base gcc47\n"
-    sudo pkgin -y install scmgit-base gcc47
-    echo -e "${GREEN}SUCCESS${NC}  : GCC INSTALLED\n"
-  elif [ "$(lsb_release -is)" == "Debian" ]; then
-    echo -e "${YELLOW}COMMAND${NC} : apt-get -y install build-essential\n"
-    sudo apt-get update
-    sudo apt-get -y install build-essential git
-    echo -e "${GREEN}SUCCESS${NC}  : GCC INSTALLED\n"
-  else
-    packages
+  if [ "$(type -p gcc)" = "" ]; then
+    echo -e "${YELLOW}COMMAND${NC}  : pkgin -y gcc47\n"
+    sudo pkgin -y scmgit-base gcc47
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : gcc47 install FAILED\n\n"; errorpackages; exit -1; fi
+    echo -e "${GREEN}SUCCESS${NC}  : gcc47 INSTALLED\n"
   fi
-fi
 
-if [ "$(type -p cmake)" == "" ]; then
-  if [ `uname -o` == "Solaris" ]; then
-    echo -e "${YELLOW}COMMAND${NC}	: pkgin -y install gmake; pkgin -y install cmake\n"
-    sudo pkgin -y install gmake
+  if [ "$(type -p git)" = "" ]; then
+    echo -e "${YELLOW}COMMAND${NC}  : pkgin -y scmgit-base\n"
+    sudo pkgin -y scmgit-base
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : scmgit-base install FAILED\n\n"; errorpackages; exit -1; fi
+    echo -e "${GREEN}SUCCESS${NC}  : scmgit-base INSTALLED\n"
+  fi
+
+  if [ "$(type -p cmake)" = "" ]; then
+    echo -e "${YELLOW}COMMAND${NC}  : pkgin -y install cmake\n"
     sudo pkgin -y install cmake
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : cmake install FAILED\n\n"; errorpackages; exit -1; fi
     echo -e "${GREEN}SUCCESS${NC}  : cmake INSTALLED\n"
-  elif [ "$(lsb_release -is)" == "Debian" ]; then
-    echo -e "${YELLOW}COMMAND${NC}	: apt-get -y install cmake\n"
-    sudo apt-get -y install cmake
-    echo -e "${GREEN}SUCCESS${NC}  : cmake INSTALLED\n"
-  else
-    packages
   fi
-fi
 
-if [ ! -d "/usr/share/libtool" ]; then
-  if [ `uname -o` == "Solaris" ]; then
-    echo -e "${YELLOW}COMMAND${NC}	: pkgin -y install autotools\n"
-    sudo pkgin -y install autotools
+  if [ "$(type -p aclocal)" = "" ]; then
+    echo -e "${YELLOW}COMMAND${NC}  : pkgin -y install autotools\n"
+    sudo pkgin -y install autotools autoconf
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : autotools install FAILED\n\n"; errorpackages; exit -1; fi
     echo -e "${GREEN}SUCCESS${NC}  : autotools INSTALLED\n"
-  elif [ "$(lsb_release -is)" == "Debian" ]; then
-    echo -e "${YELLOW}COMMAND${NC} : apt-get -y install autotools-dev\n"
-    sudo apt-get -y install autotools-dev
-    echo -e "${GREEN}SUCCESS${NC}  : autotools INSTALLED\n"
-  else
-    packages
   fi
-fi
 
-if [ "$(type -p pkg-config)" == "" ]; then
-  if [ `uname -o` == "Solaris" ]; then
+  if [ "$(type -p pkg-config)" = "" ]; then
     echo -e "${YELLOW}COMMAND${NC}  : pkgin -y install pkg-config\n"
     sudo pkgin -y install pkg-config
-    echo -e "${GREEN}SUCCESS${NC}  : pkg-config INSTALLED\n"
-  elif [ "$(lsb_release -is)" == "Debian" ]; then
-    echo -e "${YELLOW}COMMAND${NC} : apt-get -y install pkg-config\n"
-    sudo apt-get -y install pkg-config
-    echo -e "${GREEN}SUCCESS${NC}  : pkg-config INSTALLED\n"
-  else
-    packages
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : pkg-config install FAILED\n\n"; errorpackages; exit -1; fi
+    echo -e "${GREEN}SUCCESS${NC}  : pkg-config INSTALLED\n\n"
   fi
 fi
 
-grep 2.7 /usr/local/include/jansson.h
-RC=$?
-if [ $RC -eq 0 ]; then
-	echo -e	"\n${YELLOW}STATUS${NC}	: Jansson 2.7 already INSTALLED\n"
+if [ "$(type -p gcc)" = "" ] && [[ "$(type -p apt-get)" == *apt-get* ]]; then
+  echo -e "\n${YELLOW}COMMAND${NC}  : apt-get -y install build-essential\n"
+  sudo apt-get install -y build-essential
+  if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : build-essential install FAILED\n\n"; errorpackages; exit -1; fi
+  echo -e "${GREEN}SUCCESS${NC}  : build-essential INSTALLED\n"
+fi
+
+if [ "$(type -p git)" = "" ] && [[ "$(type -p apt-get)" == *apt-get* ]]; then
+  echo -e "\n${YELLOW}COMMAND${NC}  : apt-get -y install git\n"
+  sudo apt-get install -y git
+  if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : git install FAILED\n\n"; errorpackages; exit -1; fi
+  echo -e "${GREEN}SUCCESS${NC}  : git INSTALLED\n"
+fi
+
+if [ "$(type -p cmake)" = "" ] && [[ "$(type -p apt-get)" == *apt-get* ]]; then
+  echo -e "\n${YELLOW}COMMAND${NC}  : apt-get -y install cmake\n"
+  sudo apt-get -y install cmake
+  if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : cmake install FAILED\n\n"; errorpackages; exit -1; fi
+  echo -e "${GREEN}SUCCESS${NC}  : cmake INSTALLED\n"
+fi
+
+if [ "$(type -p aclocal)" = "" ] && [[ "$(type -p apt-get)" == *apt-get* ]]; then
+  echo -e "\n${YELLOW}COMMAND${NC}  : apt-get -y install autotools-dev autoconf\n"
+  sudo apt-get -y install autotools-dev autoconf
+  if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : autotools; autoconf install FAILED\n\n"; errorpackages; exit -1; fi
+  echo -e "\n${GREEN}SUCCESS${NC}  : autotools and autoconf INSTALLED\n"
+fi
+
+if [ "$(type -p pkg-config)" = "" ] && [[ "$(type -p apt-get)" == *apt-get* ]]; then
+  echo -e "${YELLOW}COMMAND${NC} : apt-get -y install pkg-config\n"
+  sudo apt-get -y install pkg-config
+  if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : pkg-config install FAILED\n\n"; errorpackages; exit -1; fi
+  echo -e "${GREEN}SUCCESS${NC}  : pkg-config INSTALLED\n"
+fi
+
+if [ "$WITH_TBB" = "ON" ]; then
+  if [ "$(uname -o)" = "Solaris" ]; then
+    echo -e "${YELLOW}COMMAND${NC}  : pkgin -y install wget\n"
+    sudo pkgin -y install wget
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : wget install FAILED\n\n"; errorpackages; exit -1; fi
+    echo -e "${GREEN}SUCCESS${NC}  : wget INSTALLED\n\n"
+  elif [ "$(type -p wget)" = "" ] && [[ "$(type -p apt-get)" == *apt-get* ]]; then
+    echo -e "\n${YELLOW}COMMAND${NC}  : apt-get -y install wget\n"
+    sudo apt-get -y install wget
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : wget install FAILED\n\n"; errorpackages; exit -1; fi
+    echo -e "${GREEN}SUCCESS${NC}  : wget INSTALLED, required by Intel TBB\n\n"
+  fi
+fi
+
+echo -e "\n\n${GREEN}SUCCESS${NC} : OPENCV 2.4 DEPENDENCIES INSTALLED\n\n"
+
+echo -e "${YELLOW}STATUS${NC}  : CHECKING for Jansson 2.7\n"
+if [[ "$(grep 2.7 /usr/local/include/jansson.h)" == *2.7* ]]; then
+  echo -e  "\n${YELLOW}STATUS${NC} : Jansson 2.7 already INSTALLED\n"
 else
 	echo -e	"\n${YELLOW}STATUS${NC}	: INSTALLING Jansson 2.7\n"
 	if [ -e jannson ]; then
 		sudo rm -rf jannson
 	fi
+
 	git clone https://github.com/akheron/jansson 
 	pushd jansson
-	git checkout v2.7
-	autoreconf -i
-	./configure
-	cmake .
-	make -j$(nproc)
-	sudo -E make install
+	  git checkout v2.7
+	  autoreconf -i
+	  ./configure
+	  cmake \
+      -D WITH_BUILD_DOCS=OFF \
+      .
+	  make -j$(nproc)
+
+    if [ $? -ne 0 ]; then 
+      echo -e "\n\n${RED}ERROR${NC}  : Jansson could not be compiled\n\n"
+      rm -rf jansson
+      exit -1
+    fi
+
+	  sudo -E make install
+
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : Jansson install FAILED\n\n"
+      rm -rf jansson
+      exit -1
+    fi
 	popd
-  echo -e "\n${GREEN}SUCCESS${NC} : Jansson 2.7 INSTALLED\n"
+  echo -e "\n${GREEN}SUCCESS${NC}  : Jansson 2.7 INSTALLED\n"
 fi
 
 if [ -e /usr/lib/libopencv_core.so.2.3 ]; then
-  echo -e "${YELLOW}STATUS${NC}	: Removing OpenCV 2.3 found in /usr/lib:\n"
-  sudo apt-get -y remove libopencv-dev
-  if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}	: Could NOT remove existing OpenCV 2.3, please remove it manually\n\n"; exit -1; fi
-  sudo apt-get -y autoremove libopencv-dev
-  if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}	: Could NOT remove existing OpenCV 2.3, please remove it manually\n\n"; exit -1; fi
+  echo -e "${YELLOW}STATUS${NC}  : OpenCV 2.3 found in /usr/local/lib:"
+  ls /usr/local/lib/libopencv_core.so.*
+  echo -e "\n\n${RED}ERROR${NC}  : FireSight does not work with OpenCV 2.3. Please remove it and build the latest 2.4 by running ${GREEN}./build -c make${NC}"
 fi
 
-if [ -e /usr/local/lib/libopencv_core.so.3.* ]; then
+if [ -e /usr/local/lib/libopencv_core.so.3 ]; then
+  echo -e "${YELLOW}STATUS${NC}  : OpenCV 3 found in /usr/local/lib:"
   ls /usr/local/lib/libopencv_core.so.*
-  echo -e "\n\n${RED}ERROR${NC}	: FireSight does not yet work with OpenCV 3. Please use OpenCV 2.4.9 or earlier"
+  echo -e "\n\n${RED}ERROR${NC}	 : FireSight does not yet work with OpenCV 3. Please remove it and build the latest 2.4 by running ${GREEN}./build -c make${NC}"
   exit -1
-elif [ -e /usr/local/lib/libopencv_core.so.2.4.8 ]; then
-  echo -e "${YELLOW}STATUS${NC}	: OpenCV found in /usr/local/lib:"
+fi
+
+for z in /usr/local/lib/libopencv_core.so.2.4.*; do
+  test -f "$z" || continue
+  echo "echo -e ${YELLOW}STATUS${NC}  : OpenCV already found in /usr/local/lib:"
   ls /usr/local/lib/libopencv_core.so.*
-elif [ "$cv" == "install" ]; then
-  echo -e "${YELLOW}STATUS${NC}	: INSTALLING OPENCV 2.4 C++ LIBRARIES\n"
-  if [ `uname -o` == "Solaris" ]; then
-    pkgin -y install opencv
-    echo -e "${GREEN}SUCCESS${NC}  : OPENCV 2.4 INSTALLED\n"
-  elif [ "`uname -m`" == "armv6l" ]; then
-    echo -e "${YELLOW}SYSTEM${NC}	       : Raspberry Pi 1"
-    echo -e "${YELLOW}COMMAND${NC}	     : sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip"
+  unset cv
+done
+
+if [ "$(uname -o)" = "Solaris" ] && [ "$cv" = "install" ]; then
+  pkgin -y install opencv
+  echo -e "${GREEN}SUCCESS${NC}  : OPENCV 2.4 INSTALLED\n"
+elif [ "$(uname -m)" = "armv6l" ]; then
+  echo "-------------------------------------------------"
+  echo -e "\n\n${YELLOW}SYSTEM${NC}  : Raspberry Pi 1 or 0 | or Compute module\n\n"
+  echo "-------------------------------------------------"
+  version=1
+  if [ "$cv" = "install" ]; then
+    echo -e "\n${YELLOW}COMMAND${NC}  : sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip\n"
     sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip
     echo -e "\n${GREEN}SUCCESS${NC}  : OPENCV 2.4 INSTALLED\n"
-  elif [ "`uname -m`" == "armv7l" ]; then
-    echo -e "${YELLOW}SYSTEM${NC}        : Raspberry Pi 2"
-    echo -e "${YELLOW}COMMAND${NC}       : sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip"
+  fi
+
+elif [ "$(uname -m)" = "armv7l" ]; then
+  echo "-------------------------------------------------"
+  echo -e "\n\n${YELLOW}SYSTEM${NC}  : Raspberry Pi 2\n\n"
+  echo "-------------------------------------------------"
+  version=2
+  if [ "$cv" = "install" ]; then
+    echo -e "\n${YELLOW}COMMAND${NC}  : sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip\n"
     sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip
     echo -e "\n${GREEN}SUCCESS${NC}  : OPENCV 2.4 INSTALLED\n"
-  elif [ "`cat /proc/cpuinfo | grep a02082`" == "a02082"]; then
-    echo -e "${YELLOW}SYSTEM${NC}        : Raspberry Pi 3 manufactured by Sony"
-    echo -e "${YELLOW}COMMAND${NC}       : sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip"
+  fi
+
+elif [[ "$(grep a02082 /proc/cpuinfo)" == *a02082* ]]; then
+  echo "-------------------------------------------------"
+  echo -e "\n\n${YELLOW}SYSTEM${NC}  :  Raspberry Pi 3 manufactured by Sony\n\n"
+  echo "-------------------------------------------------"
+  version=3
+  if [ "$cv" = "install" ]; then
+    echo -e "\n${YELLOW}COMMAND${NC}  : sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip\n"
     sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip
     echo -e "\n${GREEN}SUCCESS${NC}  : OPENCV 2.4 INSTALLED\n"
-  elif [ "`cat /proc/cpuinfo | grep a22082`" == "a22082"]; then
-    echo -e "${YELLOW}SYSTEM${NC}        : Raspberry Pi 3 manufactured by Embest"
-    echo -e "${YELLOW}COMMAND${NC}       : sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip"
+  fi
+
+elif [[ "$(grep a22082 /proc/cpuinfo)" == *a22082* ]]; then
+  echo "-------------------------------------------------"
+  echo -e "\n\n${YELLOW}SYSTEM${NC}  : Raspberry Pi 3 manufactured by Embest\n\n"
+  echo "-------------------------------------------------"
+  version=4
+  if [ "$cv" = "install" ]; then
+    echo -e "\n${YELLOW}COMMAND${NC}  : sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip\n"
     sudo -E unzip -d /usr/local rpi-opencv.2.4.8.zip
     echo -e "\n${GREEN}SUCCESS${NC}  : OPENCV 2.4 INSTALLED\n"
-  elif [ "$(type -p apt-get)" == "" ]; then
-    echo -e "\n\n${RED}ERROR${NC}	: apt-get is UNAVAILABLE"
-    echo -e "${YELLOW}TRY${NC}	  : Install OpenCV using following command:"
-    echo -e "${YELLOW}TRY${NC}	  :  sudo ./build -c make\n\n"
+  fi
+
+elif [ "$(type -p apt-get)" = "" ]; then
+  echo "-------------------------------------------------"
+  echo -e "${YELLOW}SYSTEM${NC}  : Unknown"
+  echo "-------------------------------------------------"
+  version=5
+  if [ "$cv" = "install" ]; then
+    echo -e "${RED}ERROR${NC}    : Pre-built package cannot be intstalled on this system\n"
+    echo -e "${YELLOW}TRY${NC}     : Install OpenCV using following command:"
+    echo -e "${YELLOW}TRY${NC}     : sudo ./build -c make\n\n"
+    echo -e "${YELLOW}TRY${NC}     : Also ensure you have the required packages installed or the build will fail, you can view them here:"
+    echo -e "${YELLOW}TRY${NC}     : sudo ./build -p"
     exit -1
   fi
 fi
 
-if [ "$cv" == "make" ]; then
-  #statements
-  echo -e "\n${YELLOW}STATUS${NC}	: BUILDING OPENCV 2.4 DEPENDENCIES\n" 
-  #if [ `uname -o` == "Solaris" ]; then
-  if [ "$(type -p apt-get)" == "" ] && [ `uname -o` == "Solaris" ]; then
-    echo -e "\n\n${RED}ERROR${NC}	: apt-get: UNAVAILABLE"
-    echo -e "${YELLOW}ASSUME${NC}	: (Assuming OpenCV 2.4 prerequisites are already on your system)...\n\n"
+if [ $version -eq 1 ] && [ ! -z "$cv" ]; then
+  BUILD_JPEG=ON
+  ENABLE_NEON=OFF
+  CMAKE_C_FLAGS="-O3 -mcpu=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp -pipe"
+  CMAKE_CXX_FLAGS="-O3 -mcpu=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp -pipe"
+  if [ "$WITH_TBB" = "ON" ]; then
+    echo -e "\n\n${RED}ERROR${NC}  : Raspberry Pi 1/0 or Compute module CANNOT use Intel TBB, disabling n\n"
+    WITH_TBB=OFF
+  fi
+  
+elif [ $version -eq 2 ] && [ ! -z "$cv" ]; then
+  BUILD_JPEG=ON
+  ENABLE_NEON=ON
+  CMAKE_C_FLAGS="-O3 -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -funsafe-math-optimizations -ftree-vectorize -pipe"
+  CMAKE_CXX_FLAGS="-O3 -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -funsafe-math-optimizations -ftree-vectorize -pipe"
+  TBB_CXXFLAGS="-O3 -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -funsafe-math-optimizations -ftree-vectorize -pipe"
+  if [[ "$(type -p dpkg)" == *dpkg* ]]; then
+    if [ "$(ls -A /opt/libjpeg-turbo)" ]; then
+      echo -e "\n${YELLOW}STATUS${NC}  : libjpeg-turbo already found in /opt/libjpeg-turbo\n"
+      BUILD_JPEG=OFF
+      JPEG_INCLUDE_DIR=/opt/libjpeg-turbo/include
+      JPEG_LIBRARY=/opt/libjpeg-turbo/lib/libjpeg.a
+    else
+      sudo dpkg -i libjpeg-turbo_1.5.0_armhf-pi2.deb
+      echo -e "\n${GREEN}SUCCESS${NC}  : libjpeg-turbo INSTALLED\n"
+      BUILD_JPEG=OFF
+      JPEG_INCLUDE_DIR=/opt/libjpeg-turbo/include
+      JPEG_LIBRARY=/opt/libjpeg-turbo/lib/libjpeg.a
+      ENABLE_NEON=$ENABLE_NEON
+      CMAKE_C_FLAGS=$CMAKE_C_FLAGS
+      CMAKE_CXX_FLAGS=$CMAKE_CXX_FLAGS
+      TBB_CXXFLAGS=$TBB_CXXFLAGS
+    fi
   else
-    echo -e "${YELLOW}STATUS${NC}	: apt-get installing needed libraries for libIlmImf.so.6\n"
-    sudo apt-get -y install libavcodec-dev
-    sudo apt-get -y install libavformat-dev
-    sudo apt-get -y install libswscale-dev
-    sudo apt-get -y install libz-dev
-    echo -e "\n${GREEN}SUCCESS${NC}  : OPENCV 2.4 DEPENDENCIES INSTALLED\n"
+    BUILD_JPEG=ON
+    ENABLE_NEON=$ENABLE_NEON
+    CMAKE_C_FLAGS=$CMAKE_C_FLAGS
+    CMAKE_CXX_FLAGS=$CMAKE_CXX_FLAGS
+    TBB_CXXFLAGS=$TBB_CXXFLAGS
   fi
 
-  if [ -e opencv ] ; then
-      sudo rm -rf opencv
+elif [ $version -eq 3 ] && [ ! -z "$cv" ]; then
+  BUILD_JPEG=ON
+  ENABLE_NEON=ON
+  CMAKE_C_FLAGS="-O3 -march=armv8-a+crc -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 -mfloat-abi=hard -ftree-vectorize -funsafe-math-optimizations -pipe"
+  CMAKE_CXX_FLAGS="-O3 -march=armv8-a+crc -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 -mfloat-abi=hard -ftree-vectorize -funsafe-math-optimizations -pipe"
+  TBB_CXXFLAGS="-O3 -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -funsafe-math-optimizations -ftree-vectorize -pipe"  
+  if [[ "$(type -p dpkg)" == *dpkg* ]]; then
+    if [ "$(ls -A /opt/libjpeg-turbo)" ]; then
+      echo -e "\n${YELLOW}STATUS${NC}  : libjpeg-turbo already found in /opt/libjpeg-turbo\n"
+      BUILD_JPEG=OFF
+      JPEG_INCLUDE_DIR=/opt/libjpeg-turbo/include
+      JPEG_LIBRARY=/opt/libjpeg-turbo/lib/libjpeg.a
+    else
+      sudo dpkg -i libjpeg-turbo_1.5.0_armhf-pi3.deb
+      echo -e "\n${GREEN}SUCCESS${NC}  : libjpeg-turbo INSTALLED\n"
+      BUILD_JPEG=OFF
+      JPEG_INCLUDE_DIR=/opt/libjpeg-turbo/include
+      JPEG_LIBRARY=/opt/libjpeg-turbo/lib/libjpeg.a
+      ENABLE_NEON=$ENABLE_NEON
+      CMAKE_C_FLAGS=$CMAKE_C_FLAGS
+      CMAKE_CXX_FLAGS=$CMAKE_CXX_FLAGS
+      TBB_CXXFLAGS=$TBB_CXXFLAGS
+    fi
+  else
+    BUILD_JPEG=ON
+    ENABLE_NEON=$ENABLE_NEON
+    CMAKE_C_FLAGS=$CMAKE_C_FLAGS
+    CMAKE_CXX_FLAGS=$CMAKE_CXX_FLAGS
+    TBB_CXXFLAGS=$TBB_CXXFLAGS
   fi
 
-  echo -e "\n${YELLOW}STATUS${NC} : CLONING OPENCV 2.4\n"
-  git clone https://github.com/firepick1/opencv -b 2.4
-  mkdir opencv/build
-  pushd opencv/build
-    echo -e "${YELLOW}STATUS${NC} : CREATING makefile\n"
-    cmake \
-	    -D WITH_OPENEXR=OFF \
-      -D CMAKE_BUILD_TYPE=DEBUG \
-	    -D CMAKE_INSTALL_PREFIX=/usr/local \
-      ..
+elif [ $version -eq 4 ] && [ ! -z "$cv" ]; then
+  BUILD_JPEG=ON
+  ENABLE_NEON=ON
+  CMAKE_C_FLAGS="-O3 -march=armv8-a+crc -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 -mfloat-abi=hard -ftree-vectorize -funsafe-math-optimizations -pipe"
+  CMAKE_CXX_FLAGS="-O3 -march=armv8-a+crc -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 -mfloat-abi=hard -ftree-vectorize -funsafe-math-optimizations -pipe"
+  TBB_CXXFLAGS="-O3 -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -funsafe-math-optimizations -ftree-vectorize -pipe"
+  if [[ "$(type -p dpkg)" == *dpkg* ]]; then
+    if [ "$(ls -A /opt/libjpeg-turbo)" ]; then
+      echo -e "\n${YELLOW}STATUS${NC}  : libjpeg-turbo already found in /opt/libjpeg-turbo\n"
+      BUILD_JPEG=OFF
+      JPEG_INCLUDE_DIR=/opt/libjpeg-turbo/include
+      JPEG_LIBRARY=/opt/libjpeg-turbo/lib/libjpeg.a
+    else
+      sudo dpkg -i libjpeg-turbo_1.5.0_armhf-pi3.deb
+      echo -e "\n${GREEN}SUCCESS${NC}  : libjpeg-turbo INSTALLED\n"
+      BUILD_JPEG=OFF
+      JPEG_INCLUDE_DIR=/opt/libjpeg-turbo/include
+      JPEG_LIBRARY=/opt/libjpeg-turbo/lib/libjpeg.a
+      ENABLE_NEON=$ENABLE_NEON
+      CMAKE_C_FLAGS=$CMAKE_C_FLAGS
+      CMAKE_CXX_FLAGS=$CMAKE_CXX_FLAGS
+      TBB_CXXFLAGS=$TBB_CXXFLAGS
+    fi
+  else
+    BUILD_JPEG=ON
+    ENABLE_NEON=$ENABLE_NEON
+    CMAKE_C_FLAGS=$CMAKE_C_FLAGS
+    CMAKE_CXX_FLAGS=$CMAKE_CXX_FLAGS
+    TBB_CXXFLAGS=$TBB_CXXFLAGS
+  fi
 
-    RC=$?; if [ $RC -ne 0 ]; then
-      echo -e "\n\n${RED}ERROR${NC} : cmake FAILED (RC=$RC)\n\n"
+elif [ $version -eq 5 ] && [ ! -z "$cv" ]; then
+  WITH_TBB=OFF
+  BUILD_JPEG=ON
+  ENABLE_NEON=OFF
+  CMAKE_C_FLAGS='"-O3 -march=native -pipe"'
+  CMAKE_CXX_FLAGS='"-O3 -march=native -pipe"'
+fi
+
+if [ "$WITH_TBB" = "ON" ] && [ ! -z "$cv" ]; then
+
+  if [ -e tbb44_20160526oss_src_0.tgz ]; then
+    rm tbb44_20160526oss_src_0.tgz
+  fi
+
+  echo -e "\n${YELLOW}STATUS${NC}  : DOWNLOADING Intel TBB 4.4\n"
+  wget https://www.threadingbuildingblocks.org/sites/default/files/software_releases/source/tbb44_20160526oss_src_0.tgz
+  if [ $? -ne 0 ]; then
+    echo -e "\n\n${RED}ERROR${NC}  : Intel TBB 4.4 could not be downloaded, disabling.\n\n" && WITH_TBB=OFF
+  else
+    shopt -s nocasematch
+    if [[ $(md5sum tbb44_20160526oss_src_0.tgz) = 6309541504a819dabe352130f27e57d5* ]]; then
+      echo -e "\n${GREEN}ARCHIVE CHECKSUM VERIFIED\n${NC}"
+    else
+      echo -e "${RED}ARCHIVE CHECKSUM VERIFICATION FAILED ... YOUR SYSTEMS/NETWORK MAY BE COMPROMISED. PLEASE RETRY ./build with WITH_TBB=OFF\n${NC}"
+      rm tbb44_20160526oss_src_0.tgz
       exit -1
     fi
 
-    echo -e "\n${YELLOW}STATUS${NC} : COMPILING AND INSTALLING OPENCV 2.4 C++ LIBRARIES\n"
+    tar -zxf tbb44_20160526oss_src_0.tgz
+    rm tbb44_20160526oss_src_0.tgz
+
+    if [ -e /opt/intel ]; then
+      echo -e "\n\n${YELLOW}STATUS${NC}  : /opt/intel already exists, REMOVING\n\n"
+      sudo rm -rf /opt/intel
+    fi
+
+    sudo mkdir /opt/intel
+    sudo mv tbb44_20160526oss /opt/intel/tbb
+    pushd /opt/intel/tbb
+      echo -e "\n${YELLOW}STATUS${NC} : COMPILING and INSTALLING Intel TBB 4.4\n"
+      tbb_build_prefix=tbb make -j$(nproc) CXXFLAGS="-DTBB_USE_GCC_BUILTINS=1 -D__TBB_64BIT_ATOMICS=0 $TBB_CXXFLAGS"
+
+      if [ $? -ne 0 ]; then 
+        echo -e "\n\n${RED}ERROR${NC}  : Intel TBB 4.4 could not compile, DELETING\n\n"
+        popd
+        rm -rf tbb44_20160526oss
+        sudo rm -rf /opt/intel
+        WITH_TBB=OFF
+      fi
+
+      echo -e "\n${GREEN}SUCCESS${NC}  : Intel TBB 4.4 INSTALLED\n" 
+
+      if [ "$(grep -q tbbvars.sh $HOME/.firesight)" = "" ] && [ "$(ls -A /opt/intel)" ]; then
+        echo -e "\n${YELLOW}STATUS${NC} : Adding source entry for tbbvars in ${HOME}/.firesight\n"
+        echo "source /opt/intel/tbb/build/tbb_release/tbbvars.sh" >> $HOME/.firesight
+        source $HOME/.firesight
+      fi
+    popd
+  fi
+fi
+
+if [ "$cv" = "make" ]; then
+  if [ -e opencv ] ; then
+    if [ "$(ls -A opencv/build)" ]; then
+      echo -e "\n${YELLOW}STATUS${NC}  : CLEANING existing build directory\n"
+      make -s -C opencv/build clean
+    else
+      mkdir opencv/build
+    fi
+  else
+    echo -e "\n${YELLOW}STATUS${NC}  : CLONING OPENCV 2.4\n"
+    git clone https://github.com/opencv/opencv -b 2.4
+    if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}  : Could not clone OpenCV, please check you network connection.\n\n"; exit -1; fi
+    mkdir opencv/build
+  fi
+
+  pushd opencv/build
+    echo -e "\n${YELLOW}STATUS${NC} : CREATING OPTIMIZED OPENCV 2.4 makefile\n"
+    cmake \
+      -D WITH_OPENEXR=OFF \
+      -D WITH_OPENCL=OFF \
+      -D WITH_CUDA=OFF \
+      -D WITH_JASPER=OFF \
+      -D WITH_FFMPEG=OFF \
+      -D WITH_PNG=OFF \
+      -D WITH_TIFF=OFF \
+      -D WITH_JPEG=ON \
+      -D WITH_TBB=$WITH_TBB \
+      -D BUILD_JPEG=$BUILD_JPEG \
+      -D JPEG_INCLUDE_DIR=$JPEG_INCLUDE_DIR \
+      -D JPEG_LIBRARY=$JPEG_LIBRARY \
+      -D BUILD_EXAMPLES=OFF \
+      -D BUILD_EXAMPLES=OFF \
+      -D BUILD_PERF_TESTS=OFF \
+      -D BUILD_TESTS=OFF \
+      -D ENABLE_FAST_MATH=ON \
+      -D ENABLE_NEON=$ENABLE_NEON \
+      -D INSTALL_C_EXAMPLES=OFF \
+      -D CMAKE_C_FLAGS="$CMAKE_C_FLAGS" \
+      -D CMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS" \
+      -D CMAKE_BUILD_TYPE=RELEASE \
+      -D CMAKE_INSTALL_PREFIX=$installPrefix \
+      ..
+
+    if [ $? -ne 0 ]; then
+      echo -e "\n'\n${RED}ERROR${NC}  : cmake FAILED\n\n"
+      exit -1
+    fi
+
+    echo -e "\n${YELLOW}STATUS${NC}  : COMPILING AND INSTALLING OPENCV 2.4 OPTIMIZED C++ LIBRARIES\n"
     sudo -E make -j$(nproc) install
     if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC} : COULD NOT COMPILE OPENCV 2.4\n\n"; exit -1; fi
-    echo -e "\n${GREEN}SUCCESS${NC}  : OPENCV 2.4 C++ LIBRARIES INSTALLED\n"
+    echo -e "\n${GREEN}SUCCESS${NC}  : OPENCV 2.4 OPTIMIZED C++ LIBRARIES INSTALLED\n"
   popd
 fi
 
 if [ -e CMakeFiles ] ; then
-  echo -e "\n${YELLOW}STATUS${NC}	: REMOVING EXISTING FireStep makefiles"
+  echo -e "\n${YELLOW}STATUS${NC}	 : REMOVING EXISTING FireStep makefiles"
   rm -rf CMakeCache.txt CMakeFiles CMakeFiles.txt target cmake_install.cmake CPackConfig.cmake CPackSourceConfig.cmake
   mkdir target
 fi
 
-
-echo -e "${YELLOW}STATUS${NC}	: CREATING FireStep makefile\n"
+echo -e "\n${YELLOW}STATUS${NC}	 : CREATING FireStep makefile\n"
 cmake \
   -DBUILD_LGPL2_1=$LGPL2_1 \
   -DCMAKE_INSTALL_PREFIX:PATH=$installPrefix "$@" \
   .
-RC=$?; if [ $RC -ne 0 ]; then
-	echo -e "\n\n${RED}ERROR${NC}	: cmake FAILED (RC=$RC)\n\n"
-	exit -1
+if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}	 : cmake FAILED\n\n"; exit -1; fi
 
-fi
-echo -e "\n${YELLOW}STATUS${NC}	: BUILDING AND INSTALLING FireSight...\n"
+echo -e "\n${YELLOW}STATUS${NC}	 : BUILDING AND INSTALLING FireSight...\n"
+
 make -j$(nproc)
-RC=$?; if [ $RC -ne 0 ]; then
-	echo -e "\n\n${RED}ERROR${NC}	: make FAILED (RC=$RC)\n\n"
-	exit -1
-fi
+
+if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}	 : make FAILED\n\n"; exit -1; fi
 
 sudo -E make install
-if [ $? -ne 0 ]; then
-  echo -e "\n\n${RED}ERROR${NC}	: make FAILED\n\n"
-  exit -1
-fi
 
-echo "----------------------------------"
-echo -e "\nDATE	: `date`"
-echo -e "${GREEN}SUCCESS${NC}	: FireSight INSTALLED\n"
+if [ $? -ne 0 ]; then echo -e "\n\n${RED}ERROR${NC}	 : make FAILED\n\n"; exit -1; fi
+
+echo "-------------------------------------------------"
+echo -e "\nDATE	: ($date)"
+echo -e "${GREEN}SUCCESS${NC}	 : FireSight INSTALLED\n"
+echo "-------------------------------------------------"
