@@ -345,7 +345,7 @@ elif [ "$(type -p apt-get)" = "" ]; then
   fi
 fi
 
-if [ $version -eq 1 ] && [ ! -z "$cv" ]; then
+if [ "$version" = "1" ] && [ ! -z "$cv" ]; then
   BUILD_JPEG=ON
   ENABLE_NEON=OFF
   CMAKE_C_FLAGS="-O3 -mcpu=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp -pipe"
@@ -355,7 +355,7 @@ if [ $version -eq 1 ] && [ ! -z "$cv" ]; then
     WITH_TBB=OFF
   fi
   
-elif [ $version -eq 2 ] && [ ! -z "$cv" ]; then
+elif [ "$version" = "2" ] && [ ! -z "$cv" ]; then
   BUILD_JPEG=ON
   ENABLE_NEON=ON
   CMAKE_C_FLAGS="-O3 -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -funsafe-math-optimizations -ftree-vectorize -pipe"
@@ -386,7 +386,7 @@ elif [ $version -eq 2 ] && [ ! -z "$cv" ]; then
     TBB_CXXFLAGS=$TBB_CXXFLAGS
   fi
 
-elif [ $version -eq 3 ] && [ ! -z "$cv" ]; then
+elif [ "$version" = "3" ] && [ ! -z "$cv" ]; then
   BUILD_JPEG=ON
   ENABLE_NEON=ON
   CMAKE_C_FLAGS="-O3 -march=armv8-a+crc -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 -mfloat-abi=hard -ftree-vectorize -funsafe-math-optimizations -pipe"
@@ -417,7 +417,7 @@ elif [ $version -eq 3 ] && [ ! -z "$cv" ]; then
     TBB_CXXFLAGS=$TBB_CXXFLAGS
   fi
 
-elif [ $version -eq 4 ] && [ ! -z "$cv" ]; then
+elif [ "$version" = "4" ] && [ ! -z "$cv" ]; then
   BUILD_JPEG=ON
   ENABLE_NEON=ON
   CMAKE_C_FLAGS="-O3 -march=armv8-a+crc -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 -mfloat-abi=hard -ftree-vectorize -funsafe-math-optimizations -pipe"
@@ -448,7 +448,7 @@ elif [ $version -eq 4 ] && [ ! -z "$cv" ]; then
     TBB_CXXFLAGS=$TBB_CXXFLAGS
   fi
 
-elif [ $version -eq 5 ] && [ ! -z "$cv" ]; then
+elif [ "$version" = "5" ] && [ ! -z "$cv" ]; then
   WITH_TBB=OFF
   BUILD_JPEG=ON
   ENABLE_NEON=OFF
