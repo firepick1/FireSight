@@ -330,7 +330,7 @@ elif [[ "$(grep a22082 /proc/cpuinfo)" == *a22082* ]]; then
     echo -e "\n${GREEN}SUCCESS${NC}  : OPENCV 2.4 INSTALLED\n"
   fi
 
-elif [ "$(type -p apt-get)" = "" ]; then
+elif [ "$(type -p apt-get)" = "" ] || [[ "$(type -p apt-get)" == *apt-get* ]];then
   echo "-------------------------------------------------"
   echo -e "${YELLOW}SYSTEM${NC}  : Unknown"
   echo "-------------------------------------------------"
@@ -452,8 +452,8 @@ elif [ "$version" = "5" ] && [ ! -z "$cv" ]; then
   WITH_TBB=OFF
   BUILD_JPEG=ON
   ENABLE_NEON=OFF
-  CMAKE_C_FLAGS='"-O3 -march=native -pipe"'
-  CMAKE_CXX_FLAGS='"-O3 -march=native -pipe"'
+  CMAKE_C_FLAGS="-O3 -march=native -pipe"
+  CMAKE_CXX_FLAGS="-O3 -march=native -pipe"
 fi
 
 if [ "$WITH_TBB" = "ON" ] && [ ! -z "$cv" ]; then
