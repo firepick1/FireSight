@@ -224,6 +224,7 @@ namespace firesight {
       bool apply_circle(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_convertTo(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_cout(json_t *pStage, json_t *pStageModel, Model &model);
+      bool apply_crop(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_cvtColor(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_dft(json_t *pStage, json_t *pStageModel, Model &model);
       bool apply_dftSpectrum(json_t *pStage, json_t *pStageModel, Model &model);

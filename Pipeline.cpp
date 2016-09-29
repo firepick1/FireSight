@@ -707,6 +707,46 @@ bool Pipeline::apply_points2resolution_RANSAC(json_t *pStage, json_t *pStageMode
     return stageOK("apply_points2resolution_RANSAC(%s) %s", errMsg, pStage, pStageModel);
 }
 
+bool Pipeline::apply_crop(json_t *pStage, json_t *pStageModel, Model &model) {
+    validateImage(model.image);
+    string errMsg;
+
+    int x = jo_int(pStage, "x", 0, model.argMap);
+    int y = jo_int(pStage, "y", 0, model.argMap);
+    int defaultWidth = model.image.cols ? model.image.cols-x : 64;
+    int defaultHeight = model.image.rows ? model.image.rows-y : 64;
+    int width = jo_int(pStage, "width", defaultWidth, model.argMap);
+    int height = jo_int(pStage, "height", defaultHeight, model.argMap);
+
+    if (errMsg.empty() && x < 0) {
+        errMsg = "crop() x cannot be negative";
+    }
+    if (errMsg.empty() && y < 0) {
+        errMsg = "crop() y cannot be negative";
+    }
+    if (errMsg.empty() && model.image.cols && x+width > model.image.cols) {
+        errMsg = "crop() cropped area extends beyond image right edge";
+    }
+    if (errMsg.empty() && model.image.rows && y+height > model.image.rows) {
+        errMsg = "crop() cropped area extends beyond image bottom edge";
+    }
+
+    if (logLevel >= FIRELOG_TRACE) {
+        char *pStageJson = json_dumps(pStage, 0);
+        LOGTRACE1("apply_crop(%s)", pStageJson);
+        free(pStageJson);
+    }
+
+    if (errMsg.empty()) {
+        model.image = model.image(Rect(x, y, width, height)).clone();
+    } else {
+        LOGERROR4("crop(%d,%d,%d,%d)", x, y, width, height);
+        LOGERROR2("image(%d,%d)", model.image.cols, model.image.rows);
+    }
+
+    return stageOK("apply_crop(%s) %s", errMsg.c_str(), pStage, pStageModel);
+}
+
 #ifdef LGPL2_1
 bool Pipeline::apply_qrdecode(json_t *pStage, json_t *pStageModel, Model &model) {
     validateImage(model.image);
@@ -1713,6 +1753,8 @@ const char * Pipeline::dispatch(const char *pName, const char *pOp, json_t *pSta
         ok = apply_convertTo(pStage, pStageModel, model);
     } else if (strcmp(pOp, "cout")==0) {
         ok = apply_cout(pStage, pStageModel, model);
+    } else if (strcmp(pOp, "crop")==0) {
+        ok = apply_crop(pStage, pStageModel, model);
     } else if (strcmp(pOp, "Canny")==0) {
         ok = apply_Canny(pStage, pStageModel, model);
     } else if (strcmp(pOp, "cvtColor")==0) {

@@ -1,0 +1,8 @@
+[
+  {"op":"crop", 
+    "x":"{{x||0}}", 
+    "y":"{{y||0}}", 
+    "width":"{{width||64}}", 
+    "height":"{{height||64}}", 
+    "comment":"crop image to rectangle"} 
+]
